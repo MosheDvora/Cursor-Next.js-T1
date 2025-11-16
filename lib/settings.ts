@@ -17,15 +17,36 @@ export interface AppSettings {
  * Default model options
  */
 export const DEFAULT_MODELS = [
-  { value: "gpt-4o", label: "GPT-4o" },
-  { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
-  { value: "gpt-4", label: "GPT-4" },
-  { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo" },
+  { value: "gpt-4o", label: "GPT-4o (OpenAI)" },
+  { value: "gpt-4-turbo", label: "GPT-4 Turbo (OpenAI)" },
+  { value: "gpt-4", label: "GPT-4 (OpenAI)" },
+  { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo (OpenAI)" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Google)" },
+  { value: "gemini-2.0-flash-exp", label: "Gemini 2.0 Flash (Google)" },
+  { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Google)" },
+  { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Google)" },
 ];
 
 /**
  * Get settings from localStorage
  */
+/**
+ * Check if a model is a Google Gemini model
+ */
+export function isGoogleModel(model: string): boolean {
+  return model.startsWith("gemini-");
+}
+
+/**
+ * Get API URL for a given model
+ */
+export function getApiUrl(model: string): string {
+  if (isGoogleModel(model)) {
+    return "https://generativelanguage.googleapis.com/v1beta/models";
+  }
+  return "https://api.openai.com/v1/chat/completions";
+}
+
 export function getSettings(): AppSettings {
   if (typeof window === "undefined") {
     return {

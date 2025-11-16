@@ -19,14 +19,24 @@ export function useNiqqud(initialText: string = "") {
   const [error, setError] = useState<string | null>(null);
   const previousTextRef = useRef<string>(initialText);
 
-  // Update when initialText changes externally
+  // Update when initialText changes externally (user typing/pasting)
   useEffect(() => {
     if (initialText !== previousTextRef.current) {
       setText(initialText);
       previousTextRef.current = initialText;
-      // Clear cache if text changed significantly
-      if (cache && initialText !== cache.original && initialText !== cache.niqqud) {
-        setCache(null);
+      // Clear cache if text changed significantly (not just niqqud toggle)
+      if (cache) {
+        const normalizedInitial = initialText.trim();
+        const normalizedOriginal = cache.original.trim();
+        const normalizedNiqqud = cache.niqqud.trim();
+        
+        // Only clear cache if the new text doesn't match either cached version
+        if (
+          normalizedInitial !== normalizedOriginal &&
+          normalizedInitial !== normalizedNiqqud
+        ) {
+          setCache(null);
+        }
       }
     }
   }, [initialText, cache]);
@@ -63,14 +73,30 @@ export function useNiqqud(initialText: string = "") {
         return;
       }
 
+      // Use the latest text value - get it fresh from state
       const currentText = text;
 
       // Check if we have cached version
-      if (cache && cache.original === currentText) {
-        // Use cached niqqud version
-        setText(cache.niqqud);
-        setIsLoading(false);
-        return;
+      // Try both directions: if current text matches original OR niqqud version
+      if (cache) {
+        // Normalize text for comparison (trim whitespace)
+        const normalizedCurrent = currentText.trim();
+        const normalizedOriginal = cache.original.trim();
+        const normalizedNiqqud = cache.niqqud.trim();
+
+        if (normalizedOriginal === normalizedCurrent) {
+          // Current text is original, use cached niqqud version
+          const niqqudVersion = cache.niqqud;
+          setText(niqqudVersion);
+          setIsLoading(false);
+          // Force update by also updating initialText through the returned setText
+          return;
+        }
+        if (normalizedNiqqud === normalizedCurrent) {
+          // Current text already matches cached niqqud version
+          setIsLoading(false);
+          return;
+        }
       }
 
       // Call API to add niqqud
@@ -92,7 +118,7 @@ export function useNiqqud(initialText: string = "") {
       };
       setCache(newCache);
 
-      // Update text to niqqud version
+      // Update text to niqqud version - this will trigger useEffect in page.tsx
       setText(result.niqqudText);
       setIsLoading(false);
     } catch (err) {
@@ -105,15 +131,32 @@ export function useNiqqud(initialText: string = "") {
 
   // Remove niqqud from text
   const removeNiqqudFromText = useCallback(() => {
-    if (!cache) {
-      // If no cache, try to remove niqqud directly
-      const textWithoutNiqqud = removeNiqqud(text);
-      setText(textWithoutNiqqud);
-      return;
+    const currentText = text;
+    
+    // Normalize for comparison
+    const normalizedCurrent = currentText.trim();
+    
+    // If we have cache and current text matches the niqqud version, restore original
+    if (cache) {
+      const normalizedNiqqud = cache.niqqud.trim();
+      if (normalizedNiqqud === normalizedCurrent) {
+        setText(cache.original);
+        return;
+      }
     }
 
-    // Restore from cache
-    setText(cache.original);
+    // If no cache or text doesn't match cache, create new cache
+    // This handles the case where user pastes text with niqqud and wants to remove it
+    const textWithoutNiqqud = removeNiqqud(currentText);
+    
+    // Cache both versions: original (without niqqud) and niqqud (with niqqud)
+    setCache({
+      original: textWithoutNiqqud,
+      niqqud: currentText, // The current text has niqqud
+    });
+    
+    // Set text to version without niqqud
+    setText(textWithoutNiqqud);
   }, [text, cache]);
 
   // Toggle niqqud

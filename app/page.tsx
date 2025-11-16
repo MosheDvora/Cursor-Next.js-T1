@@ -23,11 +23,13 @@ export default function Home() {
   } = useNiqqud(localText);
   const { toast } = useToast();
 
-  // Sync niqqud text changes back to local state
+  // Sync niqqud text changes back to local state - this is critical for updates
   useEffect(() => {
+    // Only update if niqqudText actually changed (from hook operations)
     if (niqqudText !== localText) {
       setLocalText(niqqudText);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [niqqudText]);
 
   const handleTextChange = (newText: string) => {
