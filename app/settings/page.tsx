@@ -23,12 +23,19 @@ import {
 import {
   getSettings,
   saveSettings,
+  getRawResponse,
   DEFAULT_MODELS,
   DEFAULT_NIQQUD_PROMPT,
   DEFAULT_SYLLABLES_PROMPT,
   DEFAULT_SYLLABLE_BORDER_SIZE,
   DEFAULT_SYLLABLE_BACKGROUND_COLOR,
   DEFAULT_WORD_SPACING,
+  DEFAULT_WORD_HIGHLIGHT_PADDING,
+  DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
+  DEFAULT_LETTER_HIGHLIGHT_PADDING,
+  DEFAULT_WORD_HIGHLIGHT_COLOR,
+  DEFAULT_SYLLABLE_HIGHLIGHT_COLOR,
+  DEFAULT_LETTER_HIGHLIGHT_COLOR,
 } from "@/lib/settings";
 
 export default function SettingsPage() {
@@ -41,6 +48,13 @@ export default function SettingsPage() {
   const [syllableBorderSize, setSyllableBorderSize] = useState(DEFAULT_SYLLABLE_BORDER_SIZE);
   const [syllableBackgroundColor, setSyllableBackgroundColor] = useState(DEFAULT_SYLLABLE_BACKGROUND_COLOR);
   const [wordSpacing, setWordSpacing] = useState(DEFAULT_WORD_SPACING);
+  const [wordHighlightPadding, setWordHighlightPadding] = useState(DEFAULT_WORD_HIGHLIGHT_PADDING);
+  const [syllableHighlightPadding, setSyllableHighlightPadding] = useState(DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
+  const [letterHighlightPadding, setLetterHighlightPadding] = useState(DEFAULT_LETTER_HIGHLIGHT_PADDING);
+  const [wordHighlightColor, setWordHighlightColor] = useState(DEFAULT_WORD_HIGHLIGHT_COLOR);
+  const [syllableHighlightColor, setSyllableHighlightColor] = useState(DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
+  const [letterHighlightColor, setLetterHighlightColor] = useState(DEFAULT_LETTER_HIGHLIGHT_COLOR);
+  const [syllablesRawResponse, setSyllablesRawResponse] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -54,6 +68,13 @@ export default function SettingsPage() {
     setSyllableBorderSize(settings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE);
     setSyllableBackgroundColor(settings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
     setWordSpacing(settings.wordSpacing || DEFAULT_WORD_SPACING);
+    setWordHighlightPadding(settings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING);
+    setSyllableHighlightPadding(settings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
+    setLetterHighlightPadding(settings.letterHighlightPadding || DEFAULT_LETTER_HIGHLIGHT_PADDING);
+    setWordHighlightColor(settings.wordHighlightColor || DEFAULT_WORD_HIGHLIGHT_COLOR);
+    setSyllableHighlightColor(settings.syllableHighlightColor || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
+    setLetterHighlightColor(settings.letterHighlightColor || DEFAULT_LETTER_HIGHLIGHT_COLOR);
+    setSyllablesRawResponse(getRawResponse());
   }, []);
 
   const handleSave = () => {
@@ -67,6 +88,12 @@ export default function SettingsPage() {
       syllableBorderSize,
       syllableBackgroundColor,
       wordSpacing,
+      wordHighlightPadding,
+      syllableHighlightPadding,
+      letterHighlightPadding,
+      wordHighlightColor,
+      syllableHighlightColor,
+      letterHighlightColor,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -261,6 +288,23 @@ export default function SettingsPage() {
                         הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
                       </p>
                     </div>
+
+                    {/* Raw Response Display */}
+                    {syllablesRawResponse && (
+                      <div className="space-y-2 mt-4">
+                        <Label className="text-right block text-base">
+                          תגובה גולמית מהמודל
+                        </Label>
+                        <div className="p-4 border rounded-lg bg-muted">
+                          <pre className="text-xs overflow-auto text-right bg-background p-3 rounded border whitespace-pre-wrap" dir="rtl">
+                            {syllablesRawResponse}
+                          </pre>
+                        </div>
+                        <p className="text-sm text-muted-foreground text-right">
+                          התגובה הגולמית האחרונה מהמודל לחלוקה להברות
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -362,6 +406,150 @@ export default function SettingsPage() {
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         המרחק בין מילה למילה בתצוגת ההברות בפיקסלים (0-50)
+                      </p>
+                    </div>
+
+                    {/* Word Highlight Padding */}
+                    <div className="space-y-2">
+                      <Label htmlFor="word-highlight-padding" className="text-right block text-base">
+                        גודל רקע מילה (פיקסלים)
+                      </Label>
+                      <Input
+                        id="word-highlight-padding"
+                        type="number"
+                        min="0"
+                        max="20"
+                        value={wordHighlightPadding}
+                        onChange={(e) => setWordHighlightPadding(parseInt(e.target.value, 10) || 0)}
+                        placeholder="4"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        גודל הרקע שמקיף מילה בעת הדגשה בפיקסלים (0-20)
+                      </p>
+                    </div>
+
+                    {/* Word Highlight Color */}
+                    <div className="space-y-2">
+                      <Label htmlFor="word-highlight-color" className="text-right block text-base">
+                        צבע רקע מילה
+                      </Label>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          id="word-highlight-color"
+                          type="color"
+                          value={wordHighlightColor}
+                          onChange={(e) => setWordHighlightColor(e.target.value)}
+                          className="w-20 h-10 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={wordHighlightColor}
+                          onChange={(e) => setWordHighlightColor(e.target.value)}
+                          placeholder="#fff176"
+                          className="flex-1 text-right font-mono"
+                          dir="rtl"
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground text-right">
+                        צבע הרקע של מילה בעת הדגשה (hex color)
+                      </p>
+                    </div>
+
+                    {/* Syllable Highlight Padding */}
+                    <div className="space-y-2">
+                      <Label htmlFor="syllable-highlight-padding" className="text-right block text-base">
+                        גודל רקע הברה (פיקסלים)
+                      </Label>
+                      <Input
+                        id="syllable-highlight-padding"
+                        type="number"
+                        min="0"
+                        max="20"
+                        value={syllableHighlightPadding}
+                        onChange={(e) => setSyllableHighlightPadding(parseInt(e.target.value, 10) || 0)}
+                        placeholder="3"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        גודל הרקע שמקיף הברה בעת הדגשה בפיקסלים (0-20)
+                      </p>
+                    </div>
+
+                    {/* Syllable Highlight Color */}
+                    <div className="space-y-2">
+                      <Label htmlFor="syllable-highlight-color" className="text-right block text-base">
+                        צבע רקע הברה
+                      </Label>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          id="syllable-highlight-color"
+                          type="color"
+                          value={syllableHighlightColor}
+                          onChange={(e) => setSyllableHighlightColor(e.target.value)}
+                          className="w-20 h-10 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={syllableHighlightColor}
+                          onChange={(e) => setSyllableHighlightColor(e.target.value)}
+                          placeholder="#fff176"
+                          className="flex-1 text-right font-mono"
+                          dir="rtl"
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground text-right">
+                        צבע הרקע של הברה בעת הדגשה (hex color)
+                      </p>
+                    </div>
+
+                    {/* Letter Highlight Padding */}
+                    <div className="space-y-2">
+                      <Label htmlFor="letter-highlight-padding" className="text-right block text-base">
+                        גודל רקע אות (פיקסלים)
+                      </Label>
+                      <Input
+                        id="letter-highlight-padding"
+                        type="number"
+                        min="0"
+                        max="20"
+                        value={letterHighlightPadding}
+                        onChange={(e) => setLetterHighlightPadding(parseInt(e.target.value, 10) || 0)}
+                        placeholder="2"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        גודל הרקע שמקיף אות בעת הדגשה בפיקסלים (0-20)
+                      </p>
+                    </div>
+
+                    {/* Letter Highlight Color */}
+                    <div className="space-y-2">
+                      <Label htmlFor="letter-highlight-color" className="text-right block text-base">
+                        צבע רקע אות
+                      </Label>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          id="letter-highlight-color"
+                          type="color"
+                          value={letterHighlightColor}
+                          onChange={(e) => setLetterHighlightColor(e.target.value)}
+                          className="w-20 h-10 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={letterHighlightColor}
+                          onChange={(e) => setLetterHighlightColor(e.target.value)}
+                          placeholder="#fff176"
+                          className="flex-1 text-right font-mono"
+                          dir="rtl"
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground text-right">
+                        צבע הרקע של אות בעת הדגשה (hex color)
                       </p>
                     </div>
                   </div>

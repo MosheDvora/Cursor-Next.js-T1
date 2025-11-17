@@ -17,7 +17,7 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
-import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE } from "@/lib/settings";
+import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -31,6 +31,12 @@ export default function Home() {
     syllableBackgroundColor: "#dbeafe",
     wordSpacing: 12,
     fontSize: DEFAULT_FONT_SIZE,
+    wordHighlightPadding: 4,
+    syllableHighlightPadding: 3,
+    letterHighlightPadding: 2,
+    wordHighlightColor: "#fff176",
+    syllableHighlightColor: "#fff176",
+    letterHighlightColor: "#fff176",
   });
   const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("words");
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
@@ -74,6 +80,12 @@ export default function Home() {
         syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
         wordSpacing: settings.wordSpacing || 12,
         fontSize: settings.fontSize || DEFAULT_FONT_SIZE,
+        wordHighlightPadding: settings.wordHighlightPadding || 4,
+        syllableHighlightPadding: settings.syllableHighlightPadding || 3,
+        letterHighlightPadding: settings.letterHighlightPadding || 2,
+        wordHighlightColor: settings.wordHighlightColor || "#fff176",
+        syllableHighlightColor: settings.syllableHighlightColor || "#fff176",
+        letterHighlightColor: settings.letterHighlightColor || "#fff176",
       });
       
       // Load saved position
@@ -114,6 +126,13 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [niqqudText]);
+
+  // Save raw response to localStorage for display in settings
+  useEffect(() => {
+    if (syllablesRawResponse) {
+      localStorage.setItem(SETTINGS_KEYS.SYLLABLES_RAW_RESPONSE, syllablesRawResponse);
+    }
+  }, [syllablesRawResponse]);
 
   const handleTextChange = (newText: string) => {
     setLocalText(newText);
@@ -445,18 +464,6 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* Raw response display (temporary for testing) */}
-          {syllablesRawResponse && (
-            <div className="w-full mb-4">
-              <div className="p-4 border rounded-lg bg-muted">
-                <h3 className="text-sm font-semibold mb-2 text-right">תגובה גולמית מהמודל (זמני לבדיקה):</h3>
-                <pre className="text-xs overflow-auto text-right bg-background p-3 rounded border whitespace-pre-wrap" dir="rtl">
-                  {syllablesRawResponse}
-                </pre>
-              </div>
-            </div>
-          )}
-
           {/* Main text input area - unified display */}
           <div className="w-full">
             <EditableSyllablesTextarea
@@ -471,6 +478,12 @@ export default function Home() {
               backgroundColor={appearanceSettings.syllableBackgroundColor}
               wordSpacing={appearanceSettings.wordSpacing}
               fontSize={appearanceSettings.fontSize}
+              wordHighlightPadding={appearanceSettings.wordHighlightPadding}
+              syllableHighlightPadding={appearanceSettings.syllableHighlightPadding}
+              letterHighlightPadding={appearanceSettings.letterHighlightPadding}
+              wordHighlightColor={appearanceSettings.wordHighlightColor}
+              syllableHighlightColor={appearanceSettings.syllableHighlightColor}
+              letterHighlightColor={appearanceSettings.letterHighlightColor}
               disabled={isLoading || isSyllablesLoading}
               placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
             />

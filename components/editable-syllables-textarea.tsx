@@ -18,6 +18,12 @@ interface EditableSyllablesTextareaProps {
   backgroundColor: string;
   wordSpacing: number;
   fontSize?: number;
+  wordHighlightPadding?: number;
+  syllableHighlightPadding?: number;
+  letterHighlightPadding?: number;
+  wordHighlightColor?: string;
+  syllableHighlightColor?: string;
+  letterHighlightColor?: string;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
@@ -38,7 +44,13 @@ export function EditableSyllablesTextarea({
   borderSize,
   backgroundColor,
   wordSpacing,
-  fontSize = 18,
+  fontSize = 30,
+  wordHighlightPadding = 4,
+  syllableHighlightPadding = 3,
+  letterHighlightPadding = 2,
+  wordHighlightColor = "#fff176",
+  syllableHighlightColor = "#fff176",
+  letterHighlightColor = "#fff176",
   disabled = false,
   placeholder = "הדבק כאן את הטקסט הראשי לצורך מניפולציות...",
   className = "",
@@ -49,9 +61,10 @@ export function EditableSyllablesTextarea({
   const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null);
   const [hoveredLetterIndex, setHoveredLetterIndex] = useState<number | null>(null);
 
-  // Color constants for highlighting
-  const WORD_HIGHLIGHT_COLOR = "#e5e7eb"; // Light gray for current word
-  const CURRENT_HIGHLIGHT_COLOR = "#fffacd"; // Soft yellow for current syllable/letter
+  // Color constants for highlighting - use props with defaults
+  const WORD_HIGHLIGHT_COLOR = wordHighlightColor;
+  const CURRENT_HIGHLIGHT_COLOR = syllableHighlightColor;
+  const LETTER_HIGHLIGHT_COLOR = letterHighlightColor;
   const HOVER_HIGHLIGHT_COLOR = "#fffacd"; // Soft yellow for hover
 
   // Helper function to check if character is Hebrew letter (not niqqud)
@@ -189,12 +202,27 @@ export function EditableSyllablesTextarea({
             });
           });
 
-          const currentLetterGlobalIdx = allLetters.findIndex(
-            l => l.wordIdx === wordIndex && 
-                 l.syllableIdx === (syllableIndex ?? 0) && 
-                 l.letterIdx === (letterIndex ?? 0)
-          );
+          // Find current letter index - verify it's actually a Hebrew letter
+          let currentLetterGlobalIdx = -1;
+          if (wordIndex < words.length) {
+            const currentWord = words[wordIndex];
+            const currentSyllableIdx = syllableIndex ?? 0;
+            const currentLetterIdx = letterIndex ?? 0;
+            
+            if (currentSyllableIdx < currentWord.syllables.length) {
+              const currentSyllable = currentWord.syllables[currentSyllableIdx];
+              if (currentLetterIdx < currentSyllable.length && isHebrewLetter(currentSyllable[currentLetterIdx])) {
+                // Current position points to a Hebrew letter, find it in the list
+                currentLetterGlobalIdx = allLetters.findIndex(
+                  l => l.wordIdx === wordIndex && 
+                       l.syllableIdx === currentSyllableIdx && 
+                       l.letterIdx === currentLetterIdx
+                );
+              }
+            }
+          }
 
+          // If current position doesn't match a Hebrew letter, go to first letter
           if (currentLetterGlobalIdx === -1 && allLetters.length > 0) {
             newPosition = {
               mode: "letters",
@@ -203,6 +231,7 @@ export function EditableSyllablesTextarea({
               letterIndex: allLetters[0].letterIdx,
             };
           } else if (isForward && currentLetterGlobalIdx < allLetters.length - 1) {
+            // Move forward to next Hebrew letter
             const next = allLetters[currentLetterGlobalIdx + 1];
             newPosition = {
               mode: "letters",
@@ -211,6 +240,7 @@ export function EditableSyllablesTextarea({
               letterIndex: next.letterIdx,
             };
           } else if (isBackward && currentLetterGlobalIdx > 0) {
+            // Move backward to previous Hebrew letter
             const prev = allLetters[currentLetterGlobalIdx - 1];
             newPosition = {
               mode: "letters",
@@ -349,6 +379,7 @@ export function EditableSyllablesTextarea({
                 return (
                   <span
                     key={wordIndex}
+                    className={`pyramid-word-base ${isCurrentWord ? 'pyramid-word-active' : ''}`}
                     onMouseEnter={() => setHoveredWordIndex(wordIndex)}
                     onMouseLeave={() => setHoveredWordIndex(null)}
                     style={{
@@ -356,9 +387,8 @@ export function EditableSyllablesTextarea({
                         ? HOVER_HIGHLIGHT_COLOR 
                         : isCurrentWord 
                         ? WORD_HIGHLIGHT_COLOR 
-                        : "transparent",
-                      borderRadius: "8px",
-                      outline: (isCurrentWord || isHoveredWord) ? "none" : "none",
+                        : undefined,
+                      outline: "none",
                     }}
                   >
                     {word}
@@ -382,15 +412,15 @@ export function EditableSyllablesTextarea({
                 return (
                   <span
                     key={index}
+                    className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
                     onMouseEnter={() => setHoveredLetterIndex(index)}
                     onMouseLeave={() => setHoveredLetterIndex(null)}
                     style={{
                       backgroundColor: isHoveredLetter
                         ? HOVER_HIGHLIGHT_COLOR
                         : isCurrentLetter
-                        ? CURRENT_HIGHLIGHT_COLOR
-                        : "transparent",
-                      borderRadius: (isCurrentLetter || isHoveredLetter) ? "4px" : "0",
+                        ? LETTER_HIGHLIGHT_COLOR
+                        : undefined,
                       outline: "none",
                     }}
                   >
@@ -431,6 +461,7 @@ export function EditableSyllablesTextarea({
               return (
                 <span
                   key={wordIndex}
+                  className={`pyramid-word-base ${isCurrentWord ? 'pyramid-word-active' : ''}`}
                   onMouseEnter={() => setHoveredWordIndex(wordIndex)}
                   onMouseLeave={() => setHoveredWordIndex(null)}
                   style={{
@@ -438,8 +469,7 @@ export function EditableSyllablesTextarea({
                       ? HOVER_HIGHLIGHT_COLOR 
                       : isCurrentWord 
                       ? WORD_HIGHLIGHT_COLOR 
-                      : "transparent",
-                    borderRadius: "8px",
+                      : undefined,
                     outline: "none",
                   }}
                 >
@@ -463,9 +493,9 @@ export function EditableSyllablesTextarea({
                     return (
                       <span
                         key={`${wordIndex}-${syllableIndex}`}
+                        className={`pyramid-syllable-base ${isCurrentSyllable ? 'pyramid-syllable-active' : ''}`}
                         style={{
-                          backgroundColor: isCurrentSyllable ? CURRENT_HIGHLIGHT_COLOR : "transparent",
-                          borderRadius: isCurrentSyllable ? "4px" : "0",
+                          backgroundColor: isCurrentSyllable ? CURRENT_HIGHLIGHT_COLOR : undefined,
                           outline: "none",
                         }}
                       >
@@ -483,31 +513,31 @@ export function EditableSyllablesTextarea({
             {words.map((wordEntry, wordIndex) => {
               const syllables = wordEntry.syllables;
               const wordText = syllables.join("");
+              
+              // Build map of Hebrew letter positions
+              const letterPositions: Array<{ syllableIdx: number; letterIdx: number; charIndex: number }> = [];
+              let charCount = 0;
+              
+              for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
+                const syllable = syllables[sIdx];
+                for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
+                  if (isHebrewLetter(syllable[lIdx])) {
+                    letterPositions.push({ syllableIdx: sIdx, letterIdx: lIdx, charIndex: charCount });
+                  }
+                  charCount++;
+                }
+              }
+              
               return (
                 <span key={wordIndex} className="whitespace-pre-wrap">
                   {wordText.split("").map((char, charIndex) => {
-                    // Find which syllable and letter index this char belongs to
-                    let foundSyllableIdx = 0;
-                    let foundLetterIdx = 0;
-                    let charCount = 0;
-                    
-                    for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
-                      const syllable = syllables[sIdx];
-                      for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
-                        if (charCount === charIndex) {
-                          foundSyllableIdx = sIdx;
-                          foundLetterIdx = lIdx;
-                          break;
-                        }
-                        charCount++;
-                      }
-                      if (charCount === charIndex) break;
-                    }
-                    
+                    // Find if this char position matches current letter position
+                    const letterPos = letterPositions.find(lp => lp.charIndex === charIndex);
                     const isCurrentLetter = 
                       wordIndex === currentWordIdx &&
-                      foundSyllableIdx === currentSyllableIdx &&
-                      foundLetterIdx === currentLetterIdx &&
+                      letterPos &&
+                      letterPos.syllableIdx === currentSyllableIdx &&
+                      letterPos.letterIdx === currentLetterIdx &&
                       isHebrewLetter(char);
                     
                     if (!isHebrewLetter(char)) {
@@ -517,9 +547,9 @@ export function EditableSyllablesTextarea({
                     return (
                       <span
                         key={`${wordIndex}-${charIndex}`}
+                        className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
                         style={{
-                          backgroundColor: isCurrentLetter ? CURRENT_HIGHLIGHT_COLOR : "transparent",
-                          borderRadius: isCurrentLetter ? "4px" : "0",
+                          backgroundColor: isCurrentLetter ? LETTER_HIGHLIGHT_COLOR : undefined,
                           outline: "none",
                         }}
                       >

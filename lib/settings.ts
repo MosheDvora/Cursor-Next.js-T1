@@ -13,7 +13,7 @@ export interface CurrentPosition {
   letterIndex?: number;   // Which letter (if mode = letters)
 }
 
-const SETTINGS_KEYS = {
+export const SETTINGS_KEYS = {
   // Legacy keys (for backward compatibility)
   API_KEY: "niqqud_api_key",
   MODEL: "niqqud_model",
@@ -30,8 +30,15 @@ const SETTINGS_KEYS = {
   SYLLABLE_BACKGROUND_COLOR: "syllable_background_color",
   WORD_SPACING: "word_spacing",
   FONT_SIZE: "font_size",
+  WORD_HIGHLIGHT_PADDING: "word_highlight_padding",
+  SYLLABLE_HIGHLIGHT_PADDING: "syllable_highlight_padding",
+  LETTER_HIGHLIGHT_PADDING: "letter_highlight_padding",
+  WORD_HIGHLIGHT_COLOR: "word_highlight_color",
+  SYLLABLE_HIGHLIGHT_COLOR: "syllable_highlight_color",
+  LETTER_HIGHLIGHT_COLOR: "letter_highlight_color",
   // Navigation settings
   SYLLABLES_CURRENT_POSITION: "syllables_current_position",
+  SYLLABLES_RAW_RESPONSE: "syllables_raw_response",
 } as const;
 
 export interface AppSettings {
@@ -51,6 +58,12 @@ export interface AppSettings {
   syllableBackgroundColor: string;
   wordSpacing: number;
   fontSize: number;
+  wordHighlightPadding: number;
+  syllableHighlightPadding: number;
+  letterHighlightPadding: number;
+  wordHighlightColor: string;
+  syllableHighlightColor: string;
+  letterHighlightColor: string;
 }
 
 /**
@@ -127,7 +140,13 @@ export const DEFAULT_SYLLABLES_PROMPT = `אתה מומחה בעברית. המש�
 export const DEFAULT_SYLLABLE_BORDER_SIZE = 2; // pixels
 export const DEFAULT_SYLLABLE_BACKGROUND_COLOR = "#dbeafe"; // blue-50
 export const DEFAULT_WORD_SPACING = 12; // pixels (gap-x-3 in Tailwind)
-export const DEFAULT_FONT_SIZE = 18; // pixels
+export const DEFAULT_FONT_SIZE = 30; // pixels
+export const DEFAULT_WORD_HIGHLIGHT_PADDING = 4; // pixels
+export const DEFAULT_SYLLABLE_HIGHLIGHT_PADDING = 3; // pixels
+export const DEFAULT_LETTER_HIGHLIGHT_PADDING = 2; // pixels
+export const DEFAULT_WORD_HIGHLIGHT_COLOR = "#fff176"; // Light yellow
+export const DEFAULT_SYLLABLE_HIGHLIGHT_COLOR = "#fff176"; // Light yellow
+export const DEFAULT_LETTER_HIGHLIGHT_COLOR = "#fff176"; // Light yellow
 
 /**
  * Get settings from localStorage
@@ -162,6 +181,12 @@ export function getSettings(): AppSettings {
       syllableBackgroundColor: DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: DEFAULT_WORD_SPACING,
       fontSize: DEFAULT_FONT_SIZE,
+      wordHighlightPadding: DEFAULT_WORD_HIGHLIGHT_PADDING,
+      syllableHighlightPadding: DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
+      letterHighlightPadding: DEFAULT_LETTER_HIGHLIGHT_PADDING,
+      wordHighlightColor: DEFAULT_WORD_HIGHLIGHT_COLOR,
+      syllableHighlightColor: DEFAULT_SYLLABLE_HIGHLIGHT_COLOR,
+      letterHighlightColor: DEFAULT_LETTER_HIGHLIGHT_COLOR,
     };
   }
 
@@ -208,6 +233,21 @@ export function getSettings(): AppSettings {
     localStorage.getItem(SETTINGS_KEYS.FONT_SIZE) || String(DEFAULT_FONT_SIZE),
     10
   );
+  const wordHighlightPadding = parseInt(
+    localStorage.getItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING) || String(DEFAULT_WORD_HIGHLIGHT_PADDING),
+    10
+  );
+  const syllableHighlightPadding = parseInt(
+    localStorage.getItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_PADDING) || String(DEFAULT_SYLLABLE_HIGHLIGHT_PADDING),
+    10
+  );
+  const letterHighlightPadding = parseInt(
+    localStorage.getItem(SETTINGS_KEYS.LETTER_HIGHLIGHT_PADDING) || String(DEFAULT_LETTER_HIGHLIGHT_PADDING),
+    10
+  );
+  const wordHighlightColor = localStorage.getItem(SETTINGS_KEYS.WORD_HIGHLIGHT_COLOR) || DEFAULT_WORD_HIGHLIGHT_COLOR;
+  const syllableHighlightColor = localStorage.getItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_COLOR) || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR;
+  const letterHighlightColor = localStorage.getItem(SETTINGS_KEYS.LETTER_HIGHLIGHT_COLOR) || DEFAULT_LETTER_HIGHLIGHT_COLOR;
 
   return {
     apiKey: legacyApiKey || "", // Keep for backward compatibility
@@ -222,6 +262,12 @@ export function getSettings(): AppSettings {
     syllableBackgroundColor,
     wordSpacing,
     fontSize,
+    wordHighlightPadding,
+    syllableHighlightPadding,
+    letterHighlightPadding,
+    wordHighlightColor,
+    syllableHighlightColor,
+    letterHighlightColor,
   };
 }
 
@@ -284,6 +330,30 @@ export function saveSettings(settings: Partial<AppSettings>): void {
   if (settings.fontSize !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.FONT_SIZE, String(settings.fontSize));
   }
+
+  if (settings.wordHighlightPadding !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING, String(settings.wordHighlightPadding));
+  }
+
+  if (settings.syllableHighlightPadding !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_PADDING, String(settings.syllableHighlightPadding));
+  }
+
+  if (settings.letterHighlightPadding !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.LETTER_HIGHLIGHT_PADDING, String(settings.letterHighlightPadding));
+  }
+
+  if (settings.wordHighlightColor !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.WORD_HIGHLIGHT_COLOR, settings.wordHighlightColor);
+  }
+
+  if (settings.syllableHighlightColor !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_COLOR, settings.syllableHighlightColor);
+  }
+
+  if (settings.letterHighlightColor !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.LETTER_HIGHLIGHT_COLOR, settings.letterHighlightColor);
+  }
 }
 
 /**
@@ -313,9 +383,16 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR);
   localStorage.removeItem(SETTINGS_KEYS.WORD_SPACING);
   localStorage.removeItem(SETTINGS_KEYS.FONT_SIZE);
+  localStorage.removeItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING);
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_PADDING);
+  localStorage.removeItem(SETTINGS_KEYS.LETTER_HIGHLIGHT_PADDING);
+  localStorage.removeItem(SETTINGS_KEYS.WORD_HIGHLIGHT_COLOR);
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_COLOR);
+  localStorage.removeItem(SETTINGS_KEYS.LETTER_HIGHLIGHT_COLOR);
 
   // Navigation keys
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_CURRENT_POSITION);
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_RAW_RESPONSE);
 }
 
 /**
@@ -398,12 +475,28 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       syllableBackgroundColor: serverSettings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: serverSettings.wordSpacing || DEFAULT_WORD_SPACING,
       fontSize: serverSettings.fontSize || DEFAULT_FONT_SIZE,
+      wordHighlightPadding: serverSettings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING,
+      syllableHighlightPadding: serverSettings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
+      letterHighlightPadding: serverSettings.letterHighlightPadding || DEFAULT_LETTER_HIGHLIGHT_PADDING,
+      wordHighlightColor: serverSettings.wordHighlightColor || DEFAULT_WORD_HIGHLIGHT_COLOR,
+      syllableHighlightColor: serverSettings.syllableHighlightColor || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR,
+      letterHighlightColor: serverSettings.letterHighlightColor || DEFAULT_LETTER_HIGHLIGHT_COLOR,
     };
   } catch (error) {
     console.warn("[Settings] Failed to fetch from server, using localStorage:", error);
     // Fallback to localStorage
     return getSettings();
   }
+}
+
+/**
+ * Get raw response from localStorage
+ */
+export function getRawResponse(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+  return localStorage.getItem(SETTINGS_KEYS.SYLLABLES_RAW_RESPONSE);
 }
 
 /**

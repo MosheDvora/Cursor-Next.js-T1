@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>פירמידת קריאה בעברית</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .input-section {
+            padding: 30px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            resize: vertical;
+            direction: rtl;
+            line-height: 1.8;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .settings-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .settings-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .setting-item {
+            margin-bottom: 15px;
+        }
+        
+        .setting-label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+        
+        .setting-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .setting-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s;
+            direction: rtl;
+        }
+        
+        .setting-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .setting-textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .save-settings-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+        
+        .save-settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button-container {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .process-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .process-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .clear-btn {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+        
+        .output-section {
+            padding: 30px;
+            min-height: 200px;
+        }
+        
+        .pyramid-container {
+            margin-bottom: 50px;
+            padding: 30px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 15px;
+        }
+        
+        .pyramid-title {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .pyramid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .pyramid-line {
+            text-align: center;
+            font-size: 1.3em;
+            line-height: 1.6;
+            padding: 5px 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .pyramid-line:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .pyramid-line:hover:not(:has(.pyramid-word:hover)) {
+            background: #f0f0f0;
+        }
+        
+        .pyramid-line.active-line {
+            background: #f0f0f0;
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .pyramid-word {
+            display: inline-block;
+            padding: 2px 6px;
+            margin: 0 2px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .pyramid-word:hover {
+            background: #fff59d !important;
+            transform: scale(1.1);
+            cursor: pointer;
+        }
+        
+        .pyramid-word.clickable {
+            cursor: pointer;
+        }
+        
+        .pyramid-word.active-reading {
+            background: #fff59d !important;
+            transform: scale(1.15);
+            box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
+        }
+        
+        .syllable {
+            display: inline;
+            transition: all 0.2s;
+        }
+        
+        .syllable.active-syllable {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 2px 4px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(168, 237, 234, 0.6);
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            font-size: 1.2em;
+            padding: 50px 20px;
+        }
+        
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+        
+        .reading-controls {
+            position: sticky;
+            top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+            z-index: 100;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .buttons-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .play-pause-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1.8em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4),
+                        inset 0 -2px 5px rgba(0, 0, 0, 0.2),
+                        inset 0 2px 5px rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .play-pause-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5),
+                        inset 0 -2px 5px rgba(0, 0, 0, 0.2),
+                        inset 0 2px 5px rgba(255, 255, 255, 0.2);
+        }
+        
+        .play-pause-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4),
+                        inset 0 2px 5px rgba(0, 0, 0, 0.3);
+        }
+        
+        .reset-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(145deg, #f0f0f0 0%, #d0d0d0 100%);
+            color: #667eea;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15),
+                        inset 0 -2px 3px rgba(0, 0, 0, 0.1),
+                        inset 0 2px 3px rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .reset-btn:hover {
+            transform: translateY(-2px) rotate(180deg);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2),
+                        inset 0 -2px 3px rgba(0, 0, 0, 0.1),
+                        inset 0 2px 3px rgba(255, 255, 255, 0.5);
+            background: linear-gradient(145deg, #fff 0%, #e0e0e0 100%);
+        }
+        
+        .reset-btn:active {
+            transform: translateY(0) rotate(180deg);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15),
+                        inset 0 2px 3px rgba(0, 0, 0, 0.2);
+        }
+        
+        .speed-control {
+            flex: 1;
+            max-width: 500px;
+        }
+        
+        .speed-label {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+        
+        .speed-value {
+            color: #764ba2;
+            font-size: 1.3em;
+        }
+        
+        .speed-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .speed-slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .keyboard-hint {
+            text-align: center;
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .display-mode-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        
+        .display-mode-label {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 1em;
+        }
+        
+        .display-mode-select {
+            padding: 8px 15px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            background: white;
+            color: #333;
+            font-size: 1em;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s;
+        }
+        
+        .display-mode-select:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+        
+        .display-mode-select:focus {
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+        }
+        
+        .pyramid-container.blur-mode .pyramid-word {
+            filter: blur(5px);
+            opacity: 0.3;
+            transition: filter 0.3s, opacity 0.3s;
+        }
+        
+        .pyramid-container.blur-mode .pyramid-word.active-reading {
+            filter: blur(0);
+            opacity: 1;
+        }
+
+        .syllable-underline {
+            border-bottom: 2px solid #667eea;
+            display: inline-block;
+            transition: all 0.2s;
+        }
+
+        .syllable.active-syllable {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            border-bottom: 2px solid #667eea;
+            padding: 2px 4px;
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(168, 237, 234, 0.6);
+        }
+
+        .syllable-mode .pyramid-word {
+            border-bottom: none !important;
+        }
+
+        .syllable-mode .syllable {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔺 פירמידת קריאה</h1>
+            <p>הדבק טקסט בעברית וצור פירמידות קריאה לשיפור הקריאה</p>
+        </div>
+        
+        <div class="input-section">
+            <textarea id="inputText" placeholder="הדבק כאן את הטקסט בעברית..."></textarea>
+            
+            <div class="settings-section">
+                <div class="settings-title">⚙️ הגדרות פירמידה</div>
+                
+                <div class="setting-item">
+                    <label class="setting-label">מילות קישור (קיבוץ אוטומטי):</label>
+                    <div class="setting-description">
+                        מילות קישור אלו לעולם לא יעמדו לבדן בסוף שורה - תמיד תתווסף להן המילה הבאה. הפרד בפסיקים.
+                    </div>
+                    <textarea class="setting-input setting-textarea" id="noBreakWordsInput">או, את, של, עם, אם, כי, אז, גם, רק, עוד, כל, אל, על, מה, זה, זו, הם, היא, הוא, אני, אתה, ו, אך, אבל, למרות</textarea>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label">קפיצות מילים בפירמידה:</label>
+                    <div class="setting-description">
+                        כמה מילים חדשות להוסיף בכל שורה. 1 = מילה אחת בכל שורה, 2 = שתי מילים בכל שורה, וכו׳
+                    </div>
+                    <input type="number" class="setting-input" id="wordJumpInput" value="1" min="1" max="10">
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label">ניקוד:</label>
+                    <div class="setting-description">
+                        הוסף ניקוד אוטומטי לטקסט ללא ניקוד, או הסר ניקוד מטקסט מנוקד
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button class="save-settings-btn" style="flex: 1; margin-top: 0;" onclick="addNikud()">➕ הוסף ניקוד</button>
+                        <button class="save-settings-btn" style="flex: 1; margin-top: 0; background: linear-gradient(145deg, #e0e0e0 0%, #b0b0b0 100%);" onclick="removeNikud()">➖ הסר ניקוד</button>
+                    </div>
+                </div>
+
+                <div class="setting-item">
+                    <label class="setting-label">הברות:</label>
+                    <div class="setting-description">
+                        חלק מילים עבריות להברות (דורש ניקוד). הוסף קו תחתון מתחת לכל הברה
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <button class="save-settings-btn" style="flex: 1; margin-top: 0;" onclick="splitIntoSyllables()">📝 חלק להברות</button>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 1em;">
+                            <input type="checkbox" id="showSyllablesCheckbox" onchange="toggleSyllableDisplay(this.checked)" style="width: 18px; height: 18px;">
+                            הצג קו תחתון
+                        </label>
+                    </div>
+                </div>
+                
+                <button class="save-settings-btn" onclick="saveSettings()">💾 שמור הגדרות</button>
+            </div>
+            
+            <div class="button-container">
+                <button class="process-btn" onclick="createPyramids()">צור פירמידות</button>
+                <button class="clear-btn" onclick="clearAll()">נקה הכל</button>
+            </div>
+        </div>
+        
+        <div class="output-section" id="output">
+            <div class="empty-state">
+                <div class="empty-state-icon">📝</div>
+                <p>הדבק טקסט ולחץ על צור פירמידות כדי להתחיל</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isReading = false;
+        let readingInterval = null;
+        let currentWordIndex = 0;
+        let allPyramidWords = [];
+        let readingSpeed = 600;
+        let displayMode = 'normal';
+        let noBreakWords = ['או', 'את', 'של', 'עם', 'אם', 'כי', 'אז', 'גם', 'רק', 'עוד', 'כל', 'אל', 'על', 'מה', 'זה', 'זו', 'הם', 'היא', 'הוא', 'אני', 'אתה', 'ו', 'אך', 'אבל', 'למרות'];
+        let hasStartedReading = false;
+        let wordJump = 1;
+        let cachedNikudText = null; // שמירת הטקסט המנוקד
+        let cachedPlainText = null; // שמירת הטקסט ללא ניקוד
+        let isNikudVisible = false; // האם הניקוד מוצג כרגע
+        let syllablesData = null; // שמירת נתוני ההברות
+        let showSyllables = false; // האם להציג קו תחתון להברות
+        let readingMode = 'word'; // 'word' או 'syllable'
+        let allSyllables = []; // מערך כל ההברות
+        let currentSyllableIndex = 0;
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                const activeElement = document.activeElement;
+                if (activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT') {
+                    return;
+                }
+                if (hasStartedReading) {
+                    e.preventDefault();
+                    toggleReading();
+                }
+            } else if (e.code === 'ArrowLeft') {
+                e.preventDefault();
+                navigateNext(); // שמאלה = קדימה (ימינה בעברית)
+            } else if (e.code === 'ArrowRight') {
+                e.preventDefault();
+                navigatePrevious(); // ימינה = אחורה (שמאלה בעברית)
+            }
+        });
+        
+        // ניקוי המטמון כשמשנים את הטקסט
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputTextArea = document.getElementById('inputText');
+            if (inputTextArea) {
+                inputTextArea.addEventListener('input', () => {
+                    cachedNikudText = null;
+                    cachedPlainText = null;
+                    isNikudVisible = false;
+                });
+            }
+        });
+
+        function saveSettings() {
+            const input = document.getElementById('noBreakWordsInput');
+            if (input && input.value) {
+                noBreakWords = input.value.split(',').map(w => w.trim()).filter(w => w.length > 0);
+            }
+            
+            const jumpInput = document.getElementById('wordJumpInput');
+            if (jumpInput && jumpInput.value) {
+                wordJump = parseInt(jumpInput.value) || 1;
+                if (wordJump < 1) wordJump = 1;
+            }
+            
+            alert('ההגדרות נשמרו! 💾');
+        }
+        
+        async function addNikud() {
+            const inputTextArea = document.getElementById('inputText');
+            const text = inputTextArea.value.trim();
+            
+            if (!text) {
+                alert('אנא הדבק טקסט תחילה');
+                return;
+            }
+            
+            // אם כבר יש ניקוד שמור במטמון, פשוט נציג אותו
+            if (cachedNikudText) {
+                inputTextArea.value = cachedNikudText;
+                isNikudVisible = true;
+                // Auto-regenerate pyramids if they exist
+                const output = document.getElementById('output');
+                if (output && !output.querySelector('.empty-state')) {
+                    createPyramids();
+                }
+                return;
+            }
+            
+            // אם הטקסט הנוכחי כבר מנוקד
+            const hasNikud = /[\u0591-\u05C7]/.test(text);
+            if (hasNikud) {
+                // שמירת הטקסט המנוקד במטמון
+                cachedNikudText = text;
+                isNikudVisible = true;
+                // Auto-regenerate pyramids if they exist
+                const output = document.getElementById('output');
+                if (output && !output.querySelector('.empty-state')) {
+                    createPyramids();
+                }
+                return;
+            }
+            
+            try {
+                const loadingMsg = document.createElement('div');
+                loadingMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 9999; text-align: center;';
+                loadingMsg.innerHTML = '<div style="font-size: 3em; margin-bottom: 10px;">⏳</div><div style="font-size: 1.2em; font-weight: bold; color: #667eea;">מוסיף ניקוד לטקסט...</div>';
+                document.body.appendChild(loadingMsg);
+                
+                // שמירת הטקסט ללא ניקוד
+                cachedPlainText = text;
+                
+                const GEMINI_API_KEY = "AIzaSyBXvphV96du8f6ksOmyGxB9rdZFB2SzhIg";
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `הוסף ניקוד מלא לטקסט העברי הבא. החזר רק את הטקסט המנוקד, ללא הסברים או תוספות כלשהן:\n\n${text}`
+                            }]
+                        }],
+                        generationConfig: {
+                            maxOutputTokens: 4000,
+                            temperature: 0.1
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Gemini response:', data); // Debug log
+
+                if (data.error) {
+                    console.error('Gemini API Error:', data.error);
+                    throw new Error(`Gemini API Error: ${data.error.message || 'Unknown error'}`);
+                }
+
+                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+                    console.error('Unexpected response structure:', data);
+                    throw new Error('Invalid response structure from Gemini API');
+                }
+
+                const nikudText = data.candidates[0].content.parts[0].text.trim();
+                
+                // שמירת הטקסט המנוקד במטמון
+                cachedNikudText = nikudText;
+                isNikudVisible = true;
+                
+                inputTextArea.value = nikudText;
+                document.body.removeChild(loadingMsg);
+
+                // Auto-regenerate pyramids if they exist
+                const output = document.getElementById('output');
+                if (output && !output.querySelector('.empty-state')) {
+                    createPyramids();
+                }
+            } catch (error) {
+                console.error('שגיאה בהוספת ניקוד:', error);
+                alert('❌ שגיאה בהוספת ניקוד. נסה שוב.');
+                const loadingMsg = document.querySelector('[style*="position: fixed"]');
+                if (loadingMsg) document.body.removeChild(loadingMsg);
+            }
+        }
+        
+        function removeNikud() {
+            const inputTextArea = document.getElementById('inputText');
+            const text = inputTextArea.value.trim();
+            
+            if (!text) {
+                alert('אנא הדבק טקסט תחילה');
+                return;
+            }
+            
+            // אם יש טקסט מנוקד במטמון והניקוד כרגע מוצג
+            if (cachedNikudText && isNikudVisible) {
+                // אם כבר שמרנו את הטקסט ללא ניקוד, נציג אותו
+                if (cachedPlainText) {
+                    inputTextArea.value = cachedPlainText;
+                } else {
+                    // אחרת נסיר את הניקוד ונשמור
+                    const textWithoutNikud = text.replace(/[\u0591-\u05C7]/g, '');
+                    cachedPlainText = textWithoutNikud;
+                    inputTextArea.value = textWithoutNikud;
+                }
+                isNikudVisible = false;
+                // Auto-regenerate pyramids if they exist
+                const output = document.getElementById('output');
+                if (output && !output.querySelector('.empty-state')) {
+                    createPyramids();
+                }
+                return;
+            }
+            
+            // בדיקה אם יש ניקוד
+            const hasNikud = /[\u0591-\u05C7]/.test(text);
+            if (!hasNikud) {
+                alert('הטקסט לא מכיל ניקוד');
+                return;
+            }
+            
+            // הסרת כל תווי הניקוד
+            const textWithoutNikud = text.replace(/[\u0591-\u05C7]/g, '');
+            cachedNikudText = text; // שמירת הטקסט המנוקד
+            cachedPlainText = textWithoutNikud; // שמירת הטקסט ללא ניקוד
+            isNikudVisible = false;
+            
+            inputTextArea.value = textWithoutNikud;
+            // Auto-regenerate pyramids if they exist
+            const output = document.getElementById('output');
+            if (output && !output.querySelector('.empty-state')) {
+                createPyramids();
+            }
+        }
+
+        function createPyramids() {
+            const inputText = document.getElementById('inputText').value.trim();
+            const output = document.getElementById('output');
+            
+            if (!inputText) {
+                output.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>אנא הדבק טקסט תחילה</p></div>';
+                return;
+            }
+            
+            const input = document.getElementById('noBreakWordsInput');
+            if (input && input.value) {
+                noBreakWords = input.value.split(',').map(w => w.trim()).filter(w => w.length > 0);
+            }
+            
+            const jumpInput = document.getElementById('wordJumpInput');
+            if (jumpInput && jumpInput.value) {
+                wordJump = parseInt(jumpInput.value) || 1;
+                if (wordJump < 1) wordJump = 1;
+            }
+            
+            let sentences = inputText.split(/\./).map(s => s.trim()).filter(s => s.length > 0);
+            if (sentences.length === 0) sentences = [inputText];
+            
+            output.innerHTML = '';
+            
+            sentences.forEach((sentence, idx) => {
+                const words = sentence.split(/\s+/).filter(w => w.length > 0);
+                if (words.length === 0) return;
+                
+                createPyramid(sentence, words, output);
+            });
+            
+            addReadingControls(output);
+            collectAllWords();
+            collectAllSyllables(); // איסוף כל ההברות גם כן
+
+            if (readingMode === 'syllable' && allSyllables.length > 0) {
+                highlightSyllable(0);
+            } else if (allPyramidWords.length > 0) {
+                highlightWord(0);
+            }
+        }
+        
+        function isLinkWord(word) {
+            const cleanWord = word.replace(/[.,;:!?'"״״׳־]/g, '').trim();
+            return noBreakWords.some(linkWord => cleanWord === linkWord);
+        }
+        
+        function createPyramid(fullText, allWords, container) {
+            const pyramidDiv = document.createElement('div');
+            pyramidDiv.className = 'pyramid-container';
+            
+            const title = document.createElement('div');
+            title.className = 'pyramid-title';
+            title.textContent = fullText;
+            pyramidDiv.appendChild(title);
+            
+            const pyramid = document.createElement('div');
+            pyramid.className = 'pyramid';
+            
+            // שורה ראשונה - לפי מספר קפיצות המילים
+            let currentIndex = wordJump;
+            
+            while (currentIndex <= allWords.length) {
+                const line = document.createElement('div');
+                line.className = 'pyramid-line';
+                
+                let wordsInLine = allWords.slice(0, currentIndex);
+                
+                // בדיקה אם המילה האחרונה היא מילת קישור (רק אם יש עוד מילים)
+                if (currentIndex < allWords.length) {
+                    const lastWord = wordsInLine[wordsInLine.length - 1];
+                    if (isLinkWord(lastWord)) {
+                        // הוספת המילה הבאה
+                        currentIndex++;
+                        wordsInLine = allWords.slice(0, currentIndex);
+                    }
+                }
+                
+                wordsInLine.forEach((word, wordIndex) => {
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'pyramid-word clickable';
+
+                    // אם יש נתוני הברות, הצג את המילה עם הברות
+                    if (syllablesData && syllablesData.words) {
+                        const wordData = syllablesData.words.find(w => w.word === word);
+                        if (wordData && wordData.syllables) {
+                            // יצירת הברות בתוך המילה
+                            wordData.syllables.forEach((syllable, sylIndex) => {
+                                const syllableSpan = document.createElement('span');
+                                syllableSpan.className = 'syllable';
+                                syllableSpan.textContent = syllable;
+
+                                if (showSyllables) {
+                                    syllableSpan.classList.add('syllable-underline');
+                                }
+
+                                syllableSpan.addEventListener('click', () => {
+                                    if (!isReading) {
+                                                // מצא את האינדקס של ההברה הזו
+                                                let globalSylIndex = 0;
+                                                for (let i = 0; i < syllablesData.words.length; i++) {
+                                                    const w = syllablesData.words[i];
+                                                    if (w.word === word) {
+                                                        globalSylIndex += sylIndex;
+                                                        break;
+                                                    } else if (w.syllables) {
+                                                        globalSylIndex += w.syllables.length;
+                                                    }
+                                                }
+                                                currentSyllableIndex = globalSylIndex;
+                                                highlightSyllable(currentSyllableIndex);
+                                    }
+                                });
+
+                                wordSpan.appendChild(syllableSpan);
+                            });
+                        } else {
+                            // אם אין נתוני הברות, הצג את המילה כרגיל
+                            wordSpan.textContent = word;
+                        }
+                    } else {
+                        // אם אין נתוני הברות בכלל, הצג את המילה כרגיל
+                        wordSpan.textContent = word;
+                    }
+
+                    wordSpan.addEventListener('click', () => {
+                        if (!isReading) {
+                            jumpToWord(wordSpan);
+                        }
+                    });
+
+                    line.appendChild(wordSpan);
+
+                    if (wordIndex < wordsInLine.length - 1) {
+                        line.appendChild(document.createTextNode(' '));
+                    }
+                });
+                
+                pyramid.appendChild(line);
+                
+                // אם הגענו לסוף - נעצור
+                if (currentIndex >= allWords.length) {
+                    break;
+                }
+                
+                // קפיצה למילה הבאה
+                currentIndex += wordJump;
+                
+                // אם דילגנו מעבר לסוף, נחזור למילה האחרונה
+                if (currentIndex > allWords.length) {
+                    currentIndex = allWords.length;
+                }
+            }
+            
+            pyramidDiv.appendChild(pyramid);
+            container.appendChild(pyramidDiv);
+        }
+
+        function collectAllWords() {
+            allPyramidWords = Array.from(document.querySelectorAll('.pyramid-word'));
+        }
+
+        function collectAllSyllables() {
+            allSyllables = Array.from(document.querySelectorAll('.syllable'));
+        }
+        
+        function changeDisplayMode(mode) {
+            displayMode = mode;
+            const pyramids = document.querySelectorAll('.pyramid-container');
+            
+            pyramids.forEach(pyramid => {
+                if (mode === 'blur') {
+                    pyramid.classList.add('blur-mode');
+                } else {
+                    pyramid.classList.remove('blur-mode');
+                }
+            });
+        }
+        
+        function highlightWord(index) {
+            allPyramidWords.forEach(word => {
+                word.classList.remove('active-reading');
+            });
+            
+            document.querySelectorAll('.pyramid-line').forEach(line => {
+                line.classList.remove('active-line');
+            });
+            
+            if (index >= 0 && index < allPyramidWords.length) {
+                const currentWord = allPyramidWords[index];
+                currentWord.classList.add('active-reading');
+                
+                const currentLine = currentWord.closest('.pyramid-line');
+                if (currentLine) {
+                    currentLine.classList.add('active-line');
+                }
+            }
+        }
+        
+        function addReadingControls(container) {
+            const controlsDiv = document.createElement('div');
+            controlsDiv.className = 'reading-controls';
+            controlsDiv.innerHTML = `
+                <div class="control-row">
+                    <div class="buttons-group">
+                        <button class="play-pause-btn" id="playPauseBtn" onclick="toggleReading()">▶️</button>
+                        <button class="reset-btn" id="resetBtn" onclick="resetReading()" title="התחל מההתחלה">🔄</button>
+                    </div>
+                    <div class="speed-control">
+                        <div class="speed-label">
+                            מהירות קריאה: <span class="speed-value" id="speedValue">100</span> מילים לדקה
+                        </div>
+                        <input type="range" class="speed-slider" id="speedSlider" 
+                               min="20" max="200" value="100" step="10"
+                               oninput="updateSpeed(this.value)">
+                    </div>
+                </div>
+                <div class="display-mode-control">
+                    <label class="display-mode-label">מצב תצוגה:</label>
+                    <select class="display-mode-select" id="displayModeSelect" onchange="changeDisplayMode(this.value)">
+                        <option value="normal">תצוגה רגילה</option>
+                        <option value="blur">מילה בודדת - מטושטש</option>
+                    </select>
+                </div>
+                <div class="reading-mode-control">
+                    <label class="display-mode-label">מצב קריאה:</label>
+                    <select class="display-mode-select" id="readingModeSelect" onchange="changeReadingMode(this.value)">
+                        <option value="word">קריאה לפי מילים</option>
+                        <option value="syllable">קריאה לפי הברות</option>
+                    </select>
+                </div>
+                <div class="keyboard-hint">💡 לחץ על מקש הרווח להפעלה/השהייה | ← → לדילוג בין מילים/הברות</div>
+            `;
+            
+            container.insertBefore(controlsDiv, container.firstChild);
+        }
+        
+        function updateSpeed(wpm) {
+            readingSpeed = 60000 / wpm;
+            const speedValueElement = document.getElementById('speedValue');
+            if (speedValueElement) {
+                speedValueElement.textContent = wpm;
+            }
+            
+            if (isReading) {
+                stopReading();
+                startReading();
+            }
+        }
+        
+        function toggleReading() {
+            if (isReading) {
+                stopReading();
+            } else {
+                startReading();
+            }
+        }
+        
+        function startReading() {
+            if (readingMode === 'syllable') {
+                if (allSyllables.length === 0) {
+                    alert('אין הברות להצגה. חלק את הטקסט להברות תחילה.');
+                    return;
+                }
+
+                isReading = true;
+                hasStartedReading = true;
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                if (playPauseBtn) {
+                    playPauseBtn.textContent = '⏸️';
+                }
+
+                readingInterval = setInterval(() => {
+                    if (currentSyllableIndex >= allSyllables.length) {
+                        stopReading();
+                        currentSyllableIndex = 0;
+                        highlightSyllable(0);
+                        return;
+                    }
+
+                    highlightSyllable(currentSyllableIndex);
+                    allSyllables[currentSyllableIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    currentSyllableIndex++;
+                }, readingSpeed);
+
+            } else {
+                // מצב קריאה לפי מילים (הקוד המקורי)
+                if (allPyramidWords.length === 0) {
+                    alert('אין פירמידות להצגה. צור פירמידות תחילה.');
+                    return;
+                }
+
+                isReading = true;
+                hasStartedReading = true;
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                if (playPauseBtn) {
+                    playPauseBtn.textContent = '⏸️';
+                }
+
+                readingInterval = setInterval(() => {
+                    if (currentWordIndex >= allPyramidWords.length) {
+                        stopReading();
+                        currentWordIndex = 0;
+                        highlightWord(0);
+                        return;
+                    }
+
+                    highlightWord(currentWordIndex);
+                    allPyramidWords[currentWordIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    const currentWord = allPyramidWords[currentWordIndex];
+                    currentWordIndex++;
+
+                    if (currentWordIndex < allPyramidWords.length) {
+                        const currentLine = currentWord.closest('.pyramid-line');
+                        const nextLine = allPyramidWords[currentWordIndex].closest('.pyramid-line');
+
+                        if (currentLine !== nextLine) {
+                            clearInterval(readingInterval);
+                            setTimeout(() => {
+                                if (isReading) {
+                                    startReading();
+                                }
+                            }, readingSpeed * 1.2);
+                        }
+                    }
+                }, readingSpeed);
+            }
+        }
+        
+        function stopReading() {
+            isReading = false;
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            if (playPauseBtn) {
+                playPauseBtn.textContent = '▶️';
+            }
+            
+            if (readingInterval) {
+                clearInterval(readingInterval);
+                readingInterval = null;
+            }
+        }
+        
+        function resetReading() {
+            stopReading();
+            currentWordIndex = 0;
+            currentSyllableIndex = 0;
+            hasStartedReading = false;
+
+            if (readingMode === 'syllable') {
+                highlightSyllable(0);
+            } else {
+                highlightWord(0);
+            }
+
+            const firstPyramid = document.querySelector('.pyramid-container');
+            if (firstPyramid) {
+                firstPyramid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+        
+        function jumpToWord(wordElement) {
+            const index = allPyramidWords.indexOf(wordElement);
+            if (index !== -1) {
+                currentWordIndex = index;
+                highlightWord(index);
+            }
+        }
+        
+        function clearAll() {
+            stopReading();
+            currentWordIndex = 0;
+            currentSyllableIndex = 0;
+            allPyramidWords = [];
+            allSyllables = [];
+            syllablesData = null;
+            hasStartedReading = false;
+            document.getElementById('inputText').value = '';
+            const output = document.getElementById('output');
+            if (output) {
+                output.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📝</div><p>הדבק טקסט ולחץ על צור פירמידות כדי להתחיל</p></div>';
+            }
+        }
+
+        async function splitIntoSyllables() {
+            const inputTextArea = document.getElementById('inputText');
+            const text = inputTextArea.value.trim();
+
+            if (!text) {
+                alert('אנא הדבק טקסט תחילה');
+                return;
+            }
+
+            // בדוק אם הטקסט מנוקד
+            const hasNikud = /[\u0591-\u05C7]/.test(text);
+            if (!hasNikud) {
+                // הוסף ניקוד אוטומטית לפני חלוקה להברות
+                await addNikud();
+                // המתן קצת ואז המשך
+                setTimeout(() => {
+                    performSyllableSplitting(inputTextArea.value.trim());
+                }, 500);
+            } else {
+                performSyllableSplitting(text);
+            }
+        }
+
+        async function performSyllableSplitting(text) {
+            try {
+                const loadingMsg = document.createElement('div');
+                loadingMsg.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 9999; text-align: center;';
+                loadingMsg.innerHTML = '<div style="font-size: 3em; margin-bottom: 10px;">📝</div><div style="font-size: 1.2em; font-weight: bold; color: #667eea;">מחלק להברות...</div>';
+                document.body.appendChild(loadingMsg);
+
+                const GEMINI_API_KEY = "AIzaSyBXvphV96du8f6ksOmyGxB9rdZFB2SzhIg";
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{
+                                text: `חלק את הטקסט העברי המנוקד הבא להברות מדויקות. החזר את התוצאה בפורמט JSON בלבד, ללא הסברים או תוספות אחרות. הפורמט: {"words": [{"word": "מילה1", "syllables": ["הב", "רה1", "הב", "רה2"]}, {"word": "מילה2", "syllables": ["הב", "רה"]}]}:\n\n${text}`
+                            }]
+                        }],
+                        generationConfig: {
+                            maxOutputTokens: 4000,
+                            temperature: 0.1
+                        }
+                    })
+                });
+
+                const data = await response.json();
+                console.log('Syllable splitting response:', data);
+
+                if (data.error) {
+                    console.error('Gemini API Error:', data.error);
+                    throw new Error(`Gemini API Error: ${data.error.message || 'Unknown error'}`);
+                }
+
+                if (!data.candidates || !data.candidates[0] || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts[0]) {
+                    console.error('Unexpected response structure:', data);
+                    throw new Error('Invalid response structure from Gemini API');
+                }
+
+                const responseText = data.candidates[0].content.parts[0].text.trim();
+                console.log('Raw response text:', responseText);
+
+                // הסר markdown formatting אם קיים
+                let cleanJsonText = responseText;
+                if (responseText.startsWith('```json')) {
+                    cleanJsonText = responseText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+                } else if (responseText.startsWith('```')) {
+                    cleanJsonText = responseText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+                }
+
+                console.log('Clean JSON text:', cleanJsonText);
+
+                // נסה לנתח את ה-JSON
+                try {
+                    syllablesData = JSON.parse(cleanJsonText);
+                    console.log('Parsed syllables data:', syllablesData);
+
+                    // שמור את נתוני ההברות
+                    if (syllablesData && syllablesData.words) {
+                        // יצירת מערך שטוח של כל ההברות
+                        allSyllables = [];
+                        syllablesData.words.forEach(wordData => {
+                            if (wordData.syllables) {
+                                wordData.syllables.forEach(syllable => {
+                                    allSyllables.push({
+                                        text: syllable,
+                                        word: wordData.word
+                                    });
+                                });
+                            }
+                        });
+
+                        console.log('All syllables:', allSyllables);
+                    }
+
+                    document.body.removeChild(loadingMsg);
+
+                    // אם יש כבר פירמידות, צור אותן מחדש עם ההברות
+                    const output = document.getElementById('output');
+                    if (output && !output.querySelector('.empty-state')) {
+                        createPyramids();
+                    }
+
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError);
+                    console.error('Response text that failed to parse:', responseText);
+                    throw new Error('Failed to parse syllable data from API response');
+                }
+
+            } catch (error) {
+                console.error('שגיאה בחלוקה להברות:', error);
+                alert('❌ שגיאה בחלוקה להברות. נסה שוב.');
+                const loadingMsg = document.querySelector('[style*="position: fixed"]');
+                if (loadingMsg) document.body.removeChild(loadingMsg);
+            }
+        }
+
+        function toggleSyllableDisplay(show) {
+            showSyllables = show;
+            const pyramids = document.querySelectorAll('.pyramid-container');
+
+            pyramids.forEach(pyramid => {
+                if (show) {
+                    pyramid.classList.add('show-syllables');
+                } else {
+                    pyramid.classList.remove('show-syllables');
+                }
+            });
+        }
+
+        function changeReadingMode(mode) {
+            readingMode = mode;
+            console.log('Reading mode changed to:', mode);
+
+            // אם אנחנו במצב הברות, ודא שיש נתוני הברות
+            if (mode === 'syllable' && (!syllablesData || !allSyllables.length)) {
+                alert('אנא חלק את הטקסט להברות תחילה');
+                document.getElementById('readingModeSelect').value = 'word';
+                readingMode = 'word';
+                return;
+            }
+
+            // עדכן את מצב התצוגה
+            const pyramids = document.querySelectorAll('.pyramid-container');
+            pyramids.forEach(pyramid => {
+                if (mode === 'syllable') {
+                    pyramid.classList.add('syllable-mode');
+                } else {
+                    pyramid.classList.remove('syllable-mode');
+                }
+            });
+        }
+
+        function navigatePrevious() {
+            if (readingMode === 'syllable' && allSyllables.length > 0) {
+                if (currentSyllableIndex > 0) {
+                    currentSyllableIndex--;
+                    highlightSyllable(currentSyllableIndex);
+                }
+            } else if (readingMode === 'word' && allPyramidWords.length > 0) {
+                if (currentWordIndex > 0) {
+                    currentWordIndex--;
+                    highlightWord(currentWordIndex);
+                }
+            }
+        }
+
+        function navigateNext() {
+            if (readingMode === 'syllable' && allSyllables.length > 0) {
+                if (currentSyllableIndex < allSyllables.length - 1) {
+                    currentSyllableIndex++;
+                    highlightSyllable(currentSyllableIndex);
+                }
+            } else if (readingMode === 'word' && allPyramidWords.length > 0) {
+                if (currentWordIndex < allPyramidWords.length - 1) {
+                    currentWordIndex++;
+                    highlightWord(currentWordIndex);
+                }
+            }
+        }
+
+        function highlightSyllable(index) {
+            // הסר הדגשה קודמת
+            document.querySelectorAll('.syllable').forEach(syllable => {
+                syllable.classList.remove('active-syllable');
+            });
+
+            if (index >= 0 && index < allSyllables.length) {
+                // מצא את ההברה ב-DOM
+                const syllables = document.querySelectorAll('.syllable');
+                if (syllables[index]) {
+                    syllables[index].classList.add('active-syllable');
+                    syllables[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
