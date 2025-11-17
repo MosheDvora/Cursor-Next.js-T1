@@ -30,6 +30,7 @@ import {
   DEFAULT_SYLLABLE_BORDER_SIZE,
   DEFAULT_SYLLABLE_BACKGROUND_COLOR,
   DEFAULT_WORD_SPACING,
+  DEFAULT_LETTER_SPACING,
   DEFAULT_WORD_HIGHLIGHT_PADDING,
   DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
   DEFAULT_LETTER_HIGHLIGHT_PADDING,
@@ -48,6 +49,7 @@ export default function SettingsPage() {
   const [syllableBorderSize, setSyllableBorderSize] = useState(DEFAULT_SYLLABLE_BORDER_SIZE);
   const [syllableBackgroundColor, setSyllableBackgroundColor] = useState(DEFAULT_SYLLABLE_BACKGROUND_COLOR);
   const [wordSpacing, setWordSpacing] = useState(DEFAULT_WORD_SPACING);
+  const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
   const [wordHighlightPadding, setWordHighlightPadding] = useState(DEFAULT_WORD_HIGHLIGHT_PADDING);
   const [syllableHighlightPadding, setSyllableHighlightPadding] = useState(DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
   const [letterHighlightPadding, setLetterHighlightPadding] = useState(DEFAULT_LETTER_HIGHLIGHT_PADDING);
@@ -68,6 +70,7 @@ export default function SettingsPage() {
     setSyllableBorderSize(settings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE);
     setSyllableBackgroundColor(settings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
     setWordSpacing(settings.wordSpacing || DEFAULT_WORD_SPACING);
+    setLetterSpacing(settings.letterSpacing || DEFAULT_LETTER_SPACING);
     setWordHighlightPadding(settings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING);
     setSyllableHighlightPadding(settings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
     setLetterHighlightPadding(settings.letterHighlightPadding || DEFAULT_LETTER_HIGHLIGHT_PADDING);
@@ -88,6 +91,7 @@ export default function SettingsPage() {
       syllableBorderSize,
       syllableBackgroundColor,
       wordSpacing,
+      letterSpacing,
       wordHighlightPadding,
       syllableHighlightPadding,
       letterHighlightPadding,
@@ -113,6 +117,19 @@ export default function SettingsPage() {
           <h1 className="text-4xl md:text-5xl font-bold text-right">
             הגדרות אישיות
           </h1>
+        </div>
+
+        {/* Save Button - Accessible from all tabs */}
+        <div className="mb-6">
+          <Button
+            onClick={handleSave}
+            className="w-full md:w-auto gap-2"
+            size="lg"
+            disabled={saved}
+          >
+            <Save className="h-4 w-4" />
+            {saved ? "נשמר!" : "שמור הגדרות"}
+          </Button>
         </div>
 
         {/* Settings Tabs */}
@@ -307,17 +324,6 @@ export default function SettingsPage() {
                     )}
                   </div>
                 </div>
-
-                {/* Save Button */}
-                <Button
-                  onClick={handleSave}
-                  className="w-full gap-2"
-                  size="lg"
-                  disabled={saved}
-                >
-                  <Save className="h-4 w-4" />
-                  {saved ? "נשמר!" : "שמור הגדרות"}
-                </Button>
               </TabsContent>
 
               {/* General Tab */}
@@ -406,6 +412,27 @@ export default function SettingsPage() {
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         המרחק בין מילה למילה בתצוגת ההברות בפיקסלים (0-50)
+                      </p>
+                    </div>
+
+                    {/* Letter Spacing Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="letter-spacing" className="text-right block text-base">
+                        מרחק בין אותיות (פיקסלים)
+                      </Label>
+                      <Input
+                        id="letter-spacing"
+                        type="number"
+                        min="0"
+                        max="20"
+                        value={letterSpacing}
+                        onChange={(e) => setLetterSpacing(parseInt(e.target.value, 10) || 0)}
+                        placeholder="0"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        המרחק בין אות לאות בכל מצבי הקפיצה בפיקסלים (0-20)
                       </p>
                     </div>
 

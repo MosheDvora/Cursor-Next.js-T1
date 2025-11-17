@@ -29,6 +29,7 @@ export const SETTINGS_KEYS = {
   SYLLABLE_BORDER_SIZE: "syllable_border_size",
   SYLLABLE_BACKGROUND_COLOR: "syllable_background_color",
   WORD_SPACING: "word_spacing",
+  LETTER_SPACING: "letter_spacing",
   FONT_SIZE: "font_size",
   WORD_HIGHLIGHT_PADDING: "word_highlight_padding",
   SYLLABLE_HIGHLIGHT_PADDING: "syllable_highlight_padding",
@@ -57,6 +58,7 @@ export interface AppSettings {
   syllableBorderSize: number;
   syllableBackgroundColor: string;
   wordSpacing: number;
+  letterSpacing: number;
   fontSize: number;
   wordHighlightPadding: number;
   syllableHighlightPadding: number;
@@ -140,6 +142,7 @@ export const DEFAULT_SYLLABLES_PROMPT = `אתה מומחה בעברית. המש�
 export const DEFAULT_SYLLABLE_BORDER_SIZE = 2; // pixels
 export const DEFAULT_SYLLABLE_BACKGROUND_COLOR = "#dbeafe"; // blue-50
 export const DEFAULT_WORD_SPACING = 12; // pixels (gap-x-3 in Tailwind)
+export const DEFAULT_LETTER_SPACING = 0; // pixels (letter-spacing)
 export const DEFAULT_FONT_SIZE = 30; // pixels
 export const DEFAULT_WORD_HIGHLIGHT_PADDING = 4; // pixels
 export const DEFAULT_SYLLABLE_HIGHLIGHT_PADDING = 3; // pixels
@@ -180,6 +183,7 @@ export function getSettings(): AppSettings {
       syllableBorderSize: DEFAULT_SYLLABLE_BORDER_SIZE,
       syllableBackgroundColor: DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: DEFAULT_WORD_SPACING,
+      letterSpacing: DEFAULT_LETTER_SPACING,
       fontSize: DEFAULT_FONT_SIZE,
       wordHighlightPadding: DEFAULT_WORD_HIGHLIGHT_PADDING,
       syllableHighlightPadding: DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
@@ -229,6 +233,10 @@ export function getSettings(): AppSettings {
     localStorage.getItem(SETTINGS_KEYS.WORD_SPACING) || String(DEFAULT_WORD_SPACING),
     10
   );
+  const letterSpacing = parseInt(
+    localStorage.getItem(SETTINGS_KEYS.LETTER_SPACING) || String(DEFAULT_LETTER_SPACING),
+    10
+  );
   const fontSize = parseInt(
     localStorage.getItem(SETTINGS_KEYS.FONT_SIZE) || String(DEFAULT_FONT_SIZE),
     10
@@ -261,6 +269,7 @@ export function getSettings(): AppSettings {
     syllableBorderSize,
     syllableBackgroundColor,
     wordSpacing,
+    letterSpacing,
     fontSize,
     wordHighlightPadding,
     syllableHighlightPadding,
@@ -327,6 +336,10 @@ export function saveSettings(settings: Partial<AppSettings>): void {
     localStorage.setItem(SETTINGS_KEYS.WORD_SPACING, String(settings.wordSpacing));
   }
 
+  if (settings.letterSpacing !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.LETTER_SPACING, String(settings.letterSpacing));
+  }
+
   if (settings.fontSize !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.FONT_SIZE, String(settings.fontSize));
   }
@@ -382,6 +395,7 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BORDER_SIZE);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR);
   localStorage.removeItem(SETTINGS_KEYS.WORD_SPACING);
+  localStorage.removeItem(SETTINGS_KEYS.LETTER_SPACING);
   localStorage.removeItem(SETTINGS_KEYS.FONT_SIZE);
   localStorage.removeItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_PADDING);
@@ -474,6 +488,7 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       syllableBorderSize: serverSettings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE,
       syllableBackgroundColor: serverSettings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: serverSettings.wordSpacing || DEFAULT_WORD_SPACING,
+      letterSpacing: serverSettings.letterSpacing || DEFAULT_LETTER_SPACING,
       fontSize: serverSettings.fontSize || DEFAULT_FONT_SIZE,
       wordHighlightPadding: serverSettings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING,
       syllableHighlightPadding: serverSettings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,

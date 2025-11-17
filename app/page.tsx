@@ -30,6 +30,7 @@ export default function Home() {
     syllableBorderSize: 2,
     syllableBackgroundColor: "#dbeafe",
     wordSpacing: 12,
+    letterSpacing: 0,
     fontSize: DEFAULT_FONT_SIZE,
     wordHighlightPadding: 4,
     syllableHighlightPadding: 3,
@@ -79,6 +80,7 @@ export default function Home() {
         syllableBorderSize: settings.syllableBorderSize || 2,
         syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
         wordSpacing: settings.wordSpacing || 12,
+        letterSpacing: settings.letterSpacing || 0,
         fontSize: settings.fontSize || DEFAULT_FONT_SIZE,
         wordHighlightPadding: settings.wordHighlightPadding || 4,
         syllableHighlightPadding: settings.syllableHighlightPadding || 3,
@@ -477,6 +479,7 @@ export default function Home() {
               borderSize={appearanceSettings.syllableBorderSize}
               backgroundColor={appearanceSettings.syllableBackgroundColor}
               wordSpacing={appearanceSettings.wordSpacing}
+              letterSpacing={appearanceSettings.letterSpacing}
               fontSize={appearanceSettings.fontSize}
               wordHighlightPadding={appearanceSettings.wordHighlightPadding}
               syllableHighlightPadding={appearanceSettings.syllableHighlightPadding}

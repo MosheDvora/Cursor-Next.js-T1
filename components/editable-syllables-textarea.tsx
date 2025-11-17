@@ -17,6 +17,7 @@ interface EditableSyllablesTextareaProps {
   borderSize: number;
   backgroundColor: string;
   wordSpacing: number;
+  letterSpacing: number;
   fontSize?: number;
   wordHighlightPadding?: number;
   syllableHighlightPadding?: number;
@@ -44,6 +45,7 @@ export function EditableSyllablesTextarea({
   borderSize,
   backgroundColor,
   wordSpacing,
+  letterSpacing,
   fontSize = 30,
   wordHighlightPadding = 4,
   syllableHighlightPadding = 3,
@@ -372,7 +374,7 @@ export function EditableSyllablesTextarea({
           contentEditable={false}
         >
           {navigationMode === "words" ? (
-            <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+            <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
               {words.map((word, wordIndex) => {
                 const isCurrentWord = wordIndex === currentWordIdx;
                 const isHoveredWord = wordIndex === hoveredWordIndex;
@@ -398,7 +400,7 @@ export function EditableSyllablesTextarea({
             </div>
           ) : (
             // Letters mode - show text with letter highlighting
-            <div className="whitespace-pre-wrap" dir="rtl">
+            <div className="pyramid-line-base whitespace-pre-wrap" dir="rtl" style={{ letterSpacing: `${letterSpacing}px` }}>
               {text.split("").map((char, index) => {
                 const letterInfo = letters.find(l => l.index === index);
                 const letterIdx = letterInfo ? letters.indexOf(letterInfo) : -1;
@@ -453,7 +455,7 @@ export function EditableSyllablesTextarea({
         contentEditable={false}
       >
         {navigationMode === "words" ? (
-          <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+          <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
             {words.map((wordEntry, wordIndex) => {
               const wordText = wordEntry.syllables.join("");
               const isCurrentWord = wordIndex === currentWordIdx;
@@ -480,7 +482,7 @@ export function EditableSyllablesTextarea({
           </div>
         ) : navigationMode === "syllables" ? (
           // Syllables mode - highlight syllable being navigated
-          <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+          <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
             {words.map((wordEntry, wordIndex) => {
               const syllables = wordEntry.syllables;
               return (
@@ -509,7 +511,7 @@ export function EditableSyllablesTextarea({
           </div>
         ) : (
           // Letters mode - highlight only Hebrew letters
-          <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+          <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
             {words.map((wordEntry, wordIndex) => {
               const syllables = wordEntry.syllables;
               const wordText = syllables.join("");
