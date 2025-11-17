@@ -146,8 +146,18 @@ export function getSettings(): AppSettings {
   const syllablesApiKey = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_API_KEY) || legacyApiKey || "";
   const syllablesModel =
     localStorage.getItem(SETTINGS_KEYS.SYLLABLES_MODEL) || legacyModel || DEFAULT_MODELS[0].value;
-  const syllablesPrompt =
-    localStorage.getItem(SETTINGS_KEYS.SYLLABLES_PROMPT) || DEFAULT_SYLLABLES_PROMPT;
+  
+  // For syllables prompt: use saved value only if it's different from the current default
+  // This ensures that if user hasn't customized it, they get the updated default
+  // If saved value matches current default, it means user hasn't customized, so use new default
+  const savedSyllablesPrompt = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_PROMPT);
+  
+  // If saved value exists and is different from current default, user customized it - use saved value
+  // Otherwise, use the current default (which may be updated)
+  const syllablesPrompt = 
+    savedSyllablesPrompt && savedSyllablesPrompt !== DEFAULT_SYLLABLES_PROMPT
+      ? savedSyllablesPrompt
+      : DEFAULT_SYLLABLES_PROMPT;
 
   return {
     apiKey: legacyApiKey || "", // Keep for backward compatibility
