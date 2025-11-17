@@ -3,14 +3,21 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Settings, Loader2, Sparkles, Scissors, Trash2 } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
-import { SyllablesDisplay } from "@/components/syllables-display";
-import { getSettings } from "@/lib/settings";
+import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
+import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition } from "@/lib/settings";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 
@@ -22,6 +29,8 @@ export default function Home() {
     syllableBackgroundColor: "#dbeafe",
     wordSpacing: 12,
   });
+  const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("syllables");
+  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const {
     text: niqqudText,
     setText: setNiqqudText,
@@ -53,7 +62,7 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Load appearance settings
+  // Load appearance settings and navigation mode
   useEffect(() => {
     if (mounted) {
       const settings = getSettings();
@@ -62,6 +71,13 @@ export default function Home() {
         syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
         wordSpacing: settings.wordSpacing || 12,
       });
+      
+      // Load saved position
+      const savedPosition = loadCurrentPosition();
+      if (savedPosition) {
+        setCurrentPosition(savedPosition);
+        setNavigationMode(savedPosition.mode);
+      }
     }
   }, [mounted]);
 
@@ -137,6 +153,14 @@ export default function Home() {
     }
   };
 
+  // Clear position when syllables are deactivated
+  useEffect(() => {
+    if (!isSyllablesActive && currentPosition) {
+      setCurrentPosition(null);
+      saveCurrentPosition(null);
+    }
+  }, [isSyllablesActive, currentPosition]);
+
   const handleClear = () => {
     // Clear text field
     setLocalText("");
@@ -151,11 +175,20 @@ export default function Home() {
     // Clear syllables cache and state
     clearSyllables();
     
+    // Clear current position
+    setCurrentPosition(null);
+    saveCurrentPosition(null);
+    
     // Show success toast
     toast({
       title: "ניקוי הושלם",
       description: "הטקסט והזיכרון נוקו בהצלחה",
     });
+  };
+
+  const handlePositionChange = (position: CurrentPosition | null) => {
+    setCurrentPosition(position);
+    saveCurrentPosition(position);
   };
 
   // Show success toast only when state actually changes successfully
@@ -294,6 +327,25 @@ export default function Home() {
             </Link>
           </div>
 
+          {/* Navigation Mode Selector - shown when syllables are active */}
+          {isSyllablesActive && (
+            <div className="mb-4 flex justify-end items-center gap-3">
+              <Label htmlFor="navigation-mode" className="text-right text-base">
+                סוג קפיצה:
+              </Label>
+              <Select value={navigationMode} onValueChange={(value: "words" | "syllables" | "letters") => setNavigationMode(value)}>
+                <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="words" className="text-right">מילים</SelectItem>
+                  <SelectItem value="syllables" className="text-right">הברות</SelectItem>
+                  <SelectItem value="letters" className="text-right">אותיות</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="mb-4 flex justify-end gap-3">
             <Button
@@ -346,18 +398,6 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* Syllables display area (shown when active) */}
-          {isSyllablesActive && syllablesData && (
-            <div className="w-full mb-4">
-              <SyllablesDisplay 
-                data={syllablesData}
-                borderSize={appearanceSettings.syllableBorderSize}
-                backgroundColor={appearanceSettings.syllableBackgroundColor}
-                wordSpacing={appearanceSettings.wordSpacing}
-              />
-            </div>
-          )}
-
           {/* Raw response display (temporary for testing) */}
           {syllablesRawResponse && (
             <div className="w-full mb-4">
@@ -370,15 +410,21 @@ export default function Home() {
             </div>
           )}
 
-          {/* Main text input area */}
+          {/* Main text input area - unified display */}
           <div className="w-full">
-            <Textarea
-              value={localText}
-              onChange={(e) => handleTextChange(e.target.value)}
-              placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
-              className="min-h-[500px] text-right text-lg md:text-xl resize-y"
-              dir="rtl"
+            <EditableSyllablesTextarea
+              text={localText}
+              onChange={handleTextChange}
+              isSyllablesActive={isSyllablesActive}
+              syllablesData={syllablesData}
+              currentPosition={currentPosition}
+              onPositionChange={handlePositionChange}
+              navigationMode={navigationMode}
+              borderSize={appearanceSettings.syllableBorderSize}
+              backgroundColor={appearanceSettings.syllableBackgroundColor}
+              wordSpacing={appearanceSettings.wordSpacing}
               disabled={isLoading || isSyllablesLoading}
+              placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
             />
           </div>
         </div>

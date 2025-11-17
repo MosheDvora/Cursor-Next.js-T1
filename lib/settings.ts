@@ -3,6 +3,16 @@
  * Handles localStorage for app settings
  */
 
+/**
+ * Current position in syllables navigation
+ */
+export interface CurrentPosition {
+  mode: "words" | "syllables" | "letters";
+  wordIndex: number;      // Always required - which word is selected
+  syllableIndex?: number; // Which syllable (if mode = syllables)
+  letterIndex?: number;   // Which letter (if mode = letters)
+}
+
 const SETTINGS_KEYS = {
   // Legacy keys (for backward compatibility)
   API_KEY: "niqqud_api_key",
@@ -19,6 +29,8 @@ const SETTINGS_KEYS = {
   SYLLABLE_BORDER_SIZE: "syllable_border_size",
   SYLLABLE_BACKGROUND_COLOR: "syllable_background_color",
   WORD_SPACING: "word_spacing",
+  // Navigation settings
+  SYLLABLES_CURRENT_POSITION: "syllables_current_position",
 } as const;
 
 export interface AppSettings {
@@ -287,6 +299,54 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BORDER_SIZE);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR);
   localStorage.removeItem(SETTINGS_KEYS.WORD_SPACING);
+
+  // Navigation keys
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_CURRENT_POSITION);
+}
+
+/**
+ * Save current position to localStorage
+ */
+export function saveCurrentPosition(position: CurrentPosition | null): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (position === null) {
+      localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_CURRENT_POSITION);
+    } else {
+      localStorage.setItem(SETTINGS_KEYS.SYLLABLES_CURRENT_POSITION, JSON.stringify(position));
+    }
+  } catch (error) {
+    console.error("[Settings] Failed to save current position:", error);
+  }
+}
+
+/**
+ * Load current position from localStorage
+ */
+export function loadCurrentPosition(): CurrentPosition | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const saved = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_CURRENT_POSITION);
+    if (!saved) {
+      return null;
+    }
+
+    const position = JSON.parse(saved) as CurrentPosition;
+    // Validate position structure
+    if (position && typeof position.wordIndex === "number" && position.mode) {
+      return position;
+    }
+    return null;
+  } catch (error) {
+    console.error("[Settings] Failed to load current position:", error);
+    return null;
+  }
 }
 
 /**
