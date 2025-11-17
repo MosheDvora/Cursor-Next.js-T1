@@ -10,12 +10,18 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { SyllablesDisplay } from "@/components/syllables-display";
+import { getSettings } from "@/lib/settings";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 
 export default function Home() {
   const [localText, setLocalText] = useState("");
   const [mounted, setMounted] = useState(false);
+  const [appearanceSettings, setAppearanceSettings] = useState({
+    syllableBorderSize: 2,
+    syllableBackgroundColor: "#dbeafe",
+    wordSpacing: 12,
+  });
   const {
     text: niqqudText,
     setText: setNiqqudText,
@@ -46,6 +52,18 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Load appearance settings
+  useEffect(() => {
+    if (mounted) {
+      const settings = getSettings();
+      setAppearanceSettings({
+        syllableBorderSize: settings.syllableBorderSize || 2,
+        syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
+        wordSpacing: settings.wordSpacing || 12,
+      });
+    }
+  }, [mounted]);
 
   // Load text from localStorage on mount (client-side only)
   useEffect(() => {
@@ -331,7 +349,12 @@ export default function Home() {
           {/* Syllables display area (shown when active) */}
           {isSyllablesActive && syllablesData && (
             <div className="w-full mb-4">
-              <SyllablesDisplay data={syllablesData} />
+              <SyllablesDisplay 
+                data={syllablesData}
+                borderSize={appearanceSettings.syllableBorderSize}
+                backgroundColor={appearanceSettings.syllableBackgroundColor}
+                wordSpacing={appearanceSettings.wordSpacing}
+              />
             </div>
           )}
 

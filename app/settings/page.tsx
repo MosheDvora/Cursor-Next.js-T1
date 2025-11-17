@@ -26,6 +26,9 @@ import {
   DEFAULT_MODELS,
   DEFAULT_NIQQUD_PROMPT,
   DEFAULT_SYLLABLES_PROMPT,
+  DEFAULT_SYLLABLE_BORDER_SIZE,
+  DEFAULT_SYLLABLE_BACKGROUND_COLOR,
+  DEFAULT_WORD_SPACING,
 } from "@/lib/settings";
 
 export default function SettingsPage() {
@@ -35,6 +38,9 @@ export default function SettingsPage() {
   const [syllablesApiKey, setSyllablesApiKey] = useState("");
   const [syllablesModel, setSyllablesModel] = useState(DEFAULT_MODELS[0].value);
   const [syllablesPrompt, setSyllablesPrompt] = useState(DEFAULT_SYLLABLES_PROMPT);
+  const [syllableBorderSize, setSyllableBorderSize] = useState(DEFAULT_SYLLABLE_BORDER_SIZE);
+  const [syllableBackgroundColor, setSyllableBackgroundColor] = useState(DEFAULT_SYLLABLE_BACKGROUND_COLOR);
+  const [wordSpacing, setWordSpacing] = useState(DEFAULT_WORD_SPACING);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -45,6 +51,9 @@ export default function SettingsPage() {
     setSyllablesApiKey(settings.syllablesApiKey || "");
     setSyllablesModel(settings.syllablesModel || DEFAULT_MODELS[0].value);
     setSyllablesPrompt(settings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT);
+    setSyllableBorderSize(settings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE);
+    setSyllableBackgroundColor(settings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
+    setWordSpacing(settings.wordSpacing || DEFAULT_WORD_SPACING);
   }, []);
 
   const handleSave = () => {
@@ -55,6 +64,9 @@ export default function SettingsPage() {
       syllablesApiKey,
       syllablesModel,
       syllablesPrompt,
+      syllableBorderSize,
+      syllableBackgroundColor,
+      wordSpacing,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -278,13 +290,81 @@ export default function SettingsPage() {
 
               {/* Appearance Tab */}
               <TabsContent value="appearance" className="mt-0">
-                <div className="p-6 border rounded-lg bg-card shadow-sm">
+                <div className="space-y-6 p-6 border rounded-lg bg-card shadow-sm">
                   <h2 className="text-2xl font-semibold text-right mb-4">
-                    הגדרות מראה
+                    הגדרות מראה - תצוגת הברות
                   </h2>
-                  <p className="text-muted-foreground text-right">
-                    הגדרות מראה יופיעו כאן בעתיד.
-                  </p>
+
+                  <div className="space-y-4">
+                    {/* Border Size Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="syllable-border-size" className="text-right block text-base">
+                        גודל מסגרת הברה (פיקסלים)
+                      </Label>
+                      <Input
+                        id="syllable-border-size"
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={syllableBorderSize}
+                        onChange={(e) => setSyllableBorderSize(parseInt(e.target.value, 10) || 0)}
+                        placeholder="2"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        גודל המסגרת שמקיפה כל הברה בפיקסלים (0-10)
+                      </p>
+                    </div>
+
+                    {/* Background Color Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="syllable-background-color" className="text-right block text-base">
+                        צבע רקע הברה
+                      </Label>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          id="syllable-background-color"
+                          type="color"
+                          value={syllableBackgroundColor}
+                          onChange={(e) => setSyllableBackgroundColor(e.target.value)}
+                          className="w-20 h-10 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={syllableBackgroundColor}
+                          onChange={(e) => setSyllableBackgroundColor(e.target.value)}
+                          placeholder="#dbeafe"
+                          className="flex-1 text-right font-mono"
+                          dir="rtl"
+                        />
+                      </div>
+                      <p className="text-sm text-muted-foreground text-right">
+                        צבע הרקע של כל הברה (hex color או שם צבע)
+                      </p>
+                    </div>
+
+                    {/* Word Spacing Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="word-spacing" className="text-right block text-base">
+                        מרחק בין מילים (פיקסלים)
+                      </Label>
+                      <Input
+                        id="word-spacing"
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={wordSpacing}
+                        onChange={(e) => setWordSpacing(parseInt(e.target.value, 10) || 0)}
+                        placeholder="12"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        המרחק בין מילה למילה בתצוגת ההברות בפיקסלים (0-50)
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             </div>

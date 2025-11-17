@@ -15,6 +15,10 @@ const SETTINGS_KEYS = {
   SYLLABLES_API_KEY: "syllables_api_key",
   SYLLABLES_MODEL: "syllables_model",
   SYLLABLES_PROMPT: "syllables_prompt",
+  // Appearance settings
+  SYLLABLE_BORDER_SIZE: "syllable_border_size",
+  SYLLABLE_BACKGROUND_COLOR: "syllable_background_color",
+  WORD_SPACING: "word_spacing",
 } as const;
 
 export interface AppSettings {
@@ -29,6 +33,10 @@ export interface AppSettings {
   syllablesApiKey: string;
   syllablesModel: string;
   syllablesPrompt: string;
+  // Appearance settings
+  syllableBorderSize: number;
+  syllableBackgroundColor: string;
+  wordSpacing: number;
 }
 
 /**
@@ -100,6 +108,13 @@ export const DEFAULT_SYLLABLES_PROMPT = `אתה מומחה בעברית. המש�
 {text}`;
 
 /**
+ * Default appearance settings
+ */
+export const DEFAULT_SYLLABLE_BORDER_SIZE = 2; // pixels
+export const DEFAULT_SYLLABLE_BACKGROUND_COLOR = "#dbeafe"; // blue-50
+export const DEFAULT_WORD_SPACING = 12; // pixels (gap-x-3 in Tailwind)
+
+/**
  * Get settings from localStorage
  */
 /**
@@ -128,6 +143,9 @@ export function getSettings(): AppSettings {
       syllablesApiKey: "",
       syllablesModel: DEFAULT_MODELS[0].value,
       syllablesPrompt: DEFAULT_SYLLABLES_PROMPT,
+      syllableBorderSize: DEFAULT_SYLLABLE_BORDER_SIZE,
+      syllableBackgroundColor: DEFAULT_SYLLABLE_BACKGROUND_COLOR,
+      wordSpacing: DEFAULT_WORD_SPACING,
     };
   }
 
@@ -159,6 +177,18 @@ export function getSettings(): AppSettings {
       ? savedSyllablesPrompt
       : DEFAULT_SYLLABLES_PROMPT;
 
+  // Appearance settings
+  const syllableBorderSize = parseInt(
+    localStorage.getItem(SETTINGS_KEYS.SYLLABLE_BORDER_SIZE) || String(DEFAULT_SYLLABLE_BORDER_SIZE),
+    10
+  );
+  const syllableBackgroundColor =
+    localStorage.getItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR) || DEFAULT_SYLLABLE_BACKGROUND_COLOR;
+  const wordSpacing = parseInt(
+    localStorage.getItem(SETTINGS_KEYS.WORD_SPACING) || String(DEFAULT_WORD_SPACING),
+    10
+  );
+
   return {
     apiKey: legacyApiKey || "", // Keep for backward compatibility
     model: legacyModel || DEFAULT_MODELS[0].value, // Keep for backward compatibility
@@ -168,6 +198,9 @@ export function getSettings(): AppSettings {
     syllablesApiKey,
     syllablesModel,
     syllablesPrompt,
+    syllableBorderSize,
+    syllableBackgroundColor,
+    wordSpacing,
   };
 }
 
@@ -213,6 +246,19 @@ export function saveSettings(settings: Partial<AppSettings>): void {
   if (settings.syllablesPrompt !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.SYLLABLES_PROMPT, settings.syllablesPrompt);
   }
+
+  // Appearance settings
+  if (settings.syllableBorderSize !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.SYLLABLE_BORDER_SIZE, String(settings.syllableBorderSize));
+  }
+
+  if (settings.syllableBackgroundColor !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR, settings.syllableBackgroundColor);
+  }
+
+  if (settings.wordSpacing !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.WORD_SPACING, String(settings.wordSpacing));
+  }
 }
 
 /**
@@ -236,6 +282,11 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_API_KEY);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_MODEL);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_PROMPT);
+
+  // Appearance keys
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BORDER_SIZE);
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR);
+  localStorage.removeItem(SETTINGS_KEYS.WORD_SPACING);
 }
 
 /**
@@ -269,6 +320,9 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       syllablesApiKey: serverSettings.syllablesApiKey || "",
       syllablesModel: serverSettings.syllablesModel || DEFAULT_MODELS[0].value,
       syllablesPrompt: serverSettings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT,
+      syllableBorderSize: serverSettings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE,
+      syllableBackgroundColor: serverSettings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
+      wordSpacing: serverSettings.wordSpacing || DEFAULT_WORD_SPACING,
     };
   } catch (error) {
     console.warn("[Settings] Failed to fetch from server, using localStorage:", error);
