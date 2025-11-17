@@ -9,6 +9,7 @@ import {
   saveSyllablesToCache,
   loadSyllablesFromCache,
   clearSyllablesCache,
+  clearAllSyllablesCache,
 } from "@/lib/syllables";
 import { getSettings } from "@/lib/settings";
 
@@ -159,9 +160,12 @@ export function useSyllables(initialText: string = "") {
     if (initialText) {
       clearSyllablesCache(initialText);
     }
+    // Also clear all cache entries to ensure complete cleanup
+    clearAllSyllablesCache();
     setSyllablesData(null);
     setIsActive(false);
     setError(null);
+    setRawResponse(null);
   }, [initialText]);
 
   // Get button text based on status

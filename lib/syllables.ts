@@ -102,23 +102,44 @@ export function parseSyllablesResponse(
       return null;
     }
 
-    // Parse each line as a word with syllables separated by hyphens
+    // Parse each line as a word with syllables separated by hyphens, asterisks, or spaces
     const validWords: SyllableWord[] = [];
     
     for (const line of lines) {
-      // Split by hyphen to get syllables
-      const syllables = line.split(/-/).map((s) => s.trim()).filter((s) => s.length > 0);
+      // Skip lines that look like explanations or comments
+      if (line.startsWith("//") || line.startsWith("#") || line.includes("דוגמה") || line.includes("התגובה")) {
+        continue;
+      }
+
+      let syllables: string[] = [];
+      
+      // Try to split by hyphen first (preferred format)
+      if (line.includes("-")) {
+        syllables = line.split(/-/).map((s) => s.trim()).filter((s) => s.length > 0);
+      }
+      // Try to split by asterisk (fallback)
+      else if (line.includes("*")) {
+        syllables = line.split(/\*/).map((s) => s.trim()).filter((s) => s.length > 0);
+      }
+      // Try to split by space (fallback for space-separated syllables)
+      else if (line.includes(" ")) {
+        syllables = line.split(/\s+/).map((s) => s.trim()).filter((s) => s.length > 0);
+      }
+      // Single syllable word (no separator)
+      else {
+        syllables = [line.trim()];
+      }
       
       if (syllables.length === 0) {
         continue; // Skip empty lines
       }
 
-      // Remove hyphens from the original word to get the base word
+      // Remove separators from the original word to get the base word
       // This is an approximation - we'll use the syllables joined together
       const baseWord = syllables.join("").replace(/[\u0591-\u05C7]/g, ""); // Remove niqqud marks for comparison
       
       // If we can't extract a clean base word, use the first syllable without niqqud
-      const word = baseWord || syllables[0].replace(/[\u0591-\u05C7]/g, "") || line.replace(/-/g, "");
+      const word = baseWord || syllables[0].replace(/[\u0591-\u05C7]/g, "") || line.replace(/[-*\s]/g, "");
 
       validWords.push({
         word: word,
@@ -128,6 +149,15 @@ export function parseSyllablesResponse(
 
     if (validWords.length === 0) {
       return null;
+    }
+
+    // Check if all words are single syllables (no separators) - this might indicate the model didn't divide
+    // Only flag as suspicious if we have multiple words and none have separators
+    const wordsWithSeparators = validWords.filter(w => w.syllables.length > 1);
+    if (validWords.length > 1 && wordsWithSeparators.length === 0) {
+      // All words appear to be single syllables - this might be an error
+      // But we'll still return the data, as some words might genuinely be single syllables
+      console.warn("[Syllables] Warning: All words appear to be single syllables - model may not have divided the text");
     }
 
     return { words: validWords };
@@ -223,6 +253,36 @@ export function clearSyllablesCache(text: string): void {
     localStorage.removeItem(cacheKey);
   } catch (error) {
     console.error("[Syllables] Failed to clear cache:", error);
+  }
+}
+
+/**
+ * Clear all syllables cache entries from localStorage
+ */
+export function clearAllSyllablesCache(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const keysToRemove: string[] = [];
+    
+    // Iterate through all localStorage keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("syllables_cache_")) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    // Remove all syllables cache keys
+    keysToRemove.forEach((key) => {
+      localStorage.removeItem(key);
+    });
+    
+    console.log(`[Syllables] Cleared ${keysToRemove.length} cache entries`);
+  } catch (error) {
+    console.error("[Syllables] Failed to clear all cache:", error);
   }
 }
 
