@@ -102,7 +102,8 @@ export function parseSyllablesResponse(
       return null;
     }
 
-    // Parse each line as a word with syllables separated by hyphens, asterisks, or spaces
+    // Parse each line - a line may contain multiple words separated by spaces
+    // Each word should have syllables separated by hyphens
     const validWords: SyllableWord[] = [];
     
     for (const line of lines) {
@@ -111,40 +112,42 @@ export function parseSyllablesResponse(
         continue;
       }
 
-      let syllables: string[] = [];
+      // First, split the line into words by spaces (but preserve hyphens within words)
+      // We need to be careful: a space separates words, but hyphens separate syllables within a word
+      const wordsInLine = line.split(/\s+/).map((w) => w.trim()).filter((w) => w.length > 0);
       
-      // Try to split by hyphen first (preferred format)
-      if (line.includes("-")) {
-        syllables = line.split(/-/).map((s) => s.trim()).filter((s) => s.length > 0);
-      }
-      // Try to split by asterisk (fallback)
-      else if (line.includes("*")) {
-        syllables = line.split(/\*/).map((s) => s.trim()).filter((s) => s.length > 0);
-      }
-      // Try to split by space (fallback for space-separated syllables)
-      else if (line.includes(" ")) {
-        syllables = line.split(/\s+/).map((s) => s.trim()).filter((s) => s.length > 0);
-      }
-      // Single syllable word (no separator)
-      else {
-        syllables = [line.trim()];
-      }
-      
-      if (syllables.length === 0) {
-        continue; // Skip empty lines
-      }
+      for (const wordText of wordsInLine) {
+        let syllables: string[] = [];
+        
+        // Try to split by hyphen first (preferred format for syllables)
+        if (wordText.includes("-")) {
+          syllables = wordText.split(/-/).map((s) => s.trim()).filter((s) => s.length > 0);
+        }
+        // Try to split by asterisk (fallback)
+        else if (wordText.includes("*")) {
+          syllables = wordText.split(/\*/).map((s) => s.trim()).filter((s) => s.length > 0);
+        }
+        // Single syllable word (no separator) - treat the whole word as one syllable
+        else {
+          syllables = [wordText.trim()];
+        }
+        
+        if (syllables.length === 0) {
+          continue; // Skip empty words
+        }
 
-      // Remove separators from the original word to get the base word
-      // This is an approximation - we'll use the syllables joined together
-      const baseWord = syllables.join("").replace(/[\u0591-\u05C7]/g, ""); // Remove niqqud marks for comparison
-      
-      // If we can't extract a clean base word, use the first syllable without niqqud
-      const word = baseWord || syllables[0].replace(/[\u0591-\u05C7]/g, "") || line.replace(/[-*\s]/g, "");
+        // Remove separators from the original word to get the base word
+        // This is an approximation - we'll use the syllables joined together
+        const baseWord = syllables.join("").replace(/[\u0591-\u05C7]/g, ""); // Remove niqqud marks for comparison
+        
+        // If we can't extract a clean base word, use the first syllable without niqqud
+        const word = baseWord || syllables[0].replace(/[\u0591-\u05C7]/g, "") || wordText.replace(/[-*\s]/g, "");
 
-      validWords.push({
-        word: word,
-        syllables: syllables,
-      });
+        validWords.push({
+          word: word,
+          syllables: syllables,
+        });
+      }
     }
 
     if (validWords.length === 0) {
