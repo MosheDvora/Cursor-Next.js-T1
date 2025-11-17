@@ -4,13 +4,31 @@
  */
 
 const SETTINGS_KEYS = {
+  // Legacy keys (for backward compatibility)
   API_KEY: "niqqud_api_key",
   MODEL: "niqqud_model",
+  // Niqqud settings
+  NIQQUD_API_KEY: "niqqud_api_key",
+  NIQQUD_MODEL: "niqqud_model",
+  NIQQUD_PROMPT: "niqqud_prompt",
+  // Syllables settings
+  SYLLABLES_API_KEY: "syllables_api_key",
+  SYLLABLES_MODEL: "syllables_model",
+  SYLLABLES_PROMPT: "syllables_prompt",
 } as const;
 
 export interface AppSettings {
-  apiKey: string;
-  model: string;
+  // Legacy fields (for backward compatibility)
+  apiKey?: string;
+  model?: string;
+  // Niqqud settings
+  niqqudApiKey: string;
+  niqqudModel: string;
+  niqqudPrompt: string;
+  // Syllables settings
+  syllablesApiKey: string;
+  syllablesModel: string;
+  syllablesPrompt: string;
 }
 
 /**
@@ -26,6 +44,21 @@ export const DEFAULT_MODELS = [
   { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Google)" },
   { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Google)" },
 ];
+
+/**
+ * Default prompts
+ */
+export const DEFAULT_NIQQUD_PROMPT = `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.
+
+הוסף ניקוד מלא לטקסט הבא:
+
+{text}`;
+
+export const DEFAULT_SYLLABLES_PROMPT = `אתה מומחה בעברית. המשימה שלך היא לחלק טקסט עברי להברות. החזר רק את הטקסט המחולק להברות ללא הסברים נוספים.
+
+חלק את הטקסט הבא להברות:
+
+{text}`;
 
 /**
  * Get settings from localStorage
@@ -50,14 +83,42 @@ export function getApiUrl(model: string): string {
 export function getSettings(): AppSettings {
   if (typeof window === "undefined") {
     return {
-      apiKey: "",
-      model: DEFAULT_MODELS[0].value,
+      niqqudApiKey: "",
+      niqqudModel: DEFAULT_MODELS[0].value,
+      niqqudPrompt: DEFAULT_NIQQUD_PROMPT,
+      syllablesApiKey: "",
+      syllablesModel: DEFAULT_MODELS[0].value,
+      syllablesPrompt: DEFAULT_SYLLABLES_PROMPT,
     };
   }
 
+  // Check for legacy settings and migrate them
+  const legacyApiKey = localStorage.getItem(SETTINGS_KEYS.API_KEY);
+  const legacyModel = localStorage.getItem(SETTINGS_KEYS.MODEL);
+
+  // If legacy settings exist but new ones don't, migrate them
+  const niqqudApiKey =
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_API_KEY) || legacyApiKey || "";
+  const niqqudModel =
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_MODEL) || legacyModel || DEFAULT_MODELS[0].value;
+  const niqqudPrompt =
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_PROMPT) || DEFAULT_NIQQUD_PROMPT;
+
+  const syllablesApiKey = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_API_KEY) || legacyApiKey || "";
+  const syllablesModel =
+    localStorage.getItem(SETTINGS_KEYS.SYLLABLES_MODEL) || legacyModel || DEFAULT_MODELS[0].value;
+  const syllablesPrompt =
+    localStorage.getItem(SETTINGS_KEYS.SYLLABLES_PROMPT) || DEFAULT_SYLLABLES_PROMPT;
+
   return {
-    apiKey: localStorage.getItem(SETTINGS_KEYS.API_KEY) || "",
-    model: localStorage.getItem(SETTINGS_KEYS.MODEL) || DEFAULT_MODELS[0].value,
+    apiKey: legacyApiKey || "", // Keep for backward compatibility
+    model: legacyModel || DEFAULT_MODELS[0].value, // Keep for backward compatibility
+    niqqudApiKey,
+    niqqudModel,
+    niqqudPrompt,
+    syllablesApiKey,
+    syllablesModel,
+    syllablesPrompt,
   };
 }
 
@@ -69,12 +130,39 @@ export function saveSettings(settings: Partial<AppSettings>): void {
     return;
   }
 
+  // Legacy fields (for backward compatibility)
   if (settings.apiKey !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.API_KEY, settings.apiKey);
   }
 
   if (settings.model !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.MODEL, settings.model);
+  }
+
+  // Niqqud settings
+  if (settings.niqqudApiKey !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_API_KEY, settings.niqqudApiKey);
+  }
+
+  if (settings.niqqudModel !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_MODEL, settings.niqqudModel);
+  }
+
+  if (settings.niqqudPrompt !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_PROMPT, settings.niqqudPrompt);
+  }
+
+  // Syllables settings
+  if (settings.syllablesApiKey !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.SYLLABLES_API_KEY, settings.syllablesApiKey);
+  }
+
+  if (settings.syllablesModel !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.SYLLABLES_MODEL, settings.syllablesModel);
+  }
+
+  if (settings.syllablesPrompt !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.SYLLABLES_PROMPT, settings.syllablesPrompt);
   }
 }
 
@@ -86,7 +174,98 @@ export function clearSettings(): void {
     return;
   }
 
+  // Legacy keys
   localStorage.removeItem(SETTINGS_KEYS.API_KEY);
   localStorage.removeItem(SETTINGS_KEYS.MODEL);
+
+  // Niqqud keys
+  localStorage.removeItem(SETTINGS_KEYS.NIQQUD_API_KEY);
+  localStorage.removeItem(SETTINGS_KEYS.NIQQUD_MODEL);
+  localStorage.removeItem(SETTINGS_KEYS.NIQQUD_PROMPT);
+
+  // Syllables keys
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_API_KEY);
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_MODEL);
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_PROMPT);
+}
+
+/**
+ * Fetch settings from server API
+ * Falls back to localStorage if API call fails
+ */
+export async function fetchSettingsFromServer(): Promise<AppSettings> {
+  if (typeof window === "undefined") {
+    return getSettings();
+  }
+
+  try {
+    const response = await fetch("/api/settings", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const serverSettings = await response.json() as AppSettings;
+
+    // Cache in localStorage
+    saveSettings(serverSettings);
+
+    return {
+      niqqudApiKey: serverSettings.niqqudApiKey || "",
+      niqqudModel: serverSettings.niqqudModel || DEFAULT_MODELS[0].value,
+      niqqudPrompt: serverSettings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT,
+      syllablesApiKey: serverSettings.syllablesApiKey || "",
+      syllablesModel: serverSettings.syllablesModel || DEFAULT_MODELS[0].value,
+      syllablesPrompt: serverSettings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT,
+    };
+  } catch (error) {
+    console.warn("[Settings] Failed to fetch from server, using localStorage:", error);
+    // Fallback to localStorage
+    return getSettings();
+  }
+}
+
+/**
+ * Save settings to server API
+ * Also updates localStorage as cache
+ */
+export async function saveSettingsToServer(settings: Partial<AppSettings>): Promise<boolean> {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    // Save to localStorage first (optimistic update)
+    saveSettings(settings);
+
+    const response = await fetch("/api/settings", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(settings),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // Update localStorage with server response (in case server modified data)
+    if (result.settings) {
+      saveSettings(result.settings);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Settings] Failed to save to server:", error);
+    // Settings already saved to localStorage, so return false but data is still cached
+    return false;
+  }
 }
 

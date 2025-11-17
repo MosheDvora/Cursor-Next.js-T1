@@ -9,6 +9,8 @@ import { useNiqqud } from "@/hooks/use-niqqud";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 
+const MAIN_TEXT_STORAGE_KEY = "main_text_field";
+
 export default function Home() {
   const [localText, setLocalText] = useState("");
   const {
@@ -23,6 +25,23 @@ export default function Home() {
   } = useNiqqud(localText);
   const { toast } = useToast();
   const prevHasNiqqudRef = useRef(hasNiqqud);
+
+  // Load text from localStorage on mount
+  useEffect(() => {
+    const savedText = localStorage.getItem(MAIN_TEXT_STORAGE_KEY);
+    if (savedText) {
+      setLocalText(savedText);
+      setNiqqudText(savedText);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save text to localStorage when it changes
+  useEffect(() => {
+    if (localText !== undefined && localText !== null) {
+      localStorage.setItem(MAIN_TEXT_STORAGE_KEY, localText);
+    }
+  }, [localText]);
 
   // Sync niqqud text changes back to local state - this is critical for updates
   useEffect(() => {
