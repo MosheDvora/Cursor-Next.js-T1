@@ -83,19 +83,22 @@ export default function SettingsPage() {
             <TabsList className="flex flex-col h-auto w-full md:w-56 p-2 bg-muted rounded-lg space-y-1">
               <TabsTrigger
                 value="general"
-                className="w-full justify-end px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                style={{ justifyContent: 'flex-start' }}
               >
                 כללי
               </TabsTrigger>
               <TabsTrigger
                 value="appearance"
-                className="w-full justify-end px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                style={{ justifyContent: 'flex-start' }}
               >
                 מראה
               </TabsTrigger>
               <TabsTrigger
                 value="api"
-                className="w-full justify-end px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                style={{ justifyContent: 'flex-start' }}
               >
                 API
               </TabsTrigger>
