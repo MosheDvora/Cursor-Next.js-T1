@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles, Scissors, Trash2 } from "lucide-react";
+import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,9 +17,11 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
-import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition } from "@/lib/settings";
+import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE } from "@/lib/settings";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
+const MIN_FONT_SIZE = 12;
+const MAX_FONT_SIZE = 32;
 
 export default function Home() {
   const [localText, setLocalText] = useState("");
@@ -28,8 +30,9 @@ export default function Home() {
     syllableBorderSize: 2,
     syllableBackgroundColor: "#dbeafe",
     wordSpacing: 12,
+    fontSize: DEFAULT_FONT_SIZE,
   });
-  const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("syllables");
+  const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("words");
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const {
     text: niqqudText,
@@ -70,6 +73,7 @@ export default function Home() {
         syllableBorderSize: settings.syllableBorderSize || 2,
         syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
         wordSpacing: settings.wordSpacing || 12,
+        fontSize: settings.fontSize || DEFAULT_FONT_SIZE,
       });
       
       // Load saved position
@@ -159,7 +163,8 @@ export default function Home() {
       setCurrentPosition(null);
       saveCurrentPosition(null);
     }
-  }, [isSyllablesActive, currentPosition]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSyllablesActive]);
 
   const handleClear = () => {
     // Clear text field
@@ -189,6 +194,12 @@ export default function Home() {
   const handlePositionChange = (position: CurrentPosition | null) => {
     setCurrentPosition(position);
     saveCurrentPosition(position);
+  };
+
+  const handleFontSizeChange = (delta: number) => {
+    const newSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, appearanceSettings.fontSize + delta));
+    setAppearanceSettings((prev) => ({ ...prev, fontSize: newSize }));
+    saveSettings({ fontSize: newSize });
   };
 
   // Show success toast only when state actually changes successfully
@@ -327,24 +338,60 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Navigation Mode Selector - shown when syllables are active */}
-          {isSyllablesActive && (
-            <div className="mb-4 flex justify-end items-center gap-3">
-              <Label htmlFor="navigation-mode" className="text-right text-base">
-                סוג קפיצה:
-              </Label>
-              <Select value={navigationMode} onValueChange={(value: "words" | "syllables" | "letters") => setNavigationMode(value)}>
-                <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="words" className="text-right">מילים</SelectItem>
-                  <SelectItem value="syllables" className="text-right">הברות</SelectItem>
-                  <SelectItem value="letters" className="text-right">אותיות</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Navigation Mode Selector and Font Size Controls */}
+          <div className="mb-4 flex justify-end items-center gap-3">
+            {/* Font Size Controls */}
+            <div className="flex items-center gap-2">
+              <Label className="text-right text-base">גודל פונט:</Label>
+              <Button
+                onClick={() => handleFontSizeChange(-1)}
+                disabled={appearanceSettings.fontSize <= MIN_FONT_SIZE}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+              >
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[2rem] text-center">
+                {appearanceSettings.fontSize}px
+              </span>
+              <Button
+                onClick={() => handleFontSizeChange(1)}
+                disabled={appearanceSettings.fontSize >= MAX_FONT_SIZE}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
             </div>
-          )}
+
+            {/* Navigation Mode Selector - always visible */}
+            <Label htmlFor="navigation-mode" className="text-right text-base">
+              סוג קפיצה:
+            </Label>
+            <Select 
+              value={navigationMode} 
+              onValueChange={(value: "words" | "syllables" | "letters") => {
+                // Prevent selecting "syllables" if syllables are not active
+                if (value === "syllables" && !isSyllablesActive) {
+                  return;
+                }
+                setNavigationMode(value);
+              }}
+            >
+              <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="words" className="text-right">מילים</SelectItem>
+                {isSyllablesActive && (
+                  <SelectItem value="syllables" className="text-right">הברות</SelectItem>
+                )}
+                <SelectItem value="letters" className="text-right">אותיות</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Action Buttons */}
           <div className="mb-4 flex justify-end gap-3">
@@ -423,6 +470,7 @@ export default function Home() {
               borderSize={appearanceSettings.syllableBorderSize}
               backgroundColor={appearanceSettings.syllableBackgroundColor}
               wordSpacing={appearanceSettings.wordSpacing}
+              fontSize={appearanceSettings.fontSize}
               disabled={isLoading || isSyllablesLoading}
               placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
             />

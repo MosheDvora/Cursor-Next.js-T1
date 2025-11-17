@@ -29,6 +29,7 @@ const SETTINGS_KEYS = {
   SYLLABLE_BORDER_SIZE: "syllable_border_size",
   SYLLABLE_BACKGROUND_COLOR: "syllable_background_color",
   WORD_SPACING: "word_spacing",
+  FONT_SIZE: "font_size",
   // Navigation settings
   SYLLABLES_CURRENT_POSITION: "syllables_current_position",
 } as const;
@@ -49,6 +50,7 @@ export interface AppSettings {
   syllableBorderSize: number;
   syllableBackgroundColor: string;
   wordSpacing: number;
+  fontSize: number;
 }
 
 /**
@@ -125,6 +127,7 @@ export const DEFAULT_SYLLABLES_PROMPT = `אתה מומחה בעברית. המש�
 export const DEFAULT_SYLLABLE_BORDER_SIZE = 2; // pixels
 export const DEFAULT_SYLLABLE_BACKGROUND_COLOR = "#dbeafe"; // blue-50
 export const DEFAULT_WORD_SPACING = 12; // pixels (gap-x-3 in Tailwind)
+export const DEFAULT_FONT_SIZE = 18; // pixels
 
 /**
  * Get settings from localStorage
@@ -158,6 +161,7 @@ export function getSettings(): AppSettings {
       syllableBorderSize: DEFAULT_SYLLABLE_BORDER_SIZE,
       syllableBackgroundColor: DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: DEFAULT_WORD_SPACING,
+      fontSize: DEFAULT_FONT_SIZE,
     };
   }
 
@@ -200,6 +204,10 @@ export function getSettings(): AppSettings {
     localStorage.getItem(SETTINGS_KEYS.WORD_SPACING) || String(DEFAULT_WORD_SPACING),
     10
   );
+  const fontSize = parseInt(
+    localStorage.getItem(SETTINGS_KEYS.FONT_SIZE) || String(DEFAULT_FONT_SIZE),
+    10
+  );
 
   return {
     apiKey: legacyApiKey || "", // Keep for backward compatibility
@@ -213,6 +221,7 @@ export function getSettings(): AppSettings {
     syllableBorderSize,
     syllableBackgroundColor,
     wordSpacing,
+    fontSize,
   };
 }
 
@@ -271,6 +280,10 @@ export function saveSettings(settings: Partial<AppSettings>): void {
   if (settings.wordSpacing !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.WORD_SPACING, String(settings.wordSpacing));
   }
+
+  if (settings.fontSize !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.FONT_SIZE, String(settings.fontSize));
+  }
 }
 
 /**
@@ -299,6 +312,7 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BORDER_SIZE);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR);
   localStorage.removeItem(SETTINGS_KEYS.WORD_SPACING);
+  localStorage.removeItem(SETTINGS_KEYS.FONT_SIZE);
 
   // Navigation keys
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_CURRENT_POSITION);
@@ -383,6 +397,7 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       syllableBorderSize: serverSettings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE,
       syllableBackgroundColor: serverSettings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: serverSettings.wordSpacing || DEFAULT_WORD_SPACING,
+      fontSize: serverSettings.fontSize || DEFAULT_FONT_SIZE,
     };
   } catch (error) {
     console.warn("[Settings] Failed to fetch from server, using localStorage:", error);

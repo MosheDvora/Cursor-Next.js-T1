@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { SyllablesData } from "@/lib/syllables";
 import { CurrentPosition, saveCurrentPosition } from "@/lib/settings";
 import { Textarea } from "@/components/ui/textarea";
+import { isNiqqudMark } from "@/lib/niqqud";
 
 interface EditableSyllablesTextareaProps {
   text: string;
@@ -16,6 +17,7 @@ interface EditableSyllablesTextareaProps {
   borderSize: number;
   backgroundColor: string;
   wordSpacing: number;
+  fontSize?: number;
   disabled?: boolean;
   placeholder?: string;
   className?: string;
@@ -36,140 +38,246 @@ export function EditableSyllablesTextarea({
   borderSize,
   backgroundColor,
   wordSpacing,
+  fontSize = 18,
   disabled = false,
   placeholder = "הדבק כאן את הטקסט הראשי לצורך מניפולציות...",
   className = "",
 }: EditableSyllablesTextareaProps) {
   const displayRef = useRef<HTMLDivElement>(null);
+  const prevModeRef = useRef<string | null>(null);
+  const initializedTextRef = useRef<string>("");
+  const [hoveredWordIndex, setHoveredWordIndex] = useState<number | null>(null);
+  const [hoveredLetterIndex, setHoveredLetterIndex] = useState<number | null>(null);
 
   // Color constants for highlighting
-  const WORD_HIGHLIGHT_COLOR = "#e0e7ff"; // Light blue for word level
-  const CURRENT_HIGHLIGHT_COLOR = "#fef3c7"; // Light yellow for current syllable/letter
-  const CURRENT_BORDER_COLOR = "#f59e0b"; // Amber border
+  const WORD_HIGHLIGHT_COLOR = "#e5e7eb"; // Light gray for current word
+  const CURRENT_HIGHLIGHT_COLOR = "#fffacd"; // Soft yellow for current syllable/letter
+  const HOVER_HIGHLIGHT_COLOR = "#fffacd"; // Soft yellow for hover
+
+  // Helper function to check if character is Hebrew letter (not niqqud)
+  const isHebrewLetter = (char: string): boolean => {
+    const code = char.charCodeAt(0);
+    // Hebrew letters range: U+0590-U+05FF, but exclude niqqud marks
+    return code >= 0x0590 && code <= 0x05ff && !isNiqqudMark(char);
+  };
+
+  // Extract Hebrew letters only from text (for letter navigation)
+  const getHebrewLetters = (text: string): Array<{ char: string; index: number }> => {
+    const letters: Array<{ char: string; index: number }> = [];
+    for (let i = 0; i < text.length; i++) {
+      if (isHebrewLetter(text[i])) {
+        letters.push({ char: text[i], index: i });
+      }
+    }
+    return letters;
+  };
+
+  // Split text into words (for word navigation without syllables)
+  const getWordsFromText = (text: string): string[] => {
+    return text.split(/\s+/).filter(word => word.trim().length > 0);
+  };
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (!isSyllablesActive || !syllablesData || !currentPosition) {
+    (e: React.KeyboardEvent<HTMLDivElement> | KeyboardEvent) => {
+      if (!text || text.trim().length === 0) {
         return;
       }
 
-      // Only handle arrow keys
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") {
+      // Handle arrow keys and Tab
+      const isArrowLeft = e.key === "ArrowLeft";
+      const isArrowRight = e.key === "ArrowRight";
+      const isTab = e.key === "Tab" && !e.shiftKey;
+      const isShiftTab = e.key === "Tab" && e.shiftKey;
+
+      if (!isArrowLeft && !isArrowRight && !isTab && !isShiftTab) {
         return;
       }
 
       e.preventDefault();
       e.stopPropagation();
 
-      const { words } = syllablesData;
-      const { mode, wordIndex, syllableIndex, letterIndex } = currentPosition;
+      // Determine direction: ArrowLeft/Tab = forward (increase index), ArrowRight/Shift+Tab = backward (decrease index)
+      const isForward = isArrowLeft || isTab;
+      const isBackward = isArrowRight || isShiftTab;
 
-      let newPosition: CurrentPosition = { ...currentPosition };
+      let newPosition: CurrentPosition | null = null;
 
-      if (mode === "words") {
-        // Navigate between words
-        if (e.key === "ArrowRight") {
-          if (wordIndex < words.length - 1) {
-            newPosition.wordIndex = wordIndex + 1;
+      // If no syllables data, navigate on raw text
+      if (!syllablesData || !isSyllablesActive) {
+        if (navigationMode === "words") {
+          const words = getWordsFromText(text);
+          const currentWordIdx = currentPosition?.wordIndex ?? 0;
+          
+          if (isForward && currentWordIdx < words.length - 1) {
+            newPosition = { mode: "words", wordIndex: currentWordIdx + 1 };
+          } else if (isBackward && currentWordIdx > 0) {
+            newPosition = { mode: "words", wordIndex: currentWordIdx - 1 };
+          } else if (!currentPosition) {
+            newPosition = { mode: "words", wordIndex: 0 };
           }
-        } else if (e.key === "ArrowLeft") {
-          if (wordIndex > 0) {
-            newPosition.wordIndex = wordIndex - 1;
-          }
-        }
-      } else if (mode === "syllables") {
-        // Navigate between syllables
-        const currentWord = words[wordIndex];
-        if (!currentWord) return;
-
-        const syllables = currentWord.syllables;
-        const currentSyllableIdx = syllableIndex ?? 0;
-
-        if (e.key === "ArrowRight") {
-          if (currentSyllableIdx < syllables.length - 1) {
-            newPosition.syllableIndex = currentSyllableIdx + 1;
-          } else if (wordIndex < words.length - 1) {
-            // Move to next word, first syllable
-            newPosition.wordIndex = wordIndex + 1;
-            newPosition.syllableIndex = 0;
-          }
-        } else if (e.key === "ArrowLeft") {
-          if (currentSyllableIdx > 0) {
-            newPosition.syllableIndex = currentSyllableIdx - 1;
-          } else if (wordIndex > 0) {
-            // Move to previous word, last syllable
-            const prevWord = words[wordIndex - 1];
-            newPosition.wordIndex = wordIndex - 1;
-            newPosition.syllableIndex = prevWord.syllables.length - 1;
+        } else if (navigationMode === "letters") {
+          const letters = getHebrewLetters(text);
+          const currentLetterIdx = currentPosition?.letterIndex ?? 0;
+          
+          if (isForward && currentLetterIdx < letters.length - 1) {
+            newPosition = { mode: "letters", wordIndex: 0, letterIndex: currentLetterIdx + 1 };
+          } else if (isBackward && currentLetterIdx > 0) {
+            newPosition = { mode: "letters", wordIndex: 0, letterIndex: currentLetterIdx - 1 };
+          } else if (!currentPosition) {
+            newPosition = { mode: "letters", wordIndex: 0, letterIndex: 0 };
           }
         }
-      } else if (mode === "letters") {
-        // Navigate between letters
-        const currentWord = words[wordIndex];
-        if (!currentWord) return;
+      } else {
+        // Navigate with syllables data
+        if (!currentPosition) return;
 
-        const syllables = currentWord.syllables;
-        const currentSyllableIdx = syllableIndex ?? 0;
-        const currentSyllable = syllables[currentSyllableIdx] || "";
-        const currentLetterIdx = letterIndex ?? 0;
+        const { words } = syllablesData;
+        const { mode, wordIndex, syllableIndex, letterIndex } = currentPosition;
 
-        if (e.key === "ArrowRight") {
-          if (currentLetterIdx < currentSyllable.length - 1) {
-            newPosition.letterIndex = currentLetterIdx + 1;
-          } else if (currentSyllableIdx < syllables.length - 1) {
-            // Move to next syllable, first letter
-            newPosition.syllableIndex = currentSyllableIdx + 1;
-            newPosition.letterIndex = 0;
-          } else if (wordIndex < words.length - 1) {
-            // Move to next word, first syllable, first letter
-            newPosition.wordIndex = wordIndex + 1;
-            newPosition.syllableIndex = 0;
-            newPosition.letterIndex = 0;
+        newPosition = { ...currentPosition };
+
+        if (mode === "words") {
+          // Navigate between words
+          if (isForward) {
+            if (wordIndex < words.length - 1) {
+              newPosition.wordIndex = wordIndex + 1;
+            }
+          } else if (isBackward) {
+            if (wordIndex > 0) {
+              newPosition.wordIndex = wordIndex - 1;
+            }
           }
-        } else if (e.key === "ArrowLeft") {
-          if (currentLetterIdx > 0) {
-            newPosition.letterIndex = currentLetterIdx - 1;
-          } else if (currentSyllableIdx > 0) {
-            // Move to previous syllable, last letter
-            const prevSyllable = syllables[currentSyllableIdx - 1] || "";
-            newPosition.syllableIndex = currentSyllableIdx - 1;
-            newPosition.letterIndex = prevSyllable.length - 1;
-          } else if (wordIndex > 0) {
-            // Move to previous word, last syllable, last letter
-            const prevWord = words[wordIndex - 1];
-            const lastSyllable = prevWord.syllables[prevWord.syllables.length - 1] || "";
-            newPosition.wordIndex = wordIndex - 1;
-            newPosition.syllableIndex = prevWord.syllables.length - 1;
-            newPosition.letterIndex = lastSyllable.length - 1;
+        } else if (mode === "syllables") {
+          // Navigate between syllables
+          const currentWord = words[wordIndex];
+          if (!currentWord) return;
+
+          const syllables = currentWord.syllables;
+          const currentSyllableIdx = syllableIndex ?? 0;
+
+          if (isForward) {
+            if (currentSyllableIdx < syllables.length - 1) {
+              newPosition.syllableIndex = currentSyllableIdx + 1;
+            } else if (wordIndex < words.length - 1) {
+              // Move to next word, first syllable
+              newPosition.wordIndex = wordIndex + 1;
+              newPosition.syllableIndex = 0;
+            }
+          } else if (isBackward) {
+            if (currentSyllableIdx > 0) {
+              newPosition.syllableIndex = currentSyllableIdx - 1;
+            } else if (wordIndex > 0) {
+              // Move to previous word, last syllable
+              const prevWord = words[wordIndex - 1];
+              newPosition.wordIndex = wordIndex - 1;
+              newPosition.syllableIndex = prevWord.syllables.length - 1;
+            }
+          }
+        } else if (mode === "letters") {
+          // Navigate between letters - only Hebrew letters, skip niqqud
+          const allLetters: Array<{ wordIdx: number; syllableIdx: number; letterIdx: number }> = [];
+          
+          // Collect all Hebrew letters from all words/syllables
+          words.forEach((word, wIdx) => {
+            word.syllables.forEach((syllable, sIdx) => {
+              for (let i = 0; i < syllable.length; i++) {
+                if (isHebrewLetter(syllable[i])) {
+                  allLetters.push({ wordIdx: wIdx, syllableIdx: sIdx, letterIdx: i });
+                }
+              }
+            });
+          });
+
+          const currentLetterGlobalIdx = allLetters.findIndex(
+            l => l.wordIdx === wordIndex && 
+                 l.syllableIdx === (syllableIndex ?? 0) && 
+                 l.letterIdx === (letterIndex ?? 0)
+          );
+
+          if (currentLetterGlobalIdx === -1 && allLetters.length > 0) {
+            newPosition = {
+              mode: "letters",
+              wordIndex: allLetters[0].wordIdx,
+              syllableIndex: allLetters[0].syllableIdx,
+              letterIndex: allLetters[0].letterIdx,
+            };
+          } else if (isForward && currentLetterGlobalIdx < allLetters.length - 1) {
+            const next = allLetters[currentLetterGlobalIdx + 1];
+            newPosition = {
+              mode: "letters",
+              wordIndex: next.wordIdx,
+              syllableIndex: next.syllableIdx,
+              letterIndex: next.letterIdx,
+            };
+          } else if (isBackward && currentLetterGlobalIdx > 0) {
+            const prev = allLetters[currentLetterGlobalIdx - 1];
+            newPosition = {
+              mode: "letters",
+              wordIndex: prev.wordIdx,
+              syllableIndex: prev.syllableIdx,
+              letterIndex: prev.letterIdx,
+            };
           }
         }
       }
 
       // Update position and save
-      onPositionChange(newPosition);
-      saveCurrentPosition(newPosition);
+      if (newPosition) {
+        onPositionChange(newPosition);
+        saveCurrentPosition(newPosition);
+      }
     },
-    [isSyllablesActive, syllablesData, currentPosition, onPositionChange]
+    [text, isSyllablesActive, syllablesData, currentPosition, navigationMode, onPositionChange]
   );
 
-  // Initialize position when syllables become active
+  // Initialize position when text changes or navigation mode changes
   useEffect(() => {
-    if (isSyllablesActive && syllablesData && !currentPosition) {
-      const initialPosition: CurrentPosition = {
-        mode: navigationMode,
-        wordIndex: 0,
-        syllableIndex: navigationMode === "syllables" ? 0 : undefined,
-        letterIndex: navigationMode === "letters" ? 0 : undefined,
-      };
+    if (!text || text.trim().length === 0) {
+      if (currentPosition) {
+        onPositionChange(null);
+        saveCurrentPosition(null);
+      }
+      initializedTextRef.current = "";
+      return;
+    }
+
+    // Only initialize if text changed or we don't have a position yet
+    const textChanged = initializedTextRef.current !== text;
+    if (textChanged || !currentPosition) {
+      initializedTextRef.current = text;
+      
+      let initialPosition: CurrentPosition;
+      
+      if (isSyllablesActive && syllablesData) {
+        initialPosition = {
+          mode: navigationMode,
+          wordIndex: 0,
+          syllableIndex: navigationMode === "syllables" ? 0 : undefined,
+          letterIndex: navigationMode === "letters" ? 0 : undefined,
+        };
+      } else {
+        // No syllables data - initialize based on navigation mode
+        if (navigationMode === "words") {
+          initialPosition = { mode: "words", wordIndex: 0 };
+        } else if (navigationMode === "letters") {
+          initialPosition = { mode: "letters", wordIndex: 0, letterIndex: 0 };
+        } else {
+          // syllables mode not available without syllables data
+          return;
+        }
+      }
+      
       onPositionChange(initialPosition);
       saveCurrentPosition(initialPosition);
     }
-  }, [isSyllablesActive, syllablesData, currentPosition, navigationMode, onPositionChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, isSyllablesActive, syllablesData, navigationMode]);
 
   // Update position mode when navigationMode changes
   useEffect(() => {
-    if (currentPosition && currentPosition.mode !== navigationMode) {
+    if (currentPosition && currentPosition.mode !== navigationMode && prevModeRef.current !== navigationMode) {
+      prevModeRef.current = navigationMode;
       const updatedPosition: CurrentPosition = {
         mode: navigationMode,
         wordIndex: currentPosition.wordIndex,
@@ -179,118 +287,255 @@ export function EditableSyllablesTextarea({
       onPositionChange(updatedPosition);
       saveCurrentPosition(updatedPosition);
     }
-  }, [navigationMode, currentPosition, onPositionChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigationMode]);
 
-  // If syllables are not active, show regular textarea
-  if (!isSyllablesActive || !syllablesData) {
-    return (
-      <Textarea
-        value={text}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className={`min-h-[500px] text-right text-lg md:text-xl resize-y ${className}`}
-        dir="rtl"
-        disabled={disabled}
-      />
-    );
-  }
+  // Auto-focus and listen to document keydown events when text exists
+  useEffect(() => {
+    if (text && text.trim().length > 0 && displayRef.current) {
+      // Auto-focus the display element
+      displayRef.current.focus();
 
-  // Render syllables display with highlighting
-  const { words } = syllablesData;
-  const currentWordIdx = currentPosition?.wordIndex ?? 0;
-  const currentSyllableIdx = currentPosition?.syllableIndex ?? 0;
-  const currentLetterIdx = currentPosition?.letterIndex ?? 0;
+      // Listen to document-level keydown events
+      const handleDocumentKeyDown = (e: KeyboardEvent) => {
+        handleKeyDown(e);
+      };
 
-  return (
-    <div
-      ref={displayRef}
-      className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right text-lg md:text-xl ${className}`}
-      dir="rtl"
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-      style={{ outline: "none" }}
-      contentEditable={false}
-    >
-      <div
-        className="flex flex-wrap gap-y-2 items-center justify-start"
-        dir="rtl"
-        style={{ gap: `${wordSpacing}px` }}
-      >
-        {words.map((wordEntry, wordIndex) => {
-          const isCurrentWord = wordIndex === currentWordIdx;
-          const syllables = wordEntry.syllables;
+      document.addEventListener("keydown", handleDocumentKeyDown);
+      return () => {
+        document.removeEventListener("keydown", handleDocumentKeyDown);
+      };
+    }
+  }, [text, handleKeyDown]);
 
-          return (
-            <div
-              key={wordIndex}
-              className="inline-flex flex-wrap gap-x-1 items-center"
-              dir="rtl"
-              style={{
-                backgroundColor: isCurrentWord && navigationMode === "words" ? WORD_HIGHLIGHT_COLOR : "transparent",
-                borderRadius: "4px",
-                padding: isCurrentWord && navigationMode === "words" ? "2px" : "0",
-              }}
-            >
-              {syllables.map((syllable, syllableIndex) => {
-                const isCurrentSyllable =
-                  isCurrentWord &&
-                  navigationMode === "syllables" &&
-                  syllableIndex === currentSyllableIdx;
-                const isCurrentSyllableForLetters =
-                  isCurrentWord &&
-                  navigationMode === "letters" &&
-                  syllableIndex === currentSyllableIdx;
+  // Render text display with navigation support
+  // Always show text, but hide syllable division visually
+  const renderTextDisplay = () => {
+    if (!text || text.trim().length === 0) {
+      return (
+        <Textarea
+          value={text}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`min-h-[500px] text-right resize-y ${className}`}
+          style={{ fontSize: `${fontSize}px` }}
+          dir="rtl"
+          disabled={disabled}
+        />
+      );
+    }
 
+    // If no syllables data, render simple text with word/letter navigation
+    if (!syllablesData || !isSyllablesActive) {
+      const words = getWordsFromText(text);
+      const letters = getHebrewLetters(text);
+      const currentWordIdx = currentPosition?.wordIndex ?? 0;
+      const currentLetterIdx = currentPosition?.letterIndex ?? 0;
+
+      return (
+        <div
+          ref={displayRef}
+          className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
+          dir="rtl"
+          tabIndex={0}
+          style={{ outline: "none", fontSize: `${fontSize}px` }}
+          contentEditable={false}
+        >
+          {navigationMode === "words" ? (
+            <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+              {words.map((word, wordIndex) => {
+                const isCurrentWord = wordIndex === currentWordIdx;
+                const isHoveredWord = wordIndex === hoveredWordIndex;
                 return (
                   <span
-                    key={`${wordIndex}-${syllableIndex}`}
-                    className="inline-block px-2 py-1 rounded-lg font-medium text-right"
-                    dir="rtl"
+                    key={wordIndex}
+                    onMouseEnter={() => setHoveredWordIndex(wordIndex)}
+                    onMouseLeave={() => setHoveredWordIndex(null)}
                     style={{
-                      borderWidth: `${borderSize}px`,
-                      borderColor: isCurrentSyllable ? CURRENT_BORDER_COLOR : "#3b82f6",
-                      borderStyle: "solid",
-                      backgroundColor:
-                        isCurrentSyllable
-                          ? CURRENT_HIGHLIGHT_COLOR
-                          : isCurrentWord && navigationMode === "words"
-                          ? WORD_HIGHLIGHT_COLOR
-                          : backgroundColor,
-                      borderRadius: isCurrentSyllable ? "8px" : "4px",
-                      color: "#1e40af",
+                      backgroundColor: isHoveredWord 
+                        ? HOVER_HIGHLIGHT_COLOR 
+                        : isCurrentWord 
+                        ? WORD_HIGHLIGHT_COLOR 
+                        : "transparent",
+                      borderRadius: "8px",
+                      outline: (isCurrentWord || isHoveredWord) ? "none" : "none",
                     }}
                   >
-                    {navigationMode === "letters" && isCurrentSyllableForLetters
-                      ? syllable.split("").map((letter, letterIndex) => {
-                          const isCurrentLetter = letterIndex === currentLetterIdx;
-                          return (
-                            <span
-                              key={`${wordIndex}-${syllableIndex}-${letterIndex}`}
-                              style={{
-                                backgroundColor: isCurrentLetter
-                                  ? CURRENT_HIGHLIGHT_COLOR
-                                  : "transparent",
-                                borderRadius: isCurrentLetter ? "4px" : "0",
-                                padding: isCurrentLetter ? "1px 2px" : "0",
-                                border:
-                                  isCurrentLetter
-                                    ? `1px solid ${CURRENT_BORDER_COLOR}`
-                                    : "none",
-                              }}
-                            >
-                              {letter}
-                            </span>
-                          );
-                        })
-                      : syllable}
+                    {word}
                   </span>
                 );
               })}
             </div>
-          );
-        })}
+          ) : (
+            // Letters mode - show text with letter highlighting
+            <div className="whitespace-pre-wrap" dir="rtl">
+              {text.split("").map((char, index) => {
+                const letterInfo = letters.find(l => l.index === index);
+                const letterIdx = letterInfo ? letters.indexOf(letterInfo) : -1;
+                const isCurrentLetter = letterIdx === currentLetterIdx;
+                const isHoveredLetter = index === hoveredLetterIndex;
+                
+                if (!isHebrewLetter(char)) {
+                  return <span key={index}>{char}</span>;
+                }
+
+                return (
+                  <span
+                    key={index}
+                    onMouseEnter={() => setHoveredLetterIndex(index)}
+                    onMouseLeave={() => setHoveredLetterIndex(null)}
+                    style={{
+                      backgroundColor: isHoveredLetter
+                        ? HOVER_HIGHLIGHT_COLOR
+                        : isCurrentLetter
+                        ? CURRENT_HIGHLIGHT_COLOR
+                        : "transparent",
+                      borderRadius: (isCurrentLetter || isHoveredLetter) ? "4px" : "0",
+                      outline: "none",
+                    }}
+                  >
+                    {char}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // With syllables data - render text without visual syllable division
+    const { words } = syllablesData;
+    const currentWordIdx = currentPosition?.wordIndex ?? 0;
+    const currentSyllableIdx = currentPosition?.syllableIndex ?? 0;
+    const currentLetterIdx = currentPosition?.letterIndex ?? 0;
+
+    // Build full text from syllables for display
+    const fullText = words.map(w => w.syllables.join("")).join(" ");
+
+    return (
+      <div
+        ref={displayRef}
+        className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
+        dir="rtl"
+        tabIndex={0}
+        style={{ outline: "none", fontSize: `${fontSize}px` }}
+        contentEditable={false}
+      >
+        {navigationMode === "words" ? (
+          <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+            {words.map((wordEntry, wordIndex) => {
+              const wordText = wordEntry.syllables.join("");
+              const isCurrentWord = wordIndex === currentWordIdx;
+              const isHoveredWord = wordIndex === hoveredWordIndex;
+              return (
+                <span
+                  key={wordIndex}
+                  onMouseEnter={() => setHoveredWordIndex(wordIndex)}
+                  onMouseLeave={() => setHoveredWordIndex(null)}
+                  style={{
+                    backgroundColor: isHoveredWord 
+                      ? HOVER_HIGHLIGHT_COLOR 
+                      : isCurrentWord 
+                      ? WORD_HIGHLIGHT_COLOR 
+                      : "transparent",
+                    borderRadius: "8px",
+                    outline: "none",
+                  }}
+                >
+                  {wordText}
+                </span>
+              );
+            })}
+          </div>
+        ) : navigationMode === "syllables" ? (
+          // Syllables mode - highlight syllable being navigated
+          <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+            {words.map((wordEntry, wordIndex) => {
+              const syllables = wordEntry.syllables;
+              return (
+                <span key={wordIndex} style={{ display: "inline-flex", gap: "2px" }}>
+                  {syllables.map((syllable, syllableIndex) => {
+                    const isCurrentSyllable = 
+                      wordIndex === currentWordIdx && 
+                      syllableIndex === currentSyllableIdx;
+                    
+                    return (
+                      <span
+                        key={`${wordIndex}-${syllableIndex}`}
+                        style={{
+                          backgroundColor: isCurrentSyllable ? CURRENT_HIGHLIGHT_COLOR : "transparent",
+                          borderRadius: isCurrentSyllable ? "4px" : "0",
+                          outline: "none",
+                        }}
+                      >
+                        {syllable}
+                      </span>
+                    );
+                  })}
+                </span>
+              );
+            })}
+          </div>
+        ) : (
+          // Letters mode - highlight only Hebrew letters
+          <div className="flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px` }}>
+            {words.map((wordEntry, wordIndex) => {
+              const syllables = wordEntry.syllables;
+              const wordText = syllables.join("");
+              return (
+                <span key={wordIndex} className="whitespace-pre-wrap">
+                  {wordText.split("").map((char, charIndex) => {
+                    // Find which syllable and letter index this char belongs to
+                    let foundSyllableIdx = 0;
+                    let foundLetterIdx = 0;
+                    let charCount = 0;
+                    
+                    for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
+                      const syllable = syllables[sIdx];
+                      for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
+                        if (charCount === charIndex) {
+                          foundSyllableIdx = sIdx;
+                          foundLetterIdx = lIdx;
+                          break;
+                        }
+                        charCount++;
+                      }
+                      if (charCount === charIndex) break;
+                    }
+                    
+                    const isCurrentLetter = 
+                      wordIndex === currentWordIdx &&
+                      foundSyllableIdx === currentSyllableIdx &&
+                      foundLetterIdx === currentLetterIdx &&
+                      isHebrewLetter(char);
+                    
+                    if (!isHebrewLetter(char)) {
+                      return <span key={`${wordIndex}-${charIndex}`}>{char}</span>;
+                    }
+
+                    return (
+                      <span
+                        key={`${wordIndex}-${charIndex}`}
+                        style={{
+                          backgroundColor: isCurrentLetter ? CURRENT_HIGHLIGHT_COLOR : "transparent",
+                          borderRadius: isCurrentLetter ? "4px" : "0",
+                          outline: "none",
+                        }}
+                      >
+                        {char}
+                      </span>
+                    );
+                  })}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
+
+  return renderTextDisplay();
 }
 

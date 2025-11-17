@@ -17,7 +17,7 @@ const NIQQUD_RANGES = [
 /**
  * Check if a character is a Hebrew niqqud mark
  */
-function isNiqqudMark(char: string): boolean {
+export function isNiqqudMark(char: string): boolean {
   const code = char.charCodeAt(0);
   return NIQQUD_RANGES.some(([start, end]) => code >= start && code <= end);
 }
