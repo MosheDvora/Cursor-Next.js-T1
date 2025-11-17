@@ -3,6 +3,15 @@
  */
 
 import { isGoogleModel, getApiUrl } from "@/lib/settings";
+import { hasNiqqud, removeNiqqud } from "@/lib/niqqud";
+
+// Debug: Verify imports
+if (typeof hasNiqqud !== "function") {
+  console.error("[NiqqudService] hasNiqqud is not a function!", typeof hasNiqqud);
+}
+if (typeof removeNiqqud !== "function") {
+  console.error("[NiqqudService] removeNiqqud is not a function!", typeof removeNiqqud);
+}
 
 export interface NiqqudServiceConfig {
   apiKey: string;
@@ -84,6 +93,11 @@ export async function addNiqqud(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("[NiqqudService] Google API error", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         return {
           success: false,
           error:
@@ -109,6 +123,62 @@ export async function addNiqqud(
       }
 
       const niqqudText = data.candidates[0].content.parts[0].text.trim();
+
+      console.log("[NiqqudService] Google API response received", {
+        originalLength: text.length,
+        returnedLength: niqqudText.length,
+        hasNiqqudFunction: typeof hasNiqqud,
+      });
+
+      // Validate that the returned text actually has niqqud
+      if (!niqqudText || niqqudText.length === 0) {
+        console.error("[NiqqudService] Empty response from model");
+        return {
+          success: false,
+          error: "המודל החזיר תגובה ריקה",
+        };
+      }
+
+      try {
+        // Check if the returned text is the same as the original (no changes)
+        const normalizedOriginal = removeNiqqud(text.trim());
+        const normalizedReturned = removeNiqqud(niqqudText.trim());
+        
+        console.log("[NiqqudService] Normalized comparison", {
+          originalNormalized: normalizedOriginal.substring(0, 50),
+          returnedNormalized: normalizedReturned.substring(0, 50),
+          areSame: normalizedOriginal === normalizedReturned,
+        });
+
+        if (normalizedOriginal === normalizedReturned && !hasNiqqud(niqqudText)) {
+          console.error("[NiqqudService] Model returned same text without niqqud");
+          return {
+            success: false,
+            error: "המודל החזיר את אותו הטקסט ללא ניקוד",
+          };
+        }
+
+        // Check if the returned text actually has niqqud
+        const hasNiqqudResult = hasNiqqud(niqqudText);
+        console.log("[NiqqudService] Niqqud check result", {
+          hasNiqqud: hasNiqqudResult,
+          textPreview: niqqudText.substring(0, 50),
+        });
+
+        if (!hasNiqqudResult) {
+          console.error("[NiqqudService] Model returned text without niqqud");
+          return {
+            success: false,
+            error: "המודל החזיר טקסט ללא ניקוד. נסה שוב או בחר מודל אחר",
+          };
+        }
+      } catch (validationError) {
+        console.error("[NiqqudService] Validation error", validationError);
+        return {
+          success: false,
+          error: `שגיאה בוולידציה: ${validationError instanceof Error ? validationError.message : "שגיאה לא צפויה"}`,
+        };
+      }
 
       return {
         success: true,
@@ -145,6 +215,11 @@ export async function addNiqqud(
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error("[NiqqudService] OpenAI API error", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
         return {
           success: false,
           error:
@@ -169,12 +244,69 @@ export async function addNiqqud(
 
       const niqqudText = data.choices[0].message.content.trim();
 
+      console.log("[NiqqudService] OpenAI API response received", {
+        originalLength: text.length,
+        returnedLength: niqqudText.length,
+        hasNiqqudFunction: typeof hasNiqqud,
+      });
+
+      // Validate that the returned text actually has niqqud
+      if (!niqqudText || niqqudText.length === 0) {
+        console.error("[NiqqudService] Empty response from model");
+        return {
+          success: false,
+          error: "המודל החזיר תגובה ריקה",
+        };
+      }
+
+      try {
+        // Check if the returned text is the same as the original (no changes)
+        const normalizedOriginal = removeNiqqud(text.trim());
+        const normalizedReturned = removeNiqqud(niqqudText.trim());
+        
+        console.log("[NiqqudService] Normalized comparison", {
+          originalNormalized: normalizedOriginal.substring(0, 50),
+          returnedNormalized: normalizedReturned.substring(0, 50),
+          areSame: normalizedOriginal === normalizedReturned,
+        });
+
+        if (normalizedOriginal === normalizedReturned && !hasNiqqud(niqqudText)) {
+          console.error("[NiqqudService] Model returned same text without niqqud");
+          return {
+            success: false,
+            error: "המודל החזיר את אותו הטקסט ללא ניקוד",
+          };
+        }
+
+        // Check if the returned text actually has niqqud
+        const hasNiqqudResult = hasNiqqud(niqqudText);
+        console.log("[NiqqudService] Niqqud check result", {
+          hasNiqqud: hasNiqqudResult,
+          textPreview: niqqudText.substring(0, 50),
+        });
+
+        if (!hasNiqqudResult) {
+          console.error("[NiqqudService] Model returned text without niqqud");
+          return {
+            success: false,
+            error: "המודל החזיר טקסט ללא ניקוד. נסה שוב או בחר מודל אחר",
+          };
+        }
+      } catch (validationError) {
+        console.error("[NiqqudService] Validation error", validationError);
+        return {
+          success: false,
+          error: `שגיאה בוולידציה: ${validationError instanceof Error ? validationError.message : "שגיאה לא צפויה"}`,
+        };
+      }
+
       return {
         success: true,
         niqqudText,
       };
     }
   } catch (error) {
+    console.error("[NiqqudService] Unexpected error", error);
     return {
       success: false,
       error:

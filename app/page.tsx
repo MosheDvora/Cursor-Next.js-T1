@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Settings, Loader2, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,7 @@ export default function Home() {
     clearError,
   } = useNiqqud(localText);
   const { toast } = useToast();
+  const prevHasNiqqudRef = useRef(hasNiqqud);
 
   // Sync niqqud text changes back to local state - this is critical for updates
   useEffect(() => {
@@ -40,37 +41,80 @@ export default function Home() {
   const handleToggleNiqqud = async () => {
     clearError();
     const wasNiqqud = hasNiqqud;
+    
     try {
       await toggleNiqqud();
-      // Toast will be shown after state updates
-      setTimeout(() => {
-        if (wasNiqqud) {
-          toast({
-            title: "ניקוד הוסר",
-            description: "הניקוד הוסר מהטקסט בהצלחה",
-          });
-        } else {
-          toast({
-            title: "ניקוד נוסף",
-            description: "הניקוד נוסף לטקסט בהצלחה",
-          });
-        }
-      }, 100);
+      // Don't show toast here - let the useEffect handle it based on actual state changes
     } catch (err) {
       toast({
         title: "שגיאה",
-        description: error || "אירעה שגיאה בעת עיבוד הניקוד",
+        description:
+          err instanceof Error
+            ? err.message
+            : "אירעה שגיאה בעת עיבוד הניקוד",
         variant: "destructive",
       });
     }
   };
 
+  // Show success toast only when state actually changes successfully
+  useEffect(() => {
+    // Only show success toast if:
+    // 1. State actually changed (prev !== current)
+    // 2. Operation completed (!isLoading)
+    // 3. No error occurred (!error)
+    if (
+      prevHasNiqqudRef.current !== hasNiqqud &&
+      !isLoading &&
+      !error
+    ) {
+      // State changed and operation completed successfully
+      if (hasNiqqud) {
+        toast({
+          title: "ניקוד נוסף",
+          description: "הניקוד נוסף לטקסט בהצלחה",
+        });
+      } else {
+        toast({
+          title: "ניקוד הוסר",
+          description: "הניקוד הוסר מהטקסט בהצלחה",
+        });
+      }
+    }
+    
+    // Update ref to current state (always, to track changes)
+    if (!isLoading) {
+      prevHasNiqqudRef.current = hasNiqqud;
+    }
+  }, [hasNiqqud, isLoading, error, toast]);
+
   // Show error toast when error occurs
   useEffect(() => {
     if (error) {
+      // Determine error type for better user feedback
+      let errorTitle = "שגיאה";
+      let errorDescription = error;
+
+      if (error.includes("API Key")) {
+        errorTitle = "הגדרות חסרות";
+        errorDescription = "אנא הגדר API Key בהגדרות";
+      } else if (error.includes("מודל")) {
+        errorTitle = "מודל לא נבחר";
+        errorDescription = "אנא בחר מודל שפה בהגדרות";
+      } else if (error.includes("ללא ניקוד")) {
+        errorTitle = "המודל לא החזיר ניקוד";
+        errorDescription = error;
+      } else if (error.includes("ריקה") || error.includes("תגובה לא תקינה")) {
+        errorTitle = "תגובה לא תקינה מהמודל";
+        errorDescription = error;
+      } else if (error.includes("שגיאת API") || error.includes("network")) {
+        errorTitle = "שגיאת רשת";
+        errorDescription = error;
+      }
+
       toast({
-        title: "שגיאה",
-        description: error,
+        title: errorTitle,
+        description: errorDescription,
         variant: "destructive",
       });
     }

@@ -3,9 +3,17 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { detectNiqqud, removeNiqqud } from "@/lib/niqqud";
+import { detectNiqqud, removeNiqqud, hasNiqqud as checkHasNiqqud } from "@/lib/niqqud";
 import { addNiqqud as addNiqqudService } from "@/services/niqqud-service";
 import { getSettings } from "@/lib/settings";
+
+// Debug: Verify imports
+if (typeof checkHasNiqqud !== "function") {
+  console.error("[useNiqqud] checkHasNiqqud is not a function!", typeof checkHasNiqqud);
+}
+if (typeof removeNiqqud !== "function") {
+  console.error("[useNiqqud] removeNiqqud is not a function!", typeof removeNiqqud);
+}
 
 interface NiqqudCache {
   original: string;
@@ -106,10 +114,55 @@ export function useNiqqud(initialText: string = "") {
       });
 
       if (!result.success || !result.niqqudText) {
+        console.error("[useNiqqud] API call failed", {
+          success: result.success,
+          error: result.error,
+          hasNiqqudText: !!result.niqqudText,
+        });
         setError(result.error || "שגיאה בהוספת ניקוד");
         setIsLoading(false);
         return;
       }
+
+      console.log("[useNiqqud] API call successful", {
+        originalLength: currentText.length,
+        niqqudLength: result.niqqudText.length,
+      });
+
+      // Double-check that the returned text actually has niqqud
+      // (additional validation in case API service validation missed something)
+      try {
+        const hasNiqqudResult = checkHasNiqqud(result.niqqudText);
+        console.log("[useNiqqud] Validation check", {
+          hasNiqqud: hasNiqqudResult,
+          textLength: result.niqqudText.length,
+          textPreview: result.niqqudText.substring(0, 50),
+        });
+
+        if (!hasNiqqudResult) {
+          console.error("[useNiqqud] Text does not have niqqud after API call");
+          setError(
+            "המודל החזיר טקסט ללא ניקוד. נסה שוב או בחר מודל אחר"
+          );
+          setIsLoading(false);
+          return;
+        }
+      } catch (validationError) {
+        console.error("[useNiqqud] Validation error", validationError);
+        setError(
+          `שגיאה בוולידציה: ${validationError instanceof Error ? validationError.message : "שגיאה לא צפויה"}`
+        );
+        setIsLoading(false);
+        return;
+      }
+
+      // Verify that niqqud was actually added (text should be different)
+      const normalizedOriginal = removeNiqqud(currentText.trim());
+      const normalizedReturned = removeNiqqud(result.niqqudText.trim());
+      
+      // If texts are the same after removing niqqud, but returned has niqqud, that's good
+      // If returned text doesn't have niqqud, we already checked above
+      // So if we reach here, niqqud was successfully added
 
       // Cache the original and niqqud versions
       const newCache = {
@@ -122,6 +175,7 @@ export function useNiqqud(initialText: string = "") {
       setText(result.niqqudText);
       setIsLoading(false);
     } catch (err) {
+      console.error("[useNiqqud] Unexpected error in addNiqqud", err);
       setError(
         err instanceof Error ? err.message : "שגיאה לא צפויה בהוספת ניקוד"
       );
