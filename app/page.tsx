@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles } from "lucide-react";
+import { Settings, Loader2, Sparkles, Scissors } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useNiqqud } from "@/hooks/use-niqqud";
+import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { Toaster } from "@/components/ui/toaster";
+import { SyllablesDisplay } from "@/components/syllables-display";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 
@@ -23,8 +25,19 @@ export default function Home() {
     toggleNiqqud,
     clearError,
   } = useNiqqud(localText);
+  const {
+    syllablesData,
+    isActive: isSyllablesActive,
+    isLoading: isSyllablesLoading,
+    error: syllablesError,
+    rawResponse: syllablesRawResponse,
+    getButtonText: getSyllablesButtonText,
+    toggleSyllables,
+    clearError: clearSyllablesError,
+  } = useSyllables(localText);
   const { toast } = useToast();
   const prevHasNiqqudRef = useRef(hasNiqqud);
+  const prevIsSyllablesActiveRef = useRef(isSyllablesActive);
 
   // Load text from localStorage on mount
   useEffect(() => {
@@ -76,6 +89,24 @@ export default function Home() {
     }
   };
 
+  const handleToggleSyllables = async () => {
+    clearSyllablesError();
+    
+    try {
+      await toggleSyllables();
+      // Don't show toast here - let the useEffect handle it based on actual state changes
+    } catch (err) {
+      toast({
+        title: "שגיאה",
+        description:
+          err instanceof Error
+            ? err.message
+            : "אירעה שגיאה בעת חלוקה להברות",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Show success toast only when state actually changes successfully
   useEffect(() => {
     // Only show success toast if:
@@ -106,6 +137,31 @@ export default function Home() {
       prevHasNiqqudRef.current = hasNiqqud;
     }
   }, [hasNiqqud, isLoading, error, toast]);
+
+  // Show success toast for syllables when state changes
+  useEffect(() => {
+    if (
+      prevIsSyllablesActiveRef.current !== isSyllablesActive &&
+      !isSyllablesLoading &&
+      !syllablesError
+    ) {
+      if (isSyllablesActive) {
+        toast({
+          title: "חלוקה להברות",
+          description: "הטקסט חולק להברות בהצלחה",
+        });
+      } else {
+        toast({
+          title: "חלוקה להברות הוסתרה",
+          description: "החלוקה להברות הוסתרה",
+        });
+      }
+    }
+    
+    if (!isSyllablesLoading) {
+      prevIsSyllablesActiveRef.current = isSyllablesActive;
+    }
+  }, [isSyllablesActive, isSyllablesLoading, syllablesError, toast]);
 
   // Show error toast when error occurs
   useEffect(() => {
@@ -139,6 +195,37 @@ export default function Home() {
     }
   }, [error, toast]);
 
+  // Show error toast for syllables when error occurs
+  useEffect(() => {
+    if (syllablesError) {
+      let errorTitle = "שגיאה";
+      let errorDescription = syllablesError;
+
+      if (syllablesError.includes("API Key")) {
+        errorTitle = "הגדרות חסרות";
+        errorDescription = "אנא הגדר API Key בהגדרות";
+      } else if (syllablesError.includes("מודל")) {
+        errorTitle = "מודל לא נבחר";
+        errorDescription = "אנא בחר מודל שפה בהגדרות";
+      } else if (syllablesError.includes("פרומפט")) {
+        errorTitle = "פרומפט לא הוגדר";
+        errorDescription = "אנא הגדר פרומפט בהגדרות";
+      } else if (syllablesError.includes("ריקה") || syllablesError.includes("תגובה לא תקינה")) {
+        errorTitle = "תגובה לא תקינה מהמודל";
+        errorDescription = syllablesError;
+      } else if (syllablesError.includes("שגיאת API") || syllablesError.includes("network")) {
+        errorTitle = "שגיאת רשת";
+        errorDescription = syllablesError;
+      }
+
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+        variant: "destructive",
+      });
+    }
+  }, [syllablesError, toast]);
+
   return (
     <>
       <main className="flex min-h-screen flex-col p-6 md:p-12">
@@ -156,8 +243,27 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Niqqud Button */}
-          <div className="mb-4 flex justify-end">
+          {/* Action Buttons */}
+          <div className="mb-4 flex justify-end gap-3">
+            <Button
+              onClick={handleToggleSyllables}
+              disabled={isSyllablesLoading || !localText.trim()}
+              className="gap-2 min-w-[180px]"
+              variant={isSyllablesActive ? "secondary" : "default"}
+              size="lg"
+            >
+              {isSyllablesLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>מעבד...</span>
+                </>
+              ) : (
+                <>
+                  <Scissors className="h-4 w-4" />
+                  <span>{getSyllablesButtonText()}</span>
+                </>
+              )}
+            </Button>
             <Button
               onClick={handleToggleNiqqud}
               disabled={isLoading || !localText.trim()}
@@ -179,6 +285,25 @@ export default function Home() {
             </Button>
           </div>
 
+          {/* Syllables display area (shown when active) */}
+          {isSyllablesActive && syllablesData && (
+            <div className="w-full mb-4">
+              <SyllablesDisplay data={syllablesData} />
+            </div>
+          )}
+
+          {/* Raw response display (temporary for testing) */}
+          {syllablesRawResponse && (
+            <div className="w-full mb-4">
+              <div className="p-4 border rounded-lg bg-muted">
+                <h3 className="text-sm font-semibold mb-2 text-right">תגובה גולמית מהמודל (זמני לבדיקה):</h3>
+                <pre className="text-xs overflow-auto text-right bg-background p-3 rounded border whitespace-pre-wrap" dir="rtl">
+                  {syllablesRawResponse}
+                </pre>
+              </div>
+            </div>
+          )}
+
           {/* Main text input area */}
           <div className="w-full">
             <Textarea
@@ -187,7 +312,7 @@ export default function Home() {
               placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
               className="min-h-[500px] text-right text-lg md:text-xl resize-y"
               dir="rtl"
-              disabled={isLoading}
+              disabled={isLoading || isSyllablesLoading}
             />
           </div>
         </div>
