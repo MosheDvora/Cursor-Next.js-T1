@@ -222,6 +222,15 @@ export function useNiqqud(initialText: string = "") {
     }
   }, [hasNiqqud, addNiqqud, removeNiqqudFromText]);
 
+  // Clear niqqud cache and reset state
+  const clearNiqqud = useCallback(() => {
+    setCache(null);
+    setError(null);
+    // Reset text to empty string
+    setText("");
+    previousTextRef.current = "";
+  }, []);
+
   return {
     text,
     setText,
@@ -233,6 +242,7 @@ export function useNiqqud(initialText: string = "") {
     toggleNiqqud,
     addNiqqud,
     removeNiqqud: removeNiqqudFromText,
+    clearNiqqud,
     clearError: () => setError(null),
   };
 }

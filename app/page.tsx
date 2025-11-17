@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles } from "lucide-react";
+import { Settings, Loader2, Sparkles, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useNiqqud } from "@/hooks/use-niqqud";
@@ -13,6 +13,7 @@ const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 
 export default function Home() {
   const [localText, setLocalText] = useState("");
+  const [mounted, setMounted] = useState(false);
   const {
     text: niqqudText,
     setText: setNiqqudText,
@@ -21,27 +22,37 @@ export default function Home() {
     error,
     getButtonText,
     toggleNiqqud,
+    clearNiqqud,
     clearError,
   } = useNiqqud(localText);
   const { toast } = useToast();
   const prevHasNiqqudRef = useRef(hasNiqqud);
 
-  // Load text from localStorage on mount
+  // Mark component as mounted (client-side only)
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Load text from localStorage on mount (client-side only)
+  useEffect(() => {
+    if (!mounted) return;
+    
     const savedText = localStorage.getItem(MAIN_TEXT_STORAGE_KEY);
     if (savedText) {
       setLocalText(savedText);
       setNiqqudText(savedText);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mounted]);
 
-  // Save text to localStorage when it changes
+  // Save text to localStorage when it changes (client-side only)
   useEffect(() => {
+    if (!mounted) return;
+    
     if (localText !== undefined && localText !== null) {
       localStorage.setItem(MAIN_TEXT_STORAGE_KEY, localText);
     }
-  }, [localText]);
+  }, [localText, mounted]);
 
   // Sync niqqud text changes back to local state - this is critical for updates
   useEffect(() => {
@@ -74,6 +85,24 @@ export default function Home() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleClear = () => {
+    // Clear text field
+    setLocalText("");
+    setNiqqudText("");
+    
+    // Clear localStorage
+    localStorage.removeItem(MAIN_TEXT_STORAGE_KEY);
+    
+    // Clear niqqud cache and state
+    clearNiqqud();
+    
+    // Show success toast
+    toast({
+      title: "ניקוי הושלם",
+      description: "הטקסט והזיכרון נוקו בהצלחה",
+    });
   };
 
   // Show success toast only when state actually changes successfully
@@ -156,8 +185,18 @@ export default function Home() {
             </Link>
           </div>
 
-          {/* Niqqud Button */}
-          <div className="mb-4 flex justify-end">
+          {/* Action Buttons */}
+          <div className="mb-4 flex justify-end gap-3">
+            <Button
+              onClick={handleClear}
+              disabled={isLoading || !localText.trim()}
+              className="gap-2 min-w-[120px]"
+              variant="destructive"
+              size="lg"
+            >
+              <Trash2 className="h-4 w-4" />
+              <span>ניקוי</span>
+            </Button>
             <Button
               onClick={handleToggleNiqqud}
               disabled={isLoading || !localText.trim()}
