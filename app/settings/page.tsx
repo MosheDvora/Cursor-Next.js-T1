@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowRight, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -67,7 +67,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-4 mb-8">
           <Link href="/">
             <Button variant="ghost" size="icon" className="h-10 w-10">
-              <ArrowLeft className="h-6 w-6" />
+              <ArrowRight className="h-6 w-6" />
               <span className="sr-only">חזרה לעמוד הבית</span>
             </Button>
           </Link>
@@ -77,16 +77,10 @@ export default function SettingsPage() {
         </div>
 
         {/* Settings Tabs */}
-        <Tabs defaultValue="api" className="w-full" dir="rtl">
-          <div className="flex flex-col md:flex-row-reverse gap-6 items-start">
-            {/* Vertical Tabs List - Right Side (RTL) */}
+        <Tabs defaultValue="general" className="w-full" dir="rtl">
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            {/* Vertical Tabs List - Left Side */}
             <TabsList className="flex flex-col h-auto w-full md:w-56 p-2 bg-muted rounded-lg space-y-1">
-              <TabsTrigger
-                value="api"
-                className="w-full justify-end px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
-              >
-                API
-              </TabsTrigger>
               <TabsTrigger
                 value="general"
                 className="w-full justify-end px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
@@ -98,6 +92,12 @@ export default function SettingsPage() {
                 className="w-full justify-end px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
               >
                 מראה
+              </TabsTrigger>
+              <TabsTrigger
+                value="api"
+                className="w-full justify-end px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                API
               </TabsTrigger>
             </TabsList>
 
