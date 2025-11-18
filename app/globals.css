@@ -96,6 +96,7 @@
   transform: scale(1.1);
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
+  z-index: 10; /* הוספתי כדי שיעלה מעל אחרים */
 }
 
 .pyramid-word-active {
@@ -103,10 +104,11 @@
   transform: scale(1.15);
   box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
   transform-origin: center;
+  z-index: 10;
 }
 
 .pyramid-line-base {
-  text-align: center;
+  text-align: right;
   line-height: 1.6;
   padding: 5px 15px;
   background: white;
@@ -131,36 +133,48 @@
 }
 
 .pyramid-syllable-base {
-  display: inline;
+  display: inline-block; /* חשוב כדי שהאפקטים יעבדו */
+  padding: 0 2px;
+  border-radius: 4px;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
   transform-origin: center;
+  position: relative; /* מאפשר שימוש ב z-index */
 }
 
 .pyramid-syllable-base:hover {
+  background: #fff59d !important;
   transform: scale(1.1);
+  box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
+  z-index: 10;
 }
 
 .pyramid-syllable-active {
-  background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-  padding: 2px 4px;
+  /* הוחלף הגרדיאנט בצבע הצהוב האחיד של המילים */
+  background: #fff59d !important; 
+  padding: 0 2px;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(168, 237, 234, 0.6);
+  box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
   transform: scale(1.15);
   transform-origin: center;
+  z-index: 10;
 }
 
 .pyramid-letter-base {
+  display: inline-block; /* חשוב כדי שהאפקטים יעבדו */
+  padding: 0 1px;
+  border-radius: 4px;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
   transform-origin: center;
+  position: relative;
 }
 
 .pyramid-letter-base:hover {
+  background: #fff59d !important;
   transform: scale(1.1);
-  background: #fffacd;
-  border-radius: 4px;
-  padding: 2px 4px;
+  box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
+  z-index: 10;
 }
 
 .pyramid-letter-active {
@@ -168,7 +182,8 @@
   transform: scale(1.15);
   box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
   border-radius: 4px;
-  padding: 2px 4px;
+  padding: 0 1px;
   transform-origin: center;
+  z-index: 10;
 }
 

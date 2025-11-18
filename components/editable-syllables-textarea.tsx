@@ -363,6 +363,9 @@ export function EditableSyllablesTextarea({
       const letters = getHebrewLetters(text);
       const currentWordIdx = currentPosition?.wordIndex ?? 0;
       const currentLetterIdx = currentPosition?.letterIndex ?? 0;
+      
+      // Split text into lines
+      const textLines = text.split('\n');
 
       return (
         <div
@@ -373,65 +376,93 @@ export function EditableSyllablesTextarea({
           style={{ outline: "none", fontSize: `${fontSize}px` }}
           contentEditable={false}
         >
-          {navigationMode === "words" ? (
-            <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
-              {words.map((word, wordIndex) => {
-                const isCurrentWord = wordIndex === currentWordIdx;
-                const isHoveredWord = wordIndex === hoveredWordIndex;
-                return (
-                  <span
-                    key={wordIndex}
-                    className={`pyramid-word-base ${isCurrentWord ? 'pyramid-word-active' : ''}`}
-                    onMouseEnter={() => setHoveredWordIndex(wordIndex)}
-                    onMouseLeave={() => setHoveredWordIndex(null)}
-                    style={{
-                      backgroundColor: isHoveredWord 
-                        ? HOVER_HIGHLIGHT_COLOR 
-                        : isCurrentWord 
-                        ? WORD_HIGHLIGHT_COLOR 
-                        : undefined,
-                      outline: "none",
-                    }}
-                  >
-                    {word}
-                  </span>
-                );
-              })}
-            </div>
-          ) : (
-            // Letters mode - show text with letter highlighting
-            <div className="pyramid-line-base whitespace-pre-wrap" dir="rtl" style={{ letterSpacing: `${letterSpacing}px` }}>
-              {text.split("").map((char, index) => {
-                const letterInfo = letters.find(l => l.index === index);
-                const letterIdx = letterInfo ? letters.indexOf(letterInfo) : -1;
-                const isCurrentLetter = letterIdx === currentLetterIdx;
-                const isHoveredLetter = index === hoveredLetterIndex;
-                
-                if (!isHebrewLetter(char)) {
-                  return <span key={index}>{char}</span>;
-                }
+          {textLines.map((lineText, lineIndex) => {
+            const lineWords = getWordsFromText(lineText);
+            const lineLetters = getHebrewLetters(lineText);
+            let lineCharOffset = 0;
+            for (let i = 0; i < lineIndex; i++) {
+              lineCharOffset += textLines[i].length + 1; // +1 for \n
+            }
 
-                return (
-                  <span
-                    key={index}
-                    className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
-                    onMouseEnter={() => setHoveredLetterIndex(index)}
-                    onMouseLeave={() => setHoveredLetterIndex(null)}
-                    style={{
-                      backgroundColor: isHoveredLetter
-                        ? HOVER_HIGHLIGHT_COLOR
-                        : isCurrentLetter
-                        ? LETTER_HIGHLIGHT_COLOR
-                        : undefined,
-                      outline: "none",
-                    }}
-                  >
-                    {char}
-                  </span>
-                );
-              })}
-            </div>
-          )}
+            return (
+              <div key={lineIndex} className="pyramid-line-base mb-2" dir="rtl" style={{ letterSpacing: `${letterSpacing}px`, wordSpacing: `${wordSpacing}px` }}>
+                {navigationMode === "words" ? (
+                  lineWords.map((word, wordIndex) => {
+                    // Find global word index
+                    let globalWordIndex = 0;
+                    for (let i = 0; i < lineIndex; i++) {
+                      globalWordIndex += getWordsFromText(textLines[i]).length;
+                    }
+                    globalWordIndex += wordIndex;
+                    
+                    const isCurrentWord = globalWordIndex === currentWordIdx;
+                    const isHoveredWord = globalWordIndex === hoveredWordIndex;
+                    return (
+                      <span
+                        key={wordIndex}
+                        className={`pyramid-word-base ${isCurrentWord ? 'pyramid-word-active' : ''}`}
+                        onMouseEnter={() => setHoveredWordIndex(globalWordIndex)}
+                        onMouseLeave={() => setHoveredWordIndex(null)}
+                        style={{
+                          backgroundColor: isHoveredWord 
+                            ? HOVER_HIGHLIGHT_COLOR 
+                            : isCurrentWord 
+                            ? WORD_HIGHLIGHT_COLOR 
+                            : undefined,
+                          outline: "none",
+                        }}
+                      >
+                        {word}
+                      </span>
+                    );
+                  })
+                ) : (
+                  // Letters mode - show text with letter highlighting
+                  lineText.split("").map((char, charIndex) => {
+                    const globalIndex = lineCharOffset + charIndex;
+                    const letterInfo = lineLetters.find(l => l.index === charIndex);
+                    const letterIdx = letterInfo ? lineLetters.indexOf(letterInfo) : -1;
+                    
+                    // Find global letter index
+                    let globalLetterIdx = -1;
+                    if (letterIdx !== -1) {
+                      let count = 0;
+                      for (let i = 0; i < lineIndex; i++) {
+                        count += getHebrewLetters(textLines[i]).length;
+                      }
+                      globalLetterIdx = count + letterIdx;
+                    }
+                    
+                    const isCurrentLetter = globalLetterIdx === currentLetterIdx;
+                    const isHoveredLetter = globalIndex === hoveredLetterIndex;
+                    
+                    if (!isHebrewLetter(char)) {
+                      return <span key={charIndex}>{char}</span>;
+                    }
+
+                    return (
+                      <span
+                        key={charIndex}
+                        className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
+                        onMouseEnter={() => setHoveredLetterIndex(globalIndex)}
+                        onMouseLeave={() => setHoveredLetterIndex(null)}
+                        style={{
+                          backgroundColor: isHoveredLetter
+                            ? HOVER_HIGHLIGHT_COLOR
+                            : isCurrentLetter
+                            ? LETTER_HIGHLIGHT_COLOR
+                            : undefined,
+                          outline: "none",
+                        }}
+                      >
+                        {char}
+                      </span>
+                    );
+                  })
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -442,8 +473,35 @@ export function EditableSyllablesTextarea({
     const currentSyllableIdx = currentPosition?.syllableIndex ?? 0;
     const currentLetterIdx = currentPosition?.letterIndex ?? 0;
 
-    // Build full text from syllables for display
-    const fullText = words.map(w => w.syllables.join("")).join(" ");
+    // Split original text into lines to preserve line structure
+    const textLines = text.split('\n');
+    
+    // Build word-to-line mapping based on original text
+    const wordToLineMap: number[] = [];
+    const originalWords = text.split(/\s+/).filter(w => w.trim().length > 0);
+    
+    // Map syllables words to original text words by line
+    let wordCount = 0;
+    for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+      const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
+      for (let i = 0; i < lineWords.length && wordCount < words.length; i++) {
+        wordToLineMap[wordCount] = lineIdx;
+        wordCount++;
+      }
+    }
+    
+    // Group words by line
+    const wordsByLine: Array<Array<{ wordIdx: number; wordEntry: typeof words[0] }>> = [];
+    textLines.forEach((_, lineIdx) => {
+      wordsByLine[lineIdx] = [];
+    });
+    words.forEach((wordEntry, wordIdx) => {
+      const lineIdx = wordToLineMap[wordIdx] ?? 0;
+      if (!wordsByLine[lineIdx]) {
+        wordsByLine[lineIdx] = [];
+      }
+      wordsByLine[lineIdx].push({ wordIdx, wordEntry });
+    });
 
     return (
       <div
@@ -454,116 +512,118 @@ export function EditableSyllablesTextarea({
         style={{ outline: "none", fontSize: `${fontSize}px` }}
         contentEditable={false}
       >
-        {navigationMode === "words" ? (
-          <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
-            {words.map((wordEntry, wordIndex) => {
-              const wordText = wordEntry.syllables.join("");
-              const isCurrentWord = wordIndex === currentWordIdx;
-              const isHoveredWord = wordIndex === hoveredWordIndex;
-              return (
-                <span
-                  key={wordIndex}
-                  className={`pyramid-word-base ${isCurrentWord ? 'pyramid-word-active' : ''}`}
-                  onMouseEnter={() => setHoveredWordIndex(wordIndex)}
-                  onMouseLeave={() => setHoveredWordIndex(null)}
-                  style={{
-                    backgroundColor: isHoveredWord 
-                      ? HOVER_HIGHLIGHT_COLOR 
-                      : isCurrentWord 
-                      ? WORD_HIGHLIGHT_COLOR 
-                      : undefined,
-                    outline: "none",
-                  }}
-                >
-                  {wordText}
-                </span>
-              );
-            })}
-          </div>
-        ) : navigationMode === "syllables" ? (
-          // Syllables mode - highlight syllable being navigated
-          <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
-            {words.map((wordEntry, wordIndex) => {
-              const syllables = wordEntry.syllables;
-              return (
-                <span key={wordIndex} style={{ display: "inline-flex", gap: "2px" }}>
-                  {syllables.map((syllable, syllableIndex) => {
-                    const isCurrentSyllable = 
-                      wordIndex === currentWordIdx && 
-                      syllableIndex === currentSyllableIdx;
-                    
-                    return (
-                      <span
-                        key={`${wordIndex}-${syllableIndex}`}
-                        className={`pyramid-syllable-base ${isCurrentSyllable ? 'pyramid-syllable-active' : ''}`}
-                        style={{
-                          backgroundColor: isCurrentSyllable ? CURRENT_HIGHLIGHT_COLOR : undefined,
-                          outline: "none",
-                        }}
-                      >
-                        {syllable}
-                      </span>
-                    );
-                  })}
-                </span>
-              );
-            })}
-          </div>
-        ) : (
-          // Letters mode - highlight only Hebrew letters
-          <div className="pyramid-line-base flex flex-wrap gap-y-2 items-center justify-start" dir="rtl" style={{ gap: `${wordSpacing}px`, letterSpacing: `${letterSpacing}px` }}>
-            {words.map((wordEntry, wordIndex) => {
-              const syllables = wordEntry.syllables;
-              const wordText = syllables.join("");
-              
-              // Build map of Hebrew letter positions
-              const letterPositions: Array<{ syllableIdx: number; letterIdx: number; charIndex: number }> = [];
-              let charCount = 0;
-              
-              for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
-                const syllable = syllables[sIdx];
-                for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
-                  if (isHebrewLetter(syllable[lIdx])) {
-                    letterPositions.push({ syllableIdx: sIdx, letterIdx: lIdx, charIndex: charCount });
-                  }
-                  charCount++;
-                }
-              }
-              
-              return (
-                <span key={wordIndex} className="whitespace-pre-wrap">
-                  {wordText.split("").map((char, charIndex) => {
-                    // Find if this char position matches current letter position
-                    const letterPos = letterPositions.find(lp => lp.charIndex === charIndex);
-                    const isCurrentLetter = 
-                      wordIndex === currentWordIdx &&
-                      letterPos &&
-                      letterPos.syllableIdx === currentSyllableIdx &&
-                      letterPos.letterIdx === currentLetterIdx &&
-                      isHebrewLetter(char);
-                    
-                    if (!isHebrewLetter(char)) {
-                      return <span key={`${wordIndex}-${charIndex}`}>{char}</span>;
-                    }
+        {textLines.map((lineText, lineIndex) => {
+          const lineWords = wordsByLine[lineIndex] || [];
 
-                    return (
-                      <span
-                        key={`${wordIndex}-${charIndex}`}
-                        className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
-                        style={{
-                          backgroundColor: isCurrentLetter ? LETTER_HIGHLIGHT_COLOR : undefined,
-                          outline: "none",
-                        }}
-                      >
-                        {char}
-                      </span>
-                    );
-                  })}
-                </span>
-              );
-            })}
-          </div>
-        )}
+          return (
+            <div key={lineIndex} className="pyramid-line-base mb-2" dir="rtl" style={{ letterSpacing: `${letterSpacing}px`, wordSpacing: `${wordSpacing}px` }}>
+              {navigationMode === "words" ? (
+                lineWords.map(({ wordIdx, wordEntry }) => {
+                  const wordText = wordEntry.syllables.join("");
+                  const isCurrentWord = wordIdx === currentWordIdx;
+                  const isHoveredWord = wordIdx === hoveredWordIndex;
+                  return (
+                    <span
+                      key={wordIdx}
+                      className={`pyramid-word-base ${isCurrentWord ? 'pyramid-word-active' : ''}`}
+                      onMouseEnter={() => setHoveredWordIndex(wordIdx)}
+                      onMouseLeave={() => setHoveredWordIndex(null)}
+                      style={{
+                        backgroundColor: isHoveredWord 
+                          ? HOVER_HIGHLIGHT_COLOR 
+                          : isCurrentWord 
+                          ? WORD_HIGHLIGHT_COLOR 
+                          : undefined,
+                        outline: "none",
+                      }}
+                    >
+                      {wordText}
+                    </span>
+                  );
+                })
+              ) : navigationMode === "syllables" ? (
+                // Syllables mode - highlight syllable being navigated
+                lineWords.map(({ wordIdx, wordEntry }) => {
+                  const syllables = wordEntry.syllables;
+                  return (
+                    <span key={wordIdx} style={{ display: "inline" }}>
+                      {syllables.map((syllable, syllableIndex) => {
+                        const isCurrentSyllable = 
+                          wordIdx === currentWordIdx && 
+                          syllableIndex === currentSyllableIdx;
+                        
+                        return (
+                          <span
+                            key={`${wordIdx}-${syllableIndex}`}
+                            className={`pyramid-syllable-base ${isCurrentSyllable ? 'pyramid-syllable-active' : ''}`}
+                            style={{
+                              backgroundColor: isCurrentSyllable ? CURRENT_HIGHLIGHT_COLOR : undefined,
+                              outline: "none",
+                            }}
+                          >
+                            {syllable}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  );
+                })
+              ) : (
+                // Letters mode - highlight only Hebrew letters
+                lineWords.map(({ wordIdx, wordEntry }) => {
+                  const syllables = wordEntry.syllables;
+                  const wordText = syllables.join("");
+                  
+                  // Build map of Hebrew letter positions
+                  const letterPositions: Array<{ syllableIdx: number; letterIdx: number; charIndex: number }> = [];
+                  let charCount = 0;
+                  
+                  for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
+                    const syllable = syllables[sIdx];
+                    for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
+                      if (isHebrewLetter(syllable[lIdx])) {
+                        letterPositions.push({ syllableIdx: sIdx, letterIdx: lIdx, charIndex: charCount });
+                      }
+                      charCount++;
+                    }
+                  }
+                  
+                  return (
+                    <span key={wordIdx} style={{ display: "inline" }}>
+                      {wordText.split("").map((char, charIndex) => {
+                        // Find if this char position matches current letter position
+                        const letterPos = letterPositions.find(lp => lp.charIndex === charIndex);
+                        const isCurrentLetter = 
+                          wordIdx === currentWordIdx &&
+                          letterPos &&
+                          letterPos.syllableIdx === currentSyllableIdx &&
+                          letterPos.letterIdx === currentLetterIdx &&
+                          isHebrewLetter(char);
+                        
+                        if (!isHebrewLetter(char)) {
+                          return <span key={`${wordIdx}-${charIndex}`}>{char}</span>;
+                        }
+
+                        return (
+                          <span
+                            key={`${wordIdx}-${charIndex}`}
+                            className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
+                            style={{
+                              backgroundColor: isCurrentLetter ? LETTER_HIGHLIGHT_COLOR : undefined,
+                              outline: "none",
+                            }}
+                          >
+                            {char}
+                          </span>
+                        );
+                      })}
+                    </span>
+                  );
+                })
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   };
