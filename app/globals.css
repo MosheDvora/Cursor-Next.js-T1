@@ -81,7 +81,8 @@
 .pyramid-word-base {
   display: inline-block;
   padding: 2px 6px;
-  margin: 0 2px;
+  /* חישוב: המרווח הכולל חלקי 2, כי לכל מילה יש מרווח משני הצדדים */
+  margin: 0 calc(var(--dynamic-word-gap, 6px) / 2);
   border-radius: 6px;
   transition: all 0.2s ease-in-out;
   position: relative;
@@ -190,7 +191,8 @@
 /* Word wrapper for syllables and letters - preserves word spacing */
 .pyramid-word-wrapper {
   display: inline-block;
-  margin: 0 4px; /* זה המרווח בין המילים - תשחק עם זה לפי הטעם */
+  /* משתמשים באותו משתנה בדיוק! */
+  margin: 0 calc(var(--dynamic-word-gap, 6px) / 2);
   white-space: nowrap; /* מונע שבירת שורה באמצע מילה */
 }
 

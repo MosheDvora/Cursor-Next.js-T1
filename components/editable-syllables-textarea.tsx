@@ -385,7 +385,7 @@ export function EditableSyllablesTextarea({
             }
 
             return (
-              <div key={lineIndex} className="pyramid-line-base mb-2" dir="rtl" style={{ letterSpacing: `${letterSpacing}px`, wordSpacing: `${wordSpacing}px` }}>
+              <div key={lineIndex} className="pyramid-line-base mb-2" dir="rtl" style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}>
                 {navigationMode === "words" ? (
                   lineWords.map((word, wordIndex) => {
                     // Find global word index
@@ -516,7 +516,7 @@ export function EditableSyllablesTextarea({
           const lineWords = wordsByLine[lineIndex] || [];
 
           return (
-            <div key={lineIndex} className="pyramid-line-base mb-2" dir="rtl" style={{ letterSpacing: `${letterSpacing}px`, wordSpacing: `${wordSpacing}px` }}>
+            <div key={lineIndex} className="pyramid-line-base mb-2" dir="rtl" style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}>
               {navigationMode === "words" ? (
                 lineWords.map(({ wordIdx, wordEntry }) => {
                   const wordText = wordEntry.syllables.join("");
