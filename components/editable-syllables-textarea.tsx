@@ -418,44 +418,66 @@ export function EditableSyllablesTextarea({
                   })
                 ) : (
                   // Letters mode - show text with letter highlighting
-                  lineText.split("").map((char, charIndex) => {
-                    const globalIndex = lineCharOffset + charIndex;
-                    const letterInfo = lineLetters.find(l => l.index === charIndex);
-                    const letterIdx = letterInfo ? lineLetters.indexOf(letterInfo) : -1;
-                    
-                    // Find global letter index
-                    let globalLetterIdx = -1;
-                    if (letterIdx !== -1) {
-                      let count = 0;
-                      for (let i = 0; i < lineIndex; i++) {
-                        count += getHebrewLetters(textLines[i]).length;
+                  lineWords.map((word, wordIndex) => {
+                    // Calculate character offset for this word within the line
+                    let wordCharOffset = 0;
+                    for (let i = 0; i < wordIndex; i++) {
+                      wordCharOffset += lineWords[i].length;
+                      // Add space after each word (except last)
+                      if (i < lineWords.length - 1) {
+                        wordCharOffset += 1; // space character
                       }
-                      globalLetterIdx = count + letterIdx;
                     }
                     
-                    const isCurrentLetter = globalLetterIdx === currentLetterIdx;
-                    const isHoveredLetter = globalIndex === hoveredLetterIndex;
+                    // Find letters in this word
+                    const wordLetters = getHebrewLetters(word);
                     
-                    if (!isHebrewLetter(char)) {
-                      return <span key={charIndex}>{char}</span>;
+                    // Calculate global letter offset (letters from previous lines + previous words in this line)
+                    let globalLetterOffset = 0;
+                    for (let i = 0; i < lineIndex; i++) {
+                      globalLetterOffset += getHebrewLetters(textLines[i]).length;
                     }
-
+                    for (let i = 0; i < wordIndex; i++) {
+                      globalLetterOffset += getHebrewLetters(lineWords[i]).length;
+                    }
+                    
                     return (
-                      <span
-                        key={charIndex}
-                        className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
-                        onMouseEnter={() => setHoveredLetterIndex(globalIndex)}
-                        onMouseLeave={() => setHoveredLetterIndex(null)}
-                        style={{
-                          backgroundColor: isHoveredLetter
-                            ? HOVER_HIGHLIGHT_COLOR
-                            : isCurrentLetter
-                            ? LETTER_HIGHLIGHT_COLOR
-                            : undefined,
-                          outline: "none",
-                        }}
-                      >
-                        {char}
+                      <span key={wordIndex} className="pyramid-word-wrapper">
+                        {word.split("").map((char, charIndexInWord) => {
+                          const charIndex = wordCharOffset + charIndexInWord;
+                          const globalIndex = lineCharOffset + charIndex;
+                          const letterInfo = wordLetters.find(l => l.index === charIndexInWord);
+                          const letterIdx = letterInfo ? wordLetters.indexOf(letterInfo) : -1;
+                          
+                          // Find global letter index
+                          const globalLetterIdx = letterIdx !== -1 ? globalLetterOffset + letterIdx : -1;
+                          
+                          const isCurrentLetter = globalLetterIdx === currentLetterIdx;
+                          const isHoveredLetter = globalIndex === hoveredLetterIndex;
+                          
+                          if (!isHebrewLetter(char)) {
+                            return <span key={charIndexInWord}>{char}</span>;
+                          }
+
+                          return (
+                            <span
+                              key={charIndexInWord}
+                              className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
+                              onMouseEnter={() => setHoveredLetterIndex(globalIndex)}
+                              onMouseLeave={() => setHoveredLetterIndex(null)}
+                              style={{
+                                backgroundColor: isHoveredLetter
+                                  ? HOVER_HIGHLIGHT_COLOR
+                                  : isCurrentLetter
+                                  ? LETTER_HIGHLIGHT_COLOR
+                                  : undefined,
+                                outline: "none",
+                              }}
+                            >
+                              {char}
+                            </span>
+                          );
+                        })}
                       </span>
                     );
                   })
