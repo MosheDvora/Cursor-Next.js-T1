@@ -546,7 +546,7 @@ export function EditableSyllablesTextarea({
                 lineWords.map(({ wordIdx, wordEntry }) => {
                   const syllables = wordEntry.syllables;
                   return (
-                    <span key={wordIdx} style={{ display: "inline" }}>
+                    <span key={wordIdx} className="pyramid-word-wrapper">
                       {syllables.map((syllable, syllableIndex) => {
                         const isCurrentSyllable = 
                           wordIdx === currentWordIdx && 
@@ -589,7 +589,7 @@ export function EditableSyllablesTextarea({
                   }
                   
                   return (
-                    <span key={wordIdx} style={{ display: "inline" }}>
+                    <span key={wordIdx} className="pyramid-word-wrapper">
                       {wordText.split("").map((char, charIndex) => {
                         // Find if this char position matches current letter position
                         const letterPos = letterPositions.find(lp => lp.charIndex === charIndex);

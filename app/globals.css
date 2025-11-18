@@ -115,21 +115,21 @@
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease-in-out;
+  position: relative; /* חשוב ל-z-index */
 }
 
-.pyramid-line-base:hover {
-  transform: scale(1.05);
+/* החוק המאוחד: 
+   מופעל גם בהובר על השורה
+   וגם אם השורה מכילה מילה/הברה/אות פעילה
+*/
+.pyramid-line-base:hover,
+.pyramid-line-base:has(.pyramid-word-active),
+.pyramid-line-base:has(.pyramid-syllable-active),
+.pyramid-line-base:has(.pyramid-letter-active) {
+  background: #f0f0f0; /* הרקע האפור שביקשת */
+  transform: scale(1.05); /* הגדלה */
   box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
-}
-
-.pyramid-line-base:hover:not(:has(.pyramid-word-base:hover)) {
-  background: #f0f0f0;
-}
-
-.pyramid-line-active {
-  background: #f0f0f0;
-  transform: scale(1.05);
-  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+  z-index: 5; /* מרים את השורה מעל האחרות כדי שלא תוסתר בהגדלה */
 }
 
 .pyramid-syllable-base {
@@ -185,5 +185,12 @@
   padding: 0 1px;
   transform-origin: center;
   z-index: 10;
+}
+
+/* Word wrapper for syllables and letters - preserves word spacing */
+.pyramid-word-wrapper {
+  display: inline-block;
+  margin: 0 4px; /* זה המרווח בין המילים - תשחק עם זה לפי הטעם */
+  white-space: nowrap; /* מונע שבירת שורה באמצע מילה */
 }
 
