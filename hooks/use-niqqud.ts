@@ -69,13 +69,16 @@ export function useNiqqud(initialText: string = "") {
     try {
       const settings = getSettings();
 
-      if (!settings.apiKey) {
+      const apiKey = settings.niqqudApiKey || settings.apiKey;
+      const model = settings.niqqudModel || settings.model;
+      
+      if (!apiKey) {
         setError("אנא הגדר API Key בהגדרות");
         setIsLoading(false);
         return;
       }
 
-      if (!settings.model) {
+      if (!model) {
         setError("אנא בחר מודל שפה בהגדרות");
         setIsLoading(false);
         return;
@@ -109,8 +112,9 @@ export function useNiqqud(initialText: string = "") {
 
       // Call API to add niqqud
       const result = await addNiqqudService(currentText, {
-        apiKey: settings.apiKey,
-        model: settings.model,
+        apiKey,
+        model,
+        temperature: settings.niqqudTemperature,
       });
 
       if (!result.success || !result.niqqudText) {

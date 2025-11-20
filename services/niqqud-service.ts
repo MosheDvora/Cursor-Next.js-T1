@@ -17,6 +17,7 @@ export interface NiqqudServiceConfig {
   apiKey: string;
   model: string;
   apiUrl?: string; // Optional custom API URL
+  temperature?: number; // Optional temperature (default: 1.0)
 }
 
 export interface NiqqudServiceResponse {
@@ -77,8 +78,8 @@ export async function addNiqqud(
           },
         ],
         generationConfig: {
-          temperature: 0.3,
           maxOutputTokens: 4000,
+          ...(config.temperature !== undefined && { temperature: config.temperature }),
         },
       };
       headers = {
@@ -199,8 +200,8 @@ export async function addNiqqud(
             content: `הוסף ניקוד מלא לטקסט הבא:\n\n${text}`,
           },
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
+        ...(config.temperature !== undefined && { temperature: config.temperature }),
       };
       headers = {
         "Content-Type": "application/json",

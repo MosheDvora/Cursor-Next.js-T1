@@ -10,6 +10,7 @@ export interface SyllablesServiceConfig {
   model: string;
   prompt: string;
   apiUrl?: string; // Optional custom API URL
+  temperature?: number; // Optional temperature (default: 1.0)
 }
 
 export interface SyllablesServiceResponse {
@@ -81,8 +82,8 @@ export async function divideIntoSyllables(
           },
         ],
         generationConfig: {
-          temperature: 0.3,
           maxOutputTokens: 4000,
+          ...(config.temperature !== undefined && { temperature: config.temperature }),
         },
       };
       headers = {
@@ -175,8 +176,8 @@ export async function divideIntoSyllables(
             content: formattedPrompt,
           },
         ],
-        temperature: 0.3,
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
+        ...(config.temperature !== undefined && { temperature: config.temperature }),
       };
       headers = {
         "Content-Type": "application/json",

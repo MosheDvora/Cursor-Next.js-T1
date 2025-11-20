@@ -101,6 +101,7 @@ export function useSyllables(initialText: string = "") {
         apiKey: settings.syllablesApiKey,
         model: settings.syllablesModel,
         prompt: settings.syllablesPrompt,
+        temperature: settings.syllablesTemperature,
       });
 
       // Save raw response for debugging

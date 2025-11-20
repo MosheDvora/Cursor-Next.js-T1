@@ -37,15 +37,18 @@ import {
   DEFAULT_WORD_HIGHLIGHT_COLOR,
   DEFAULT_SYLLABLE_HIGHLIGHT_COLOR,
   DEFAULT_LETTER_HIGHLIGHT_COLOR,
+  DEFAULT_TEMPERATURE,
 } from "@/lib/settings";
 
 export default function SettingsPage() {
   const [niqqudApiKey, setNiqqudApiKey] = useState("");
   const [niqqudModel, setNiqqudModel] = useState(DEFAULT_MODELS[0].value);
   const [niqqudPrompt, setNiqqudPrompt] = useState(DEFAULT_NIQQUD_PROMPT);
+  const [niqqudTemperature, setNiqqudTemperature] = useState(DEFAULT_TEMPERATURE);
   const [syllablesApiKey, setSyllablesApiKey] = useState("");
   const [syllablesModel, setSyllablesModel] = useState(DEFAULT_MODELS[0].value);
   const [syllablesPrompt, setSyllablesPrompt] = useState(DEFAULT_SYLLABLES_PROMPT);
+  const [syllablesTemperature, setSyllablesTemperature] = useState(DEFAULT_TEMPERATURE);
   const [syllableBorderSize, setSyllableBorderSize] = useState(DEFAULT_SYLLABLE_BORDER_SIZE);
   const [syllableBackgroundColor, setSyllableBackgroundColor] = useState(DEFAULT_SYLLABLE_BACKGROUND_COLOR);
   const [wordSpacing, setWordSpacing] = useState(DEFAULT_WORD_SPACING);
@@ -64,9 +67,11 @@ export default function SettingsPage() {
     setNiqqudApiKey(settings.niqqudApiKey || "");
     setNiqqudModel(settings.niqqudModel || DEFAULT_MODELS[0].value);
     setNiqqudPrompt(settings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT);
+    setNiqqudTemperature(settings.niqqudTemperature || DEFAULT_TEMPERATURE);
     setSyllablesApiKey(settings.syllablesApiKey || "");
     setSyllablesModel(settings.syllablesModel || DEFAULT_MODELS[0].value);
     setSyllablesPrompt(settings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT);
+    setSyllablesTemperature(settings.syllablesTemperature || DEFAULT_TEMPERATURE);
     setSyllableBorderSize(settings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE);
     setSyllableBackgroundColor(settings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
     setWordSpacing(settings.wordSpacing || DEFAULT_WORD_SPACING);
@@ -85,9 +90,11 @@ export default function SettingsPage() {
       niqqudApiKey,
       niqqudModel,
       niqqudPrompt,
+      niqqudTemperature,
       syllablesApiKey,
       syllablesModel,
       syllablesPrompt,
+      syllablesTemperature,
       syllableBorderSize,
       syllableBackgroundColor,
       wordSpacing,
@@ -178,11 +185,11 @@ export default function SettingsPage() {
                       </Label>
                       <Input
                         id="niqqud-api-key"
-                        type="password"
+                        type="text"
                         value={niqqudApiKey}
                         onChange={(e) => setNiqqudApiKey(e.target.value)}
                         placeholder="הכנס את ה-API Key שלך"
-                        className="text-right"
+                        className="text-right font-mono"
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
@@ -233,6 +240,28 @@ export default function SettingsPage() {
                         הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
                       </p>
                     </div>
+
+                    {/* Temperature Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="niqqud-temperature" className="text-right block text-base">
+                        טמפרטורה
+                      </Label>
+                      <Input
+                        id="niqqud-temperature"
+                        type="number"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={niqqudTemperature}
+                        onChange={(e) => setNiqqudTemperature(parseFloat(e.target.value) || DEFAULT_TEMPERATURE)}
+                        placeholder="0.2"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות. ברירת מחדל: 0.2
+                      </p>
+                    </div>
                   </div>
                 </div>
 
@@ -250,11 +279,11 @@ export default function SettingsPage() {
                       </Label>
                       <Input
                         id="syllables-api-key"
-                        type="password"
+                        type="text"
                         value={syllablesApiKey}
                         onChange={(e) => setSyllablesApiKey(e.target.value)}
                         placeholder="הכנס את ה-API Key שלך"
-                        className="text-right"
+                        className="text-right font-mono"
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
@@ -303,6 +332,28 @@ export default function SettingsPage() {
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
+                      </p>
+                    </div>
+
+                    {/* Temperature Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="syllables-temperature" className="text-right block text-base">
+                        טמפרטורה
+                      </Label>
+                      <Input
+                        id="syllables-temperature"
+                        type="number"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={syllablesTemperature}
+                        onChange={(e) => setSyllablesTemperature(parseFloat(e.target.value) || DEFAULT_TEMPERATURE)}
+                        placeholder="0.2"
+                        className="text-right"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות. ברירת מחדל: 0.2
                       </p>
                     </div>
 

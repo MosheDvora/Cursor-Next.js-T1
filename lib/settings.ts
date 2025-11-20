@@ -21,10 +21,12 @@ export const SETTINGS_KEYS = {
   NIQQUD_API_KEY: "niqqud_api_key",
   NIQQUD_MODEL: "niqqud_model",
   NIQQUD_PROMPT: "niqqud_prompt",
+  NIQQUD_TEMPERATURE: "niqqud_temperature",
   // Syllables settings
   SYLLABLES_API_KEY: "syllables_api_key",
   SYLLABLES_MODEL: "syllables_model",
   SYLLABLES_PROMPT: "syllables_prompt",
+  SYLLABLES_TEMPERATURE: "syllables_temperature",
   // Appearance settings
   SYLLABLE_BORDER_SIZE: "syllable_border_size",
   SYLLABLE_BACKGROUND_COLOR: "syllable_background_color",
@@ -50,10 +52,12 @@ export interface AppSettings {
   niqqudApiKey: string;
   niqqudModel: string;
   niqqudPrompt: string;
+  niqqudTemperature: number;
   // Syllables settings
   syllablesApiKey: string;
   syllablesModel: string;
   syllablesPrompt: string;
+  syllablesTemperature: number;
   // Appearance settings
   syllableBorderSize: number;
   syllableBackgroundColor: string;
@@ -72,6 +76,8 @@ export interface AppSettings {
  * Default model options
  */
 export const DEFAULT_MODELS = [
+  { value: "gpt-5-nano", label: "GPT-5 Nano (OpenAI)" },
+  { value: "gpt-5-mini", label: "GPT-5 Mini (OpenAI)" },
   { value: "gpt-4o", label: "GPT-4o (OpenAI)" },
   { value: "gpt-4-turbo", label: "GPT-4 Turbo (OpenAI)" },
   { value: "gpt-4", label: "GPT-4 (OpenAI)" },
@@ -143,6 +149,7 @@ export const DEFAULT_SYLLABLE_BORDER_SIZE = 2; // pixels
 export const DEFAULT_SYLLABLE_BACKGROUND_COLOR = "#dbeafe"; // blue-50
 export const DEFAULT_WORD_SPACING = 12; // pixels (gap-x-3 in Tailwind)
 export const DEFAULT_LETTER_SPACING = 0; // pixels (letter-spacing)
+export const DEFAULT_TEMPERATURE = 0.2; // Default temperature for model requests
 export const DEFAULT_FONT_SIZE = 30; // pixels
 export const DEFAULT_WORD_HIGHLIGHT_PADDING = 4; // pixels
 export const DEFAULT_SYLLABLE_HIGHLIGHT_PADDING = 3; // pixels
@@ -171,15 +178,36 @@ export function getApiUrl(model: string): string {
   return "https://api.openai.com/v1/chat/completions";
 }
 
+// Get default API keys from environment variables
+function getDefaultNiqqudApiKey(): string {
+  if (typeof window === "undefined") {
+    // Server-side: read from process.env
+    return process.env.NIQQUD_API_KEY || process.env.NEXT_PUBLIC_NIQQUD_API_KEY || "";
+  }
+  // Client-side: environment variables are not available, return empty
+  return "";
+}
+
+function getDefaultSyllablesApiKey(): string {
+  if (typeof window === "undefined") {
+    // Server-side: read from process.env
+    return process.env.SYLLABLES_API_KEY || process.env.NEXT_PUBLIC_SYLLABLES_API_KEY || "";
+  }
+  // Client-side: environment variables are not available, return empty
+  return "";
+}
+
 export function getSettings(): AppSettings {
   if (typeof window === "undefined") {
     return {
-      niqqudApiKey: "",
+      niqqudApiKey: getDefaultNiqqudApiKey(),
       niqqudModel: DEFAULT_MODELS[0].value,
       niqqudPrompt: DEFAULT_NIQQUD_PROMPT,
-      syllablesApiKey: "",
+      niqqudTemperature: DEFAULT_TEMPERATURE,
+      syllablesApiKey: getDefaultSyllablesApiKey(),
       syllablesModel: DEFAULT_MODELS[0].value,
       syllablesPrompt: DEFAULT_SYLLABLES_PROMPT,
+      syllablesTemperature: DEFAULT_TEMPERATURE,
       syllableBorderSize: DEFAULT_SYLLABLE_BORDER_SIZE,
       syllableBackgroundColor: DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: DEFAULT_WORD_SPACING,
@@ -199,16 +227,26 @@ export function getSettings(): AppSettings {
   const legacyModel = localStorage.getItem(SETTINGS_KEYS.MODEL);
 
   // If legacy settings exist but new ones don't, migrate them
+  // Also check for environment variables as default (NEXT_PUBLIC_ prefix required for client-side access)
+  const defaultNiqqudApiKey = process.env.NEXT_PUBLIC_NIQQUD_API_KEY || "";
+  const defaultSyllablesApiKey = process.env.NEXT_PUBLIC_SYLLABLES_API_KEY || "";
+  
   const niqqudApiKey =
-    localStorage.getItem(SETTINGS_KEYS.NIQQUD_API_KEY) || legacyApiKey || "";
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_API_KEY) || legacyApiKey || defaultNiqqudApiKey;
   const niqqudModel =
     localStorage.getItem(SETTINGS_KEYS.NIQQUD_MODEL) || legacyModel || DEFAULT_MODELS[0].value;
   const niqqudPrompt =
     localStorage.getItem(SETTINGS_KEYS.NIQQUD_PROMPT) || DEFAULT_NIQQUD_PROMPT;
+  const niqqudTemperature = parseFloat(
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_TEMPERATURE) || String(DEFAULT_TEMPERATURE)
+  );
 
-  const syllablesApiKey = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_API_KEY) || legacyApiKey || "";
+  const syllablesApiKey = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_API_KEY) || legacyApiKey || defaultSyllablesApiKey;
   const syllablesModel =
     localStorage.getItem(SETTINGS_KEYS.SYLLABLES_MODEL) || legacyModel || DEFAULT_MODELS[0].value;
+  const syllablesTemperature = parseFloat(
+    localStorage.getItem(SETTINGS_KEYS.SYLLABLES_TEMPERATURE) || String(DEFAULT_TEMPERATURE)
+  );
   
   // For syllables prompt: use saved value only if it's different from the current default
   // This ensures that if user hasn't customized it, they get the updated default
@@ -263,9 +301,11 @@ export function getSettings(): AppSettings {
     niqqudApiKey,
     niqqudModel,
     niqqudPrompt,
+    niqqudTemperature,
     syllablesApiKey,
     syllablesModel,
     syllablesPrompt,
+    syllablesTemperature,
     syllableBorderSize,
     syllableBackgroundColor,
     wordSpacing,
@@ -308,6 +348,10 @@ export function saveSettings(settings: Partial<AppSettings>): void {
 
   if (settings.niqqudPrompt !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.NIQQUD_PROMPT, settings.niqqudPrompt);
+  }
+
+  if (settings.niqqudTemperature !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_TEMPERATURE, String(settings.niqqudTemperature));
   }
 
   // Syllables settings
@@ -390,6 +434,7 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_API_KEY);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_MODEL);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_PROMPT);
+  localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_TEMPERATURE);
 
   // Appearance keys
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BORDER_SIZE);
@@ -482,9 +527,11 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       niqqudApiKey: serverSettings.niqqudApiKey || "",
       niqqudModel: serverSettings.niqqudModel || DEFAULT_MODELS[0].value,
       niqqudPrompt: serverSettings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT,
+      niqqudTemperature: serverSettings.niqqudTemperature || DEFAULT_TEMPERATURE,
       syllablesApiKey: serverSettings.syllablesApiKey || "",
       syllablesModel: serverSettings.syllablesModel || DEFAULT_MODELS[0].value,
       syllablesPrompt: serverSettings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT,
+      syllablesTemperature: serverSettings.syllablesTemperature || DEFAULT_TEMPERATURE,
       syllableBorderSize: serverSettings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE,
       syllableBackgroundColor: serverSettings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: serverSettings.wordSpacing || DEFAULT_WORD_SPACING,
