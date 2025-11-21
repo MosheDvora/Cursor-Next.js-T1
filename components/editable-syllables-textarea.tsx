@@ -92,6 +92,34 @@ export function EditableSyllablesTextarea({
     return text.split(/\s+/).filter(word => word.trim().length > 0);
   };
 
+  // Group Hebrew letters with their following niqqud marks
+  // This ensures that letter+niqqud are rendered together in the same span
+  const groupLettersWithNiqqud = (text: string): Array<{ text: string; index: number; isHebrew: boolean }> => {
+    const groups: Array<{ text: string; index: number; isHebrew: boolean }> = [];
+    let i = 0;
+    
+    while (i < text.length) {
+      const char = text[i];
+      
+      if (isHebrewLetter(char)) {
+        let combined = char;
+        let j = i + 1;
+        // צרף את כל סימני הניקוד העוקבים לאות זו
+        while (j < text.length && isNiqqudMark(text[j])) {
+          combined += text[j];
+          j++;
+        }
+        groups.push({ text: combined, index: i, isHebrew: true });
+        i = j;
+      } else {
+        groups.push({ text: char, index: i, isHebrew: false });
+        i++;
+      }
+    }
+    
+    return groups;
+  };
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement> | KeyboardEvent) => {
@@ -418,6 +446,7 @@ export function EditableSyllablesTextarea({
                   })
                 ) : (
                   // Letters mode - show text with letter highlighting
+                  // TIKUN: Group letters with niqqud to prevent niqqud from disappearing
                   lineWords.map((word, wordIndex) => {
                     // Calculate character offset for this word within the line
                     let wordCharOffset = 0;
@@ -441,12 +470,17 @@ export function EditableSyllablesTextarea({
                       globalLetterOffset += getHebrewLetters(lineWords[i]).length;
                     }
                     
+                    // Use grouping function to combine letters with their niqqud
+                    const charGroups = groupLettersWithNiqqud(word);
+                    
                     return (
                       <span key={wordIndex} className="pyramid-word-wrapper">
-                        {word.split("").map((char, charIndexInWord) => {
-                          const charIndex = wordCharOffset + charIndexInWord;
+                        {charGroups.map((group, groupIdx) => {
+                          const charIndex = wordCharOffset + group.index;
                           const globalIndex = lineCharOffset + charIndex;
-                          const letterInfo = wordLetters.find(l => l.index === charIndexInWord);
+                          
+                          // Find the Hebrew letter in this group
+                          const letterInfo = wordLetters.find(l => l.index === group.index);
                           const letterIdx = letterInfo ? wordLetters.indexOf(letterInfo) : -1;
                           
                           // Find global letter index
@@ -455,13 +489,13 @@ export function EditableSyllablesTextarea({
                           const isCurrentLetter = globalLetterIdx === currentLetterIdx;
                           const isHoveredLetter = globalIndex === hoveredLetterIndex;
                           
-                          if (!isHebrewLetter(char)) {
-                            return <span key={charIndexInWord}>{char}</span>;
+                          if (!group.isHebrew) {
+                            return <span key={groupIdx}>{group.text}</span>;
                           }
-
+                          
                           return (
                             <span
-                              key={charIndexInWord}
+                              key={groupIdx}
                               className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
                               onMouseEnter={() => setHoveredLetterIndex(globalIndex)}
                               onMouseLeave={() => setHoveredLetterIndex(null)}
@@ -474,7 +508,7 @@ export function EditableSyllablesTextarea({
                                 outline: "none",
                               }}
                             >
-                              {char}
+                              {group.text} {/* group.text contains both letter and niqqud */}
                             </span>
                           );
                         })}
@@ -592,6 +626,7 @@ export function EditableSyllablesTextarea({
                 })
               ) : (
                 // Letters mode - highlight only Hebrew letters
+                // TIKUN: Group letters with niqqud to prevent niqqud from disappearing
                 lineWords.map(({ wordIdx, wordEntry }) => {
                   const syllables = wordEntry.syllables;
                   const wordText = syllables.join("");
@@ -610,32 +645,35 @@ export function EditableSyllablesTextarea({
                     }
                   }
                   
+                  // Use grouping function to combine letters with their niqqud
+                  const charGroups = groupLettersWithNiqqud(wordText);
+                  
                   return (
                     <span key={wordIdx} className="pyramid-word-wrapper">
-                      {wordText.split("").map((char, charIndex) => {
-                        // Find if this char position matches current letter position
-                        const letterPos = letterPositions.find(lp => lp.charIndex === charIndex);
+                      {charGroups.map((group, groupIdx) => {
+                        // Find if this group matches current letter position
+                        const letterPos = letterPositions.find(lp => lp.charIndex === group.index);
                         const isCurrentLetter = 
                           wordIdx === currentWordIdx &&
                           letterPos &&
                           letterPos.syllableIdx === currentSyllableIdx &&
                           letterPos.letterIdx === currentLetterIdx &&
-                          isHebrewLetter(char);
+                          group.isHebrew;
                         
-                        if (!isHebrewLetter(char)) {
-                          return <span key={`${wordIdx}-${charIndex}`}>{char}</span>;
+                        if (!group.isHebrew) {
+                          return <span key={`${wordIdx}-${groupIdx}`}>{group.text}</span>;
                         }
-
+                        
                         return (
                           <span
-                            key={`${wordIdx}-${charIndex}`}
+                            key={`${wordIdx}-${groupIdx}`}
                             className={`pyramid-letter-base ${isCurrentLetter ? 'pyramid-letter-active' : ''}`}
                             style={{
                               backgroundColor: isCurrentLetter ? LETTER_HIGHLIGHT_COLOR : undefined,
                               outline: "none",
                             }}
                           >
-                            {char}
+                            {group.text} {/* group.text contains both letter and niqqud */}
                           </span>
                         );
                       })}
