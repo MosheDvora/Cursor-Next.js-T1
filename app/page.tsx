@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus } from "lucide-react";
+import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -40,6 +40,7 @@ export default function Home() {
     letterHighlightColor: "#fff176",
   });
   const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("words");
+  const [isEditing, setIsEditing] = useState(true);
   const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
   const {
     text: niqqudText,
@@ -89,7 +90,7 @@ export default function Home() {
         syllableHighlightColor: settings.syllableHighlightColor || "#fff176",
         letterHighlightColor: settings.letterHighlightColor || "#fff176",
       });
-      
+
       // Load saved position
       const savedPosition = loadCurrentPosition();
       if (savedPosition) {
@@ -102,7 +103,7 @@ export default function Home() {
   // Load text from localStorage on mount (client-side only)
   useEffect(() => {
     if (!mounted) return;
-    
+
     const savedText = localStorage.getItem(MAIN_TEXT_STORAGE_KEY);
     if (savedText) {
       setLocalText(savedText);
@@ -114,7 +115,7 @@ export default function Home() {
   // Save text to localStorage when it changes (client-side only)
   useEffect(() => {
     if (!mounted) return;
-    
+
     if (localText !== undefined && localText !== null) {
       localStorage.setItem(MAIN_TEXT_STORAGE_KEY, localText);
     }
@@ -144,7 +145,7 @@ export default function Home() {
   const handleToggleNiqqud = async () => {
     clearError();
     const wasNiqqud = hasNiqqud;
-    
+
     try {
       await toggleNiqqud();
       // Don't show toast here - let the useEffect handle it based on actual state changes
@@ -162,7 +163,7 @@ export default function Home() {
 
   const handleToggleSyllables = async () => {
     clearSyllablesError();
-    
+
     try {
       await toggleSyllables();
       // Don't show toast here - let the useEffect handle it based on actual state changes
@@ -191,20 +192,23 @@ export default function Home() {
     // Clear text field
     setLocalText("");
     setNiqqudText("");
-    
+
     // Clear localStorage
     localStorage.removeItem(MAIN_TEXT_STORAGE_KEY);
-    
+
     // Clear niqqud cache and state
     clearNiqqud();
-    
+
     // Clear syllables cache and state
     clearSyllables();
-    
+
     // Clear current position
     setCurrentPosition(null);
     saveCurrentPosition(null);
-    
+
+    // Reset to edit mode
+    setIsEditing(true);
+
     // Show success toast
     toast({
       title: "ניקוי הושלם",
@@ -247,7 +251,7 @@ export default function Home() {
         });
       }
     }
-    
+
     // Update ref to current state (always, to track changes)
     if (!isLoading) {
       prevHasNiqqudRef.current = hasNiqqud;
@@ -273,7 +277,7 @@ export default function Home() {
         });
       }
     }
-    
+
     if (!isSyllablesLoading) {
       prevIsSyllablesActiveRef.current = isSyllablesActive;
     }
@@ -391,8 +395,8 @@ export default function Home() {
             <Label htmlFor="navigation-mode" className="text-right text-base">
               סוג קפיצה:
             </Label>
-            <Select 
-              value={navigationMode} 
+            <Select
+              value={navigationMode}
               onValueChange={(value: "words" | "syllables" | "letters") => {
                 // Prevent selecting "syllables" if syllables are not active
                 if (value === "syllables" && !isSyllablesActive) {
@@ -416,6 +420,24 @@ export default function Home() {
 
           {/* Action Buttons */}
           <div className="mb-4 flex justify-end gap-3">
+            <Button
+              onClick={() => setIsEditing(!isEditing)}
+              className="gap-2 min-w-[120px]"
+              variant={isEditing ? "default" : "secondary"}
+              size="lg"
+            >
+              {isEditing ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span>סיום עריכה</span>
+                </>
+              ) : (
+                <>
+                  <Pencil className="h-4 w-4" />
+                  <span>עריכה</span>
+                </>
+              )}
+            </Button>
             <Button
               onClick={handleToggleSyllables}
               disabled={isSyllablesLoading || !localText.trim()}
@@ -471,6 +493,7 @@ export default function Home() {
             <EditableSyllablesTextarea
               text={localText}
               onChange={handleTextChange}
+              isEditing={isEditing}
               isSyllablesActive={isSyllablesActive}
               syllablesData={syllablesData}
               currentPosition={currentPosition}

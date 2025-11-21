@@ -28,6 +28,7 @@ interface EditableSyllablesTextareaProps {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
+  isEditing?: boolean;
 }
 
 /**
@@ -56,6 +57,7 @@ export function EditableSyllablesTextarea({
   disabled = false,
   placeholder = "הדבק כאן את הטקסט הראשי לצורך מניפולציות...",
   className = "",
+  isEditing = true,
 }: EditableSyllablesTextareaProps) {
   const displayRef = useRef<HTMLDivElement>(null);
   const prevModeRef = useRef<string | null>(null);
@@ -352,7 +354,7 @@ export function EditableSyllablesTextarea({
 
   // Auto-focus and listen to document keydown events when text exists
   useEffect(() => {
-    if (text && text.trim().length > 0 && displayRef.current) {
+    if (text && text.trim().length > 0 && displayRef.current && !isEditing) {
       // Auto-focus the display element
       displayRef.current.focus();
 
@@ -366,12 +368,12 @@ export function EditableSyllablesTextarea({
         document.removeEventListener("keydown", handleDocumentKeyDown);
       };
     }
-  }, [text, handleKeyDown]);
+  }, [text, handleKeyDown, isEditing]);
 
   // Render text display with navigation support
   // Always show text, but hide syllable division visually
   const renderTextDisplay = () => {
-    if (!text || text.trim().length === 0) {
+    if (isEditing || !text || text.trim().length === 0) {
       return (
         <Textarea
           value={text}
