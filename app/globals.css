@@ -194,5 +194,12 @@
   /* משתמשים באותו משתנה בדיוק! */
   margin: 0 calc(var(--dynamic-word-gap, 6px) / 2);
   white-space: nowrap; /* מונע שבירת שורה באמצע מילה */
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  z-index: 1;
 }
 
