@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check, ChevronDown } from "lucide-react";
+import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check, ChevronDown, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { detectNiqqud } from "@/lib/niqqud";
 import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
@@ -56,9 +57,11 @@ export default function Home() {
     error,
     getButtonText,
     toggleNiqqud,
-    addNiqqud,
+    addFullNiqqud,
+    restoreOriginal,
     clearNiqqud,
     clearError,
+    cache: niqqudCache,
   } = useNiqqud(localText);
   const {
     syllablesData,
@@ -171,10 +174,7 @@ export default function Home() {
   const handleFullNiqqud = async () => {
     clearError();
     try {
-      await addNiqqud(true); // Force full niqqud
-      // Toast will be handled by useEffect or we can add specific one here if needed
-      // But useEffect monitors hasNiqqud state change, which might not change if already has niqqud
-      // So let's add a specific toast for full niqqud if it succeeds
+      await addFullNiqqud();
       toast({
         title: "ניקוד מלא",
         description: "הטקסט נוקד באופן מלא",
@@ -189,6 +189,14 @@ export default function Home() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleRestoreOriginal = () => {
+    restoreOriginal();
+    toast({
+      title: "חזרה למקור",
+      description: "הטקסט חזר לגרסתו המקורית",
+    });
   };
 
   const handleToggleSyllables = async () => {
@@ -520,7 +528,7 @@ export default function Home() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
-                    disabled={isLoading || !localText.trim()}
+                    disabled={isLoading || !localText.trim() || (niqqudCache?.original ? detectNiqqud(niqqudCache.original) !== "partial" : true)}
                     variant={hasNiqqud ? "secondary" : "default"}
                     size="lg"
                     className="px-2 rounded-r-none border-r border-primary-foreground/20"
@@ -530,10 +538,27 @@ export default function Home() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleFullNiqqud} className="gap-2 cursor-pointer text-right flex-row-reverse">
-                    <Sparkles className="h-4 w-4" />
-                    <span>ניקוד מלא</span>
-                  </DropdownMenuItem>
+                  {/* 
+                    Dropdown Logic based on Table:
+                    Only active if Original is Partial.
+                    
+                    If currently Full (after model) -> Show "Return to Original".
+                    If currently Clean (was Full) -> Show "Return to Original".
+                    
+                    If currently Original (Partial) -> Show "Complete Full".
+                    If currently Clean (after Remove) -> Show "Complete Full".
+                  */}
+                  {niqqudCache?.full ? (
+                    <DropdownMenuItem onClick={handleRestoreOriginal} className="gap-2 cursor-pointer text-right flex-row-reverse">
+                      <RotateCcw className="h-4 w-4" />
+                      <span>חזור למקור</span>
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem onClick={handleFullNiqqud} className="gap-2 cursor-pointer text-right flex-row-reverse">
+                      <Sparkles className="h-4 w-4" />
+                      <span>השלם ניקוד מלא</span>
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
