@@ -45,7 +45,8 @@ export function useNiqqud(initialText: string = "") {
         setCache({
           clean: removeNiqqud(initialText),
           original: initialText,
-          full: initialText // If initial text has niqqud, we assume it's "full" for now, until API provides a better one
+          // Only set full if it's actually full niqqud
+          full: currentNiqqudStatus === "full" ? initialText : null
         });
       } else {
         // If pasted text has no niqqud
