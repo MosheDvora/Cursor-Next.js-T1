@@ -16,35 +16,70 @@ if (typeof removeNiqqud !== "function") {
 }
 
 interface NiqqudCache {
-  original: string;
-  niqqud: string;
+  original: string;     // Original text as entered (may have partial/full/no niqqud)
+  clean: string;        // Text without any niqqud
+  full: string | null;  // Fully niqqud-ed text from model (null if not yet requested)
 }
+
+type DisplayMode = 'original' | 'clean' | 'full';
 
 export function useNiqqud(initialText: string = "") {
   const [text, setText] = useState(initialText);
   const [cache, setCache] = useState<NiqqudCache | null>(null);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('original');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previousTextRef = useRef<string>(initialText);
+
+  const [targetState, setTargetState] = useState<'original' | 'full'>('original');
 
   // Update when initialText changes externally (user typing/pasting)
   useEffect(() => {
     if (initialText !== previousTextRef.current) {
       setText(initialText);
       previousTextRef.current = initialText;
-      // Clear cache if text changed significantly (not just niqqud toggle)
-      if (cache) {
-        const normalizedInitial = initialText.trim();
+
+      const currentStatus = detectNiqqud(initialText);
+      const normalizedInitial = initialText.trim();
+
+      // If input has full niqqud, cache it immediately
+      if (currentStatus === 'full') {
+        // If we already have this full text cached, don't overwrite original
+        // This preserves 'partial' status when syncing back from completion
+        if (cache && cache.full === initialText) {
+          if (displayMode !== 'full') setDisplayMode('full');
+          if (targetState !== 'full') setTargetState('full');
+        } else {
+          const cleanText = removeNiqqud(initialText);
+          setCache({
+            original: initialText,
+            clean: cleanText,
+            full: initialText
+          });
+          setDisplayMode('full');
+          setTargetState('full');
+        }
+      }
+      // If we have cache, check if we should clear it or keep it
+      else if (cache) {
         const normalizedOriginal = cache.original.trim();
-        const normalizedNiqqud = cache.niqqud.trim();
-        
-        // Only clear cache if the new text doesn't match either cached version
+        const normalizedClean = cache.clean.trim();
+        const normalizedFull = cache.full?.trim() || "";
+
+        // Only clear cache if the new text doesn't match any cached version
         if (
           normalizedInitial !== normalizedOriginal &&
-          normalizedInitial !== normalizedNiqqud
+          normalizedInitial !== normalizedClean &&
+          normalizedInitial !== normalizedFull
         ) {
           setCache(null);
+          setDisplayMode('original');
+          setTargetState('original');
         }
+      } else {
+        // No cache and not full niqqud - reset
+        setDisplayMode('original');
+        setTargetState('original');
       }
     }
   }, [initialText, cache]);
@@ -53,15 +88,19 @@ export function useNiqqud(initialText: string = "") {
   const niqqudStatus = detectNiqqud(text);
   const hasNiqqud = niqqudStatus !== "none";
 
+  // Detect original text niqqud status if we have cache
+  const originalStatus = cache ? detectNiqqud(cache.original) : niqqudStatus;
+
   // Get button text based on status
   const getButtonText = useCallback(() => {
     if (hasNiqqud) {
       return "הסרת ניקוד";
     }
-    return "הוספת ניקוד";
-  }, [hasNiqqud]);
+    // If clean, button should indicate restoring to target state
+    return targetState === 'full' ? "הוספת ניקוד" : "החזרת ניקוד";
+  }, [hasNiqqud, targetState]);
 
-  // Add niqqud to text
+  // Add niqqud to text (for text with no niqqud)
   const addNiqqud = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -71,7 +110,9 @@ export function useNiqqud(initialText: string = "") {
 
       const apiKey = settings.niqqudApiKey || settings.apiKey;
       const model = settings.niqqudModel || settings.model;
-      
+      const systemPrompt = settings.niqqudSystemPrompt;
+      const userPrompt = settings.niqqudUserPrompt;
+
       if (!apiKey) {
         setError("אנא הגדר API Key בהגדרות");
         setIsLoading(false);
@@ -84,30 +125,16 @@ export function useNiqqud(initialText: string = "") {
         return;
       }
 
-      // Use the latest text value - get it fresh from state
       const currentText = text;
 
-      // Check if we have cached version
-      // Try both directions: if current text matches original OR niqqud version
-      if (cache) {
-        // Normalize text for comparison (trim whitespace)
-        const normalizedCurrent = currentText.trim();
-        const normalizedOriginal = cache.original.trim();
-        const normalizedNiqqud = cache.niqqud.trim();
-
-        if (normalizedOriginal === normalizedCurrent) {
-          // Current text is original, use cached niqqud version
-          const niqqudVersion = cache.niqqud;
-          setText(niqqudVersion);
-          setIsLoading(false);
-          // Force update by also updating initialText through the returned setText
-          return;
-        }
-        if (normalizedNiqqud === normalizedCurrent) {
-          // Current text already matches cached niqqud version
-          setIsLoading(false);
-          return;
-        }
+      // Check if we have cached full niqqud version
+      if (cache && cache.full) {
+        // If we have a full niqqud version in cache, use it
+        setText(cache.full);
+        setDisplayMode('full');
+        setTargetState('full');
+        setIsLoading(false);
+        return;
       }
 
       // Call API to add niqqud
@@ -115,13 +142,14 @@ export function useNiqqud(initialText: string = "") {
         apiKey,
         model,
         temperature: settings.niqqudTemperature,
+        systemPrompt,
+        userPrompt,
       });
 
       if (!result.success || !result.niqqudText) {
-        console.error("[useNiqqud] API call failed", {
+        console.error("[useNiqqud] addNiqqud API call failed", {
           success: result.success,
           error: result.error,
-          hasNiqqudText: !!result.niqqudText,
         });
         setError(result.error || "שגיאה בהוספת ניקוד");
         setIsLoading(false);
@@ -133,8 +161,7 @@ export function useNiqqud(initialText: string = "") {
         niqqudLength: result.niqqudText.length,
       });
 
-      // Double-check that the returned text actually has niqqud
-      // (additional validation in case API service validation missed something)
+      // Validate that the returned text actually has niqqud
       try {
         const hasNiqqudResult = checkHasNiqqud(result.niqqudText);
         console.log("[useNiqqud] Validation check", {
@@ -160,23 +187,19 @@ export function useNiqqud(initialText: string = "") {
         return;
       }
 
-      // Verify that niqqud was actually added (text should be different)
-      const normalizedOriginal = removeNiqqud(currentText.trim());
-      const normalizedReturned = removeNiqqud(result.niqqudText.trim());
-      
-      // If texts are the same after removing niqqud, but returned has niqqud, that's good
-      // If returned text doesn't have niqqud, we already checked above
-      // So if we reach here, niqqud was successfully added
-
-      // Cache the original and niqqud versions
-      const newCache = {
+      // Cache the three states
+      const cleanText = removeNiqqud(currentText);
+      const newCache: NiqqudCache = {
         original: currentText,
-        niqqud: result.niqqudText,
+        clean: cleanText,
+        full: result.niqqudText,
       };
       setCache(newCache);
 
-      // Update text to niqqud version - this will trigger useEffect in page.tsx
+      // Update text to niqqud version and set display mode
       setText(result.niqqudText);
+      setDisplayMode('full');
+      setTargetState('full');
       setIsLoading(false);
     } catch (err) {
       console.error("[useNiqqud] Unexpected error in addNiqqud", err);
@@ -190,46 +213,170 @@ export function useNiqqud(initialText: string = "") {
   // Remove niqqud from text
   const removeNiqqudFromText = useCallback(() => {
     const currentText = text;
-    
-    // Normalize for comparison
-    const normalizedCurrent = currentText.trim();
-    
-    // If we have cache and current text matches the niqqud version, restore original
-    if (cache) {
-      const normalizedNiqqud = cache.niqqud.trim();
-      if (normalizedNiqqud === normalizedCurrent) {
-        setText(cache.original);
-        return;
-      }
+
+    // If we have cache with clean version, use it
+    if (cache && cache.clean) {
+      setText(cache.clean);
+      setDisplayMode('clean');
+      return;
     }
 
-    // If no cache or text doesn't match cache, create new cache
-    // This handles the case where user pastes text with niqqud and wants to remove it
+    // If no cache, create new cache with all three states
     const textWithoutNiqqud = removeNiqqud(currentText);
-    
-    // Cache both versions: original (without niqqud) and niqqud (with niqqud)
-    setCache({
-      original: textWithoutNiqqud,
-      niqqud: currentText, // The current text has niqqud
-    });
-    
+    const newCache: NiqqudCache = {
+      original: currentText,
+      clean: textWithoutNiqqud,
+      full: null, // Not yet requested
+    };
+    setCache(newCache);
+
     // Set text to version without niqqud
     setText(textWithoutNiqqud);
+    setDisplayMode('clean');
   }, [text, cache]);
 
-  // Toggle niqqud
+  // Complete partial niqqud (for text that already has some niqqud)
+  const completeNiqqud = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const settings = getSettings();
+
+      const apiKey = settings.niqqudApiKey || settings.apiKey;
+      const model = settings.niqqudModel || settings.model;
+      const systemPrompt = settings.niqqudCompletionSystemPrompt;
+      const userPrompt = settings.niqqudCompletionUserPrompt;
+
+      if (!apiKey) {
+        setError("אנא הגדר API Key בהגדרות");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!model) {
+        setError("אנא בחר מודל שפה בהגדרות");
+        setIsLoading(false);
+        return;
+      }
+
+      const currentText = text;
+
+      // Check if we already have full niqqud in cache
+      if (cache && cache.full) {
+        setText(cache.full);
+        setDisplayMode('full');
+        setTargetState('full');
+        setIsLoading(false);
+        return;
+      }
+
+      //Call API to complete niqqud (send text with partial niqqud)
+      const result = await addNiqqudService(currentText, {
+        apiKey,
+        model,
+        temperature: settings.niqqudTemperature,
+        systemPrompt,
+        userPrompt,
+      });
+
+      if (!result.success || !result.niqqudText) {
+        console.error("[useNiqqud] completeNiqqud API call failed", {
+          success: result.success,
+          error: result.error,
+        });
+        setError(result.error || "שגיאה בהשלמת ניקוד");
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate returned text has niqqud
+      if (!checkHasNiqqud(result.niqqudText)) {
+        setError("המודל החזיר טקסט ללא ניקוד מלא");
+        setIsLoading(false);
+        return;
+      }
+
+      // Update cache with full niqqud version
+      const cleanText = removeNiqqud(currentText);
+      const newCache: NiqqudCache = {
+        original: cache?.original || currentText,
+        clean: cache?.clean || cleanText,
+        full: result.niqqudText,
+      };
+      setCache(newCache);
+
+      setText(result.niqqudText);
+      setDisplayMode('full');
+      setTargetState('full');
+      setIsLoading(false);
+    } catch (err) {
+      console.error("[useNiqqud] Unexpected error in completeNiqqud", err);
+      setError(
+        err instanceof Error ? err.message : "שגיאה לא צפויה בהשלמת ניקוד"
+      );
+      setIsLoading(false);
+    }
+  }, [text, cache]);
+
+  // Switch to original text
+  const switchToOriginal = useCallback(() => {
+    if (cache && cache.original) {
+      setText(cache.original);
+      setDisplayMode('original');
+      setTargetState('original');
+    }
+  }, [cache]);
+
+  // Switch to clean text (no niqqud)
+  const switchToClean = useCallback(() => {
+    if (cache && cache.clean) {
+      setText(cache.clean);
+      setDisplayMode('clean');
+    }
+  }, [cache]);
+
+  // Switch to full niqqud text
+  const switchToFull = useCallback(() => {
+    if (cache && cache.full) {
+      setText(cache.full);
+      setDisplayMode('full');
+      setTargetState('full');
+    }
+  }, [cache]);
+
+  // Toggle niqqud based on current state and target state
   const toggleNiqqud = useCallback(async () => {
     if (hasNiqqud) {
+      // If has niqqud, remove it (go to clean)
       removeNiqqudFromText();
     } else {
-      await addNiqqud();
+      // If clean, restore to target state
+      if (targetState === 'full') {
+        if (cache && cache.full) {
+          switchToFull();
+        } else {
+          // If target is full but no cache, add/complete niqqud
+          // If original was partial, complete it. Else add fresh.
+          if (originalStatus === 'partial') {
+            await completeNiqqud();
+          } else {
+            await addNiqqud();
+          }
+        }
+      } else {
+        // Target is original (partial)
+        switchToOriginal();
+      }
     }
-  }, [hasNiqqud, addNiqqud, removeNiqqudFromText]);
+  }, [hasNiqqud, targetState, cache, originalStatus, removeNiqqudFromText, switchToFull, switchToOriginal, completeNiqqud, addNiqqud]);
 
   // Clear niqqud cache and reset state
   const clearNiqqud = useCallback(() => {
     setCache(null);
     setError(null);
+    setDisplayMode('original');
+    setTargetState('original');
     // Reset text to empty string
     setText("");
     previousTextRef.current = "";
@@ -240,12 +387,19 @@ export function useNiqqud(initialText: string = "") {
     setText,
     hasNiqqud,
     niqqudStatus,
+    originalStatus,
+    displayMode,
+    targetState,
     isLoading,
     error,
     getButtonText,
     toggleNiqqud,
     addNiqqud,
+    completeNiqqud,
     removeNiqqud: removeNiqqudFromText,
+    switchToOriginal,
+    switchToClean,
+    switchToFull,
     clearNiqqud,
     clearError: () => setError(null),
   };

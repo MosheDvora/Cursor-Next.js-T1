@@ -20,8 +20,13 @@ export const SETTINGS_KEYS = {
   // Niqqud settings
   NIQQUD_API_KEY: "niqqud_api_key",
   NIQQUD_MODEL: "niqqud_model",
-  NIQQUD_PROMPT: "niqqud_prompt",
+  NIQQUD_PROMPT: "niqqud_prompt", // Legacy - will be replaced by system/user prompts
+  NIQQUD_SYSTEM_PROMPT: "niqqud_system_prompt",
+  NIQQUD_USER_PROMPT: "niqqud_user_prompt",
   NIQQUD_TEMPERATURE: "niqqud_temperature",
+  // Niqqud Completion settings
+  NIQQUD_COMPLETION_SYSTEM_PROMPT: "niqqud_completion_system_prompt",
+  NIQQUD_COMPLETION_USER_PROMPT: "niqqud_completion_user_prompt",
   // Syllables settings
   SYLLABLES_API_KEY: "syllables_api_key",
   SYLLABLES_MODEL: "syllables_model",
@@ -51,8 +56,13 @@ export interface AppSettings {
   // Niqqud settings
   niqqudApiKey: string;
   niqqudModel: string;
-  niqqudPrompt: string;
+  niqqudPrompt: string; // Legacy - for backward compatibility
+  niqqudSystemPrompt: string;
+  niqqudUserPrompt: string;
   niqqudTemperature: number;
+  // Niqqud Completion settings
+  niqqudCompletionSystemPrompt: string;
+  niqqudCompletionUserPrompt: string;
   // Syllables settings
   syllablesApiKey: string;
   syllablesModel: string;
@@ -89,7 +99,26 @@ export const DEFAULT_MODELS = [
 ];
 
 /**
- * Default prompts
+ * Default prompts for regular niqqud addition (no niqqud at all)
+ */
+export const DEFAULT_NIQQUD_SYSTEM_PROMPT = `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.`;
+
+export const DEFAULT_NIQQUD_USER_PROMPT = `הוסף ניקוד מלא לטקסט הבא:
+
+{text}`;
+
+/**
+ * Default prompts for niqqud completion (partial niqqud exists)
+ */
+export const DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT = `אתה מומחה בעברית ובניקוד. המשימה שלך היא להשלים את הניקוד בטקסט עברי שכבר מכיל ניקוד חלקי. שמור על הניקוד הקיים והוסף ניקוד רק למקומות שחסר.`;
+
+export const DEFAULT_NIQQUD_COMPLETION_USER_PROMPT = `הטקסט הבא מכיל ניקוד חלקי. אנא השלם את הניקוד החסר בלבד. אל תסיר או תשנה את הניקוד הקיים. החזר רק את הטקסט המנוקד במלואו ללא הסברים נוספים.
+
+{text}`;
+
+/**
+ * Legacy default niqqud prompt (for backward compatibility)
+ * Will be replaced by system/user prompts above
  */
 export const DEFAULT_NIQQUD_PROMPT = `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.
 
@@ -203,7 +232,11 @@ export function getSettings(): AppSettings {
       niqqudApiKey: getDefaultNiqqudApiKey(),
       niqqudModel: DEFAULT_MODELS[0].value,
       niqqudPrompt: DEFAULT_NIQQUD_PROMPT,
+      niqqudSystemPrompt: DEFAULT_NIQQUD_SYSTEM_PROMPT,
+      niqqudUserPrompt: DEFAULT_NIQQUD_USER_PROMPT,
       niqqudTemperature: DEFAULT_TEMPERATURE,
+      niqqudCompletionSystemPrompt: DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT,
+      niqqudCompletionUserPrompt: DEFAULT_NIQQUD_COMPLETION_USER_PROMPT,
       syllablesApiKey: getDefaultSyllablesApiKey(),
       syllablesModel: DEFAULT_MODELS[0].value,
       syllablesPrompt: DEFAULT_SYLLABLES_PROMPT,
@@ -230,16 +263,24 @@ export function getSettings(): AppSettings {
   // Also check for environment variables as default (NEXT_PUBLIC_ prefix required for client-side access)
   const defaultNiqqudApiKey = process.env.NEXT_PUBLIC_NIQQUD_API_KEY || "";
   const defaultSyllablesApiKey = process.env.NEXT_PUBLIC_SYLLABLES_API_KEY || "";
-  
+
   const niqqudApiKey =
     localStorage.getItem(SETTINGS_KEYS.NIQQUD_API_KEY) || legacyApiKey || defaultNiqqudApiKey;
   const niqqudModel =
     localStorage.getItem(SETTINGS_KEYS.NIQQUD_MODEL) || legacyModel || DEFAULT_MODELS[0].value;
   const niqqudPrompt =
     localStorage.getItem(SETTINGS_KEYS.NIQQUD_PROMPT) || DEFAULT_NIQQUD_PROMPT;
+  const niqqudSystemPrompt =
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_SYSTEM_PROMPT) || DEFAULT_NIQQUD_SYSTEM_PROMPT;
+  const niqqudUserPrompt =
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_USER_PROMPT) || DEFAULT_NIQQUD_USER_PROMPT;
   const niqqudTemperature = parseFloat(
     localStorage.getItem(SETTINGS_KEYS.NIQQUD_TEMPERATURE) || String(DEFAULT_TEMPERATURE)
   );
+  const niqqudCompletionSystemPrompt =
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_COMPLETION_SYSTEM_PROMPT) || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT;
+  const niqqudCompletionUserPrompt =
+    localStorage.getItem(SETTINGS_KEYS.NIQQUD_COMPLETION_USER_PROMPT) || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT;
 
   const syllablesApiKey = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_API_KEY) || legacyApiKey || defaultSyllablesApiKey;
   const syllablesModel =
@@ -247,15 +288,15 @@ export function getSettings(): AppSettings {
   const syllablesTemperature = parseFloat(
     localStorage.getItem(SETTINGS_KEYS.SYLLABLES_TEMPERATURE) || String(DEFAULT_TEMPERATURE)
   );
-  
+
   // For syllables prompt: use saved value only if it's different from the current default
   // This ensures that if user hasn't customized it, they get the updated default
   // If saved value matches current default, it means user hasn't customized, so use new default
   const savedSyllablesPrompt = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_PROMPT);
-  
+
   // If saved value exists and is different from current default, user customized it - use saved value
   // Otherwise, use the current default (which may be updated)
-  const syllablesPrompt = 
+  const syllablesPrompt =
     savedSyllablesPrompt && savedSyllablesPrompt !== DEFAULT_SYLLABLES_PROMPT
       ? savedSyllablesPrompt
       : DEFAULT_SYLLABLES_PROMPT;
@@ -301,7 +342,11 @@ export function getSettings(): AppSettings {
     niqqudApiKey,
     niqqudModel,
     niqqudPrompt,
+    niqqudSystemPrompt,
+    niqqudUserPrompt,
     niqqudTemperature,
+    niqqudCompletionSystemPrompt,
+    niqqudCompletionUserPrompt,
     syllablesApiKey,
     syllablesModel,
     syllablesPrompt,
@@ -350,8 +395,24 @@ export function saveSettings(settings: Partial<AppSettings>): void {
     localStorage.setItem(SETTINGS_KEYS.NIQQUD_PROMPT, settings.niqqudPrompt);
   }
 
+  if (settings.niqqudSystemPrompt !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_SYSTEM_PROMPT, settings.niqqudSystemPrompt);
+  }
+
+  if (settings.niqqudUserPrompt !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_USER_PROMPT, settings.niqqudUserPrompt);
+  }
+
   if (settings.niqqudTemperature !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.NIQQUD_TEMPERATURE, String(settings.niqqudTemperature));
+  }
+
+  if (settings.niqqudCompletionSystemPrompt !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_COMPLETION_SYSTEM_PROMPT, settings.niqqudCompletionSystemPrompt);
+  }
+
+  if (settings.niqqudCompletionUserPrompt !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.NIQQUD_COMPLETION_USER_PROMPT, settings.niqqudCompletionUserPrompt);
   }
 
   // Syllables settings
@@ -429,6 +490,10 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.NIQQUD_API_KEY);
   localStorage.removeItem(SETTINGS_KEYS.NIQQUD_MODEL);
   localStorage.removeItem(SETTINGS_KEYS.NIQQUD_PROMPT);
+  localStorage.removeItem(SETTINGS_KEYS.NIQQUD_SYSTEM_PROMPT);
+  localStorage.removeItem(SETTINGS_KEYS.NIQQUD_USER_PROMPT);
+  localStorage.removeItem(SETTINGS_KEYS.NIQQUD_COMPLETION_SYSTEM_PROMPT);
+  localStorage.removeItem(SETTINGS_KEYS.NIQQUD_COMPLETION_USER_PROMPT);
 
   // Syllables keys
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_API_KEY);
@@ -527,7 +592,11 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       niqqudApiKey: serverSettings.niqqudApiKey || "",
       niqqudModel: serverSettings.niqqudModel || DEFAULT_MODELS[0].value,
       niqqudPrompt: serverSettings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT,
+      niqqudSystemPrompt: serverSettings.niqqudSystemPrompt || DEFAULT_NIQQUD_SYSTEM_PROMPT,
+      niqqudUserPrompt: serverSettings.niqqudUserPrompt || DEFAULT_NIQQUD_USER_PROMPT,
       niqqudTemperature: serverSettings.niqqudTemperature || DEFAULT_TEMPERATURE,
+      niqqudCompletionSystemPrompt: serverSettings.niqqudCompletionSystemPrompt || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT,
+      niqqudCompletionUserPrompt: serverSettings.niqqudCompletionUserPrompt || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT,
       syllablesApiKey: serverSettings.syllablesApiKey || "",
       syllablesModel: serverSettings.syllablesModel || DEFAULT_MODELS[0].value,
       syllablesPrompt: serverSettings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT,

@@ -26,6 +26,10 @@ import {
   getRawResponse,
   DEFAULT_MODELS,
   DEFAULT_NIQQUD_PROMPT,
+  DEFAULT_NIQQUD_SYSTEM_PROMPT,
+  DEFAULT_NIQQUD_USER_PROMPT,
+  DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT,
+  DEFAULT_NIQQUD_COMPLETION_USER_PROMPT,
   DEFAULT_SYLLABLES_PROMPT,
   DEFAULT_SYLLABLE_BORDER_SIZE,
   DEFAULT_SYLLABLE_BACKGROUND_COLOR,
@@ -44,7 +48,11 @@ export default function SettingsPage() {
   const [niqqudApiKey, setNiqqudApiKey] = useState("");
   const [niqqudModel, setNiqqudModel] = useState(DEFAULT_MODELS[0].value);
   const [niqqudPrompt, setNiqqudPrompt] = useState(DEFAULT_NIQQUD_PROMPT);
+  const [niqqudSystemPrompt, setNiqqudSystemPrompt] = useState(DEFAULT_NIQQUD_SYSTEM_PROMPT);
+  const [niqqudUserPrompt, setNiqqudUserPrompt] = useState(DEFAULT_NIQQUD_USER_PROMPT);
   const [niqqudTemperature, setNiqqudTemperature] = useState(DEFAULT_TEMPERATURE);
+  const [niqqudCompletionSystemPrompt, setNiqqudCompletionSystemPrompt] = useState(DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
+  const [niqqudCompletionUserPrompt, setNiqqudCompletionUserPrompt] = useState(DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
   const [syllablesApiKey, setSyllablesApiKey] = useState("");
   const [syllablesModel, setSyllablesModel] = useState(DEFAULT_MODELS[0].value);
   const [syllablesPrompt, setSyllablesPrompt] = useState(DEFAULT_SYLLABLES_PROMPT);
@@ -67,7 +75,11 @@ export default function SettingsPage() {
     setNiqqudApiKey(settings.niqqudApiKey || "");
     setNiqqudModel(settings.niqqudModel || DEFAULT_MODELS[0].value);
     setNiqqudPrompt(settings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT);
+    setNiqqudSystemPrompt(settings.niqqudSystemPrompt || DEFAULT_NIQQUD_SYSTEM_PROMPT);
+    setNiqqudUserPrompt(settings.niqqudUserPrompt || DEFAULT_NIQQUD_USER_PROMPT);
     setNiqqudTemperature(settings.niqqudTemperature || DEFAULT_TEMPERATURE);
+    setNiqqudCompletionSystemPrompt(settings.niqqudCompletionSystemPrompt || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
+    setNiqqudCompletionUserPrompt(settings.niqqudCompletionUserPrompt || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
     setSyllablesApiKey(settings.syllablesApiKey || "");
     setSyllablesModel(settings.syllablesModel || DEFAULT_MODELS[0].value);
     setSyllablesPrompt(settings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT);
@@ -90,7 +102,11 @@ export default function SettingsPage() {
       niqqudApiKey,
       niqqudModel,
       niqqudPrompt,
+      niqqudSystemPrompt,
+      niqqudUserPrompt,
       niqqudTemperature,
+      niqqudCompletionSystemPrompt,
+      niqqudCompletionUserPrompt,
       syllablesApiKey,
       syllablesModel,
       syllablesPrompt,
@@ -223,21 +239,39 @@ export default function SettingsPage() {
                       </p>
                     </div>
 
-                    {/* Prompt Textarea */}
+                    {/* System Prompt Textarea */}
                     <div className="space-y-2">
-                      <Label htmlFor="niqqud-prompt" className="text-right block text-base">
-                        פרומפט למודל
+                      <Label htmlFor="niqqud-system-prompt" className="text-right block text-base">
+                        System Prompt (הוראות למודל)
                       </Label>
                       <Textarea
-                        id="niqqud-prompt"
-                        value={niqqudPrompt}
-                        onChange={(e) => setNiqqudPrompt(e.target.value)}
-                        placeholder="הכנס את הפרומפט שיישלח למודל"
-                        className="text-right min-h-[120px] font-mono text-sm"
+                        id="niqqud-system-prompt"
+                        value={niqqudSystemPrompt}
+                        onChange={(e) => setNiqqudSystemPrompt(e.target.value)}
+                        placeholder="הוראות כלליות למודל"
+                        className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
+                        הוראות ברמת המערכת שמגדירות את תפקיד המודל
+                      </p>
+                    </div>
+
+                    {/* User Prompt Textarea */}
+                    <div className="space-y-2">
+                      <Label htmlFor="niqqud-user-prompt" className="text-right block text-base">
+                        User Prompt (בקשה למודל)
+                      </Label>
+                      <Textarea
+                        id="niqqud-user-prompt"
+                        value={niqqudUserPrompt}
+                        onChange={(e) => setNiqqudUserPrompt(e.target.value)}
+                        placeholder="הבקשה הספציפית למודל"
+                        className="text-right min-h-[80px] font-mono text-sm"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        הבקשה למשתמש. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
                       </p>
                     </div>
 
@@ -265,7 +299,55 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                {/* Area 2: טיפול בהברות */}
+                {/* Area 2: השלמת ניקוד */}
+                <div className="space-y-6 p-6 border rounded-lg bg-card shadow-sm">
+                  <h2 className="text-2xl font-semibold text-right mb-4">
+                    השלמת ניקוד חלקי
+                  </h2>
+                  <p className="text-sm text-muted-foreground text-right mb-4">
+                    הגדרות עבור השלמת ניקוד בטקסט שכבר מכיל ניקוד חלקי
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Completion System Prompt */}
+                    <div className="space-y-2">
+                      <Label htmlFor="niqqud-completion-system-prompt" className="text-right block text-base">
+                        System Prompt להשלמת ניקוד
+                      </Label>
+                      <Textarea
+                        id="niqqud-completion-system-prompt"
+                        value={niqqudCompletionSystemPrompt}
+                        onChange={(e) => setNiqqudCompletionSystemPrompt(e.target.value)}
+                        placeholder="הוראות למודל להשלמת ניקוד חלקי"
+                        className="text-right min-h-[80px] font-mono text-sm"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        הוראות למודל לשמירה על ניקוד קיים והוספת ניקוד חסר בלבד
+                      </p>
+                    </div>
+
+                    {/* Completion User Prompt */}
+                    <div className="space-y-2">
+                      <Label htmlFor="niqqud-completion-user-prompt" className="text-right block text-base">
+                        User Prompt להשלמת ניקוד
+                      </Label>
+                      <Textarea
+                        id="niqqud-completion-user-prompt"
+                        value={niqqudCompletionUserPrompt}
+                        onChange={(e) => setNiqqudCompletionUserPrompt(e.target.value)}
+                        placeholder="בקשה למודל להשלמת הניקוד"
+                        className="text-right min-h-[80px] font-mono text-sm"
+                        dir="rtl"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        הבקשה למודל. השתמש ב-{"{text}"} כמקום לטקסט עם הניקוד החלקי.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Area 3: טיפול בהברות */}
                 <div className="space-y-6 p-6 border rounded-lg bg-card shadow-sm">
                   <h2 className="text-2xl font-semibold text-right mb-4">
                     טיפול בהברות

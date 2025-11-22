@@ -18,6 +18,8 @@ export interface NiqqudServiceConfig {
   model: string;
   apiUrl?: string; // Optional custom API URL
   temperature?: number; // Optional temperature (default: 1.0)
+  systemPrompt?: string; // Optional system-level instructions
+  userPrompt?: string; // Optional user message template (with {text} placeholder)
 }
 
 export interface NiqqudServiceResponse {
@@ -67,12 +69,21 @@ export async function addNiqqud(
     if (isGoogle) {
       // Google Gemini API format
       const modelUrl = `${apiUrl}/${config.model}:generateContent?key=${config.apiKey}`;
+
+      // Use configurable prompts or fall back to defaults
+      const systemPrompt = config.systemPrompt || "אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.";
+      const userPromptTemplate = config.userPrompt || `הוסף ניקוד מלא לטקסט הבא:\n\n{text}`;
+      const userPrompt = userPromptTemplate.replace('{text}', text);
+
+      // For Google API, combine system and user prompts
+      const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
+
       requestBody = {
         contents: [
           {
             parts: [
               {
-                text: `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.\n\nהוסף ניקוד מלא לטקסט הבא:\n\n${text}`,
+                text: combinedPrompt,
               },
             ],
           },
@@ -144,7 +155,7 @@ export async function addNiqqud(
         // Check if the returned text is the same as the original (no changes)
         const normalizedOriginal = removeNiqqud(text.trim());
         const normalizedReturned = removeNiqqud(niqqudText.trim());
-        
+
         console.log("[NiqqudService] Normalized comparison", {
           originalNormalized: normalizedOriginal.substring(0, 50),
           returnedNormalized: normalizedReturned.substring(0, 50),
@@ -187,17 +198,22 @@ export async function addNiqqud(
       };
     } else {
       // OpenAI API format
+
+      // Use configurable prompts or fall back to defaults
+      const systemPrompt = config.systemPrompt || "אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.";
+      const userPromptTemplate = config.userPrompt || `הוסף ניקוד מלא לטקסט הבא:\n\n{text}`;
+      const userPrompt = userPromptTemplate.replace('{text}', text);
+
       requestBody = {
         model: config.model,
         messages: [
           {
             role: "system",
-            content:
-              "אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.",
+            content: systemPrompt,
           },
           {
             role: "user",
-            content: `הוסף ניקוד מלא לטקסט הבא:\n\n${text}`,
+            content: userPrompt,
           },
         ],
         max_completion_tokens: 4000,
@@ -264,7 +280,7 @@ export async function addNiqqud(
         // Check if the returned text is the same as the original (no changes)
         const normalizedOriginal = removeNiqqud(text.trim());
         const normalizedReturned = removeNiqqud(niqqudText.trim());
-        
+
         console.log("[NiqqudService] Normalized comparison", {
           originalNormalized: normalizedOriginal.substring(0, 50),
           returnedNormalized: normalizedReturned.substring(0, 50),

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
+import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import * as SelectPrimitive from "@radix-ui/react-select";
 import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
@@ -46,10 +47,20 @@ export default function Home() {
     text: niqqudText,
     setText: setNiqqudText,
     hasNiqqud,
+    niqqudStatus,
+    originalStatus,
+    displayMode,
+    targetState,
     isLoading,
     error,
     getButtonText,
     toggleNiqqud,
+    addNiqqud,
+    completeNiqqud,
+    removeNiqqud,
+    switchToOriginal,
+    switchToClean,
+    switchToFull,
     clearNiqqud,
     clearError,
   } = useNiqqud(localText);
@@ -467,25 +478,69 @@ export default function Home() {
               <Trash2 className="h-4 w-4" />
               <span>ניקוי</span>
             </Button>
-            <Button
-              onClick={handleToggleNiqqud}
-              disabled={isLoading || !localText.trim()}
-              className="gap-2 min-w-[160px]"
-              variant={hasNiqqud ? "secondary" : "default"}
-              size="lg"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>מעבד...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  <span>{getButtonText()}</span>
-                </>
-              )}
-            </Button>
+            {originalStatus === 'partial' ? (
+              <div className="flex items-center gap-2" dir="ltr">
+                {/* Toggle for Partial/Full Niqqud */}
+                <div className="flex items-center bg-secondary rounded-md p-1 border border-input">
+                  <Button
+                    variant={targetState === 'original' ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => switchToOriginal()}
+                    className="h-8 px-3 text-xs"
+                  >
+                    ניקוד חלקי
+                  </Button>
+                  <Button
+                    variant={targetState === 'full' ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => completeNiqqud()}
+                    className="h-8 px-3 text-xs"
+                  >
+                    ניקוד מלא
+                  </Button>
+                </div>
+
+                <Button
+                  onClick={handleToggleNiqqud}
+                  disabled={isLoading || !localText.trim()}
+                  className="gap-2 min-w-[140px]"
+                  variant={hasNiqqud ? "secondary" : "default"}
+                  size="lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>מעבד...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      <span>{getButtonText()}</span>
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <Button
+                onClick={handleToggleNiqqud}
+                disabled={isLoading || !localText.trim()}
+                className="gap-2 min-w-[160px]"
+                variant={hasNiqqud ? "secondary" : "default"}
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>מעבד...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    <span>{getButtonText()}</span>
+                  </>
+                )}
+              </Button>
+            )}
           </div>
 
           {/* Main text input area - unified display */}
