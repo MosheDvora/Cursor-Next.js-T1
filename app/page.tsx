@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
+import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,6 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
@@ -50,6 +56,7 @@ export default function Home() {
     error,
     getButtonText,
     toggleNiqqud,
+    addNiqqud,
     clearNiqqud,
     clearError,
   } = useNiqqud(localText);
@@ -156,6 +163,29 @@ export default function Home() {
           err instanceof Error
             ? err.message
             : "אירעה שגיאה בעת עיבוד הניקוד",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFullNiqqud = async () => {
+    clearError();
+    try {
+      await addNiqqud(true); // Force full niqqud
+      // Toast will be handled by useEffect or we can add specific one here if needed
+      // But useEffect monitors hasNiqqud state change, which might not change if already has niqqud
+      // So let's add a specific toast for full niqqud if it succeeds
+      toast({
+        title: "ניקוד מלא",
+        description: "הטקסט נוקד באופן מלא",
+      });
+    } catch (err) {
+      toast({
+        title: "שגיאה",
+        description:
+          err instanceof Error
+            ? err.message
+            : "אירעה שגיאה בעת הוספת ניקוד מלא",
         variant: "destructive",
       });
     }
@@ -467,25 +497,46 @@ export default function Home() {
               <Trash2 className="h-4 w-4" />
               <span>ניקוי</span>
             </Button>
-            <Button
-              onClick={handleToggleNiqqud}
-              disabled={isLoading || !localText.trim()}
-              className="gap-2 min-w-[160px]"
-              variant={hasNiqqud ? "secondary" : "default"}
-              size="lg"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>מעבד...</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  <span>{getButtonText()}</span>
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-0">
+              <Button
+                onClick={handleToggleNiqqud}
+                disabled={isLoading || !localText.trim()}
+                className="gap-2 min-w-[120px] rounded-l-none border-l-0"
+                variant={hasNiqqud ? "secondary" : "default"}
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>מעבד...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    <span>{getButtonText()}</span>
+                  </>
+                )}
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    disabled={isLoading || !localText.trim()}
+                    variant={hasNiqqud ? "secondary" : "default"}
+                    size="lg"
+                    className="px-2 rounded-r-none border-r border-primary-foreground/20"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                    <span className="sr-only">אפשרויות נוספות</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleFullNiqqud} className="gap-2 cursor-pointer text-right flex-row-reverse">
+                    <Sparkles className="h-4 w-4" />
+                    <span>ניקוד מלא</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
 
           {/* Main text input area - unified display */}

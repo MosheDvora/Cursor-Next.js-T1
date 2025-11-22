@@ -16,8 +16,9 @@ if (typeof removeNiqqud !== "function") {
 }
 
 interface NiqqudCache {
-  original: string;
-  niqqud: string;
+  clean: string;      // טקסט ללא ניקוד
+  original: string;   // הטקסט כפי שהוזן (יכול להיות חלקי/מלא/נקי)
+  full: string | null;// טקסט עם ניקוד מלא מהמודל
 }
 
 export function useNiqqud(initialText: string = "") {
@@ -36,12 +37,14 @@ export function useNiqqud(initialText: string = "") {
       if (cache) {
         const normalizedInitial = initialText.trim();
         const normalizedOriginal = cache.original.trim();
-        const normalizedNiqqud = cache.niqqud.trim();
+        const normalizedFull = cache.full?.trim();
+        const normalizedClean = cache.clean.trim();
 
-        // Only clear cache if the new text doesn't match either cached version
+        // Only clear cache if the new text doesn't match any cached version
         if (
           normalizedInitial !== normalizedOriginal &&
-          normalizedInitial !== normalizedNiqqud
+          normalizedInitial !== normalizedFull &&
+          normalizedInitial !== normalizedClean
         ) {
           setCache(null);
         }
@@ -62,7 +65,7 @@ export function useNiqqud(initialText: string = "") {
   }, [hasNiqqud]);
 
   // Add niqqud to text
-  const addNiqqud = useCallback(async () => {
+  const addNiqqud = useCallback(async (forceFull: boolean = false) => {
     setIsLoading(true);
     setError(null);
 
@@ -88,27 +91,27 @@ export function useNiqqud(initialText: string = "") {
       const currentText = text;
 
       // Check if we have cached version
-      // Try both directions: if current text matches original OR niqqud version
-      if (cache) {
+      if (cache && !forceFull) {
         // Normalize text for comparison (trim whitespace)
         const normalizedCurrent = currentText.trim();
         const normalizedOriginal = cache.original.trim();
-        const normalizedNiqqud = cache.niqqud.trim();
+        const normalizedFull = cache.full?.trim();
 
-        if (normalizedOriginal === normalizedCurrent) {
-          // Current text is original, use cached niqqud version
-          const niqqudVersion = cache.niqqud;
-          setText(niqqudVersion);
+        if (normalizedOriginal === normalizedCurrent && cache.full) {
+          // Current text is original, use cached full version
+          setText(cache.full);
           setIsLoading(false);
-          // Force update by also updating initialText through the returned setText
           return;
         }
-        if (normalizedNiqqud === normalizedCurrent) {
-          // Current text already matches cached niqqud version
+        if (normalizedFull === normalizedCurrent) {
+          // Current text already matches cached full version
           setIsLoading(false);
           return;
         }
       }
+
+      // If forceFull is true, or we don't have cache, or cache doesn't match
+      // We need to call the API
 
       // Call API to add niqqud
       const result = await addNiqqudService(currentText, {
@@ -134,14 +137,8 @@ export function useNiqqud(initialText: string = "") {
       });
 
       // Double-check that the returned text actually has niqqud
-      // (additional validation in case API service validation missed something)
       try {
         const hasNiqqudResult = checkHasNiqqud(result.niqqudText);
-        console.log("[useNiqqud] Validation check", {
-          hasNiqqud: hasNiqqudResult,
-          textLength: result.niqqudText.length,
-          textPreview: result.niqqudText.substring(0, 50),
-        });
 
         if (!hasNiqqudResult) {
           console.error("[useNiqqud] Text does not have niqqud after API call");
@@ -160,22 +157,24 @@ export function useNiqqud(initialText: string = "") {
         return;
       }
 
-      // Verify that niqqud was actually added (text should be different)
-      const normalizedOriginal = removeNiqqud(currentText.trim());
-      const normalizedReturned = removeNiqqud(result.niqqudText.trim());
+      // Prepare new cache
+      const cleanText = removeNiqqud(currentText);
 
-      // If texts are the same after removing niqqud, but returned has niqqud, that's good
-      // If returned text doesn't have niqqud, we already checked above
-      // So if we reach here, niqqud was successfully added
-
-      // Cache the original and niqqud versions
-      const newCache = {
-        original: currentText,
-        niqqud: result.niqqudText,
+      const newCache: NiqqudCache = {
+        clean: cleanText,
+        original: cache?.original || currentText, // Keep original if exists, otherwise current is original
+        full: result.niqqudText,
       };
+
+      // If we are forcing full niqqud on already niqqud-ed text, 
+      // we might want to update original only if it's not set or if we are starting fresh?
+      // Actually, if we have cache, we should probably keep the 'original' from the cache 
+      // unless the current text is significantly different (which is handled by the useEffect clearing cache).
+      // So `cache?.original || currentText` seems correct.
+
       setCache(newCache);
 
-      // Update text to niqqud version - this will trigger useEffect in page.tsx
+      // Update text to niqqud version
       setText(result.niqqudText);
       setIsLoading(false);
     } catch (err) {
@@ -191,29 +190,21 @@ export function useNiqqud(initialText: string = "") {
   const removeNiqqudFromText = useCallback(() => {
     const currentText = text;
 
-    // Normalize for comparison
-    const normalizedCurrent = currentText.trim();
-
-    // If we have cache and current text matches the niqqud version, restore original
+    // If we have cache, revert to clean version
     if (cache) {
-      const normalizedNiqqud = cache.niqqud.trim();
-      if (normalizedNiqqud === normalizedCurrent) {
-        setText(cache.original);
-        return;
-      }
+      setText(cache.clean);
+      return;
     }
 
-    // If no cache or text doesn't match cache, create new cache
-    // This handles the case where user pastes text with niqqud and wants to remove it
+    // If no cache, create it
     const textWithoutNiqqud = removeNiqqud(currentText);
 
-    // Cache both versions: original (without niqqud) and niqqud (with niqqud)
     setCache({
-      original: textWithoutNiqqud,
-      niqqud: currentText, // The current text has niqqud
+      clean: textWithoutNiqqud,
+      original: currentText, // The current text has niqqud, so it is the original in this context
+      full: currentText, // It has niqqud, so we assume it's "full" enough to be cached as such, or at least it's a version with niqqud
     });
 
-    // Set text to version without niqqud
     setText(textWithoutNiqqud);
   }, [text, cache]);
 
@@ -222,7 +213,7 @@ export function useNiqqud(initialText: string = "") {
     if (hasNiqqud) {
       removeNiqqudFromText();
     } else {
-      await addNiqqud();
+      await addNiqqud(false);
     }
   }, [hasNiqqud, addNiqqud, removeNiqqudFromText]);
 
