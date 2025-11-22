@@ -230,7 +230,7 @@ export function getSettings(): AppSettings {
   // Also check for environment variables as default (NEXT_PUBLIC_ prefix required for client-side access)
   const defaultNiqqudApiKey = process.env.NEXT_PUBLIC_NIQQUD_API_KEY || "";
   const defaultSyllablesApiKey = process.env.NEXT_PUBLIC_SYLLABLES_API_KEY || "";
-  
+
   const niqqudApiKey =
     localStorage.getItem(SETTINGS_KEYS.NIQQUD_API_KEY) || legacyApiKey || defaultNiqqudApiKey;
   const niqqudModel =
@@ -247,15 +247,15 @@ export function getSettings(): AppSettings {
   const syllablesTemperature = parseFloat(
     localStorage.getItem(SETTINGS_KEYS.SYLLABLES_TEMPERATURE) || String(DEFAULT_TEMPERATURE)
   );
-  
+
   // For syllables prompt: use saved value only if it's different from the current default
   // This ensures that if user hasn't customized it, they get the updated default
   // If saved value matches current default, it means user hasn't customized, so use new default
   const savedSyllablesPrompt = localStorage.getItem(SETTINGS_KEYS.SYLLABLES_PROMPT);
-  
+
   // If saved value exists and is different from current default, user customized it - use saved value
   // Otherwise, use the current default (which may be updated)
-  const syllablesPrompt = 
+  const syllablesPrompt =
     savedSyllablesPrompt && savedSyllablesPrompt !== DEFAULT_SYLLABLES_PROMPT
       ? savedSyllablesPrompt
       : DEFAULT_SYLLABLES_PROMPT;

@@ -63,6 +63,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -97,7 +98,8 @@
   transform: scale(1.1);
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
-  z-index: 10; /* הוספתי כדי שיעלה מעל אחרים */
+  z-index: 10;
+  /* הוספתי כדי שיעלה מעל אחרים */
 }
 
 .pyramid-word-active {
@@ -116,7 +118,8 @@
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease-in-out;
-  position: relative; /* חשוב ל-z-index */
+  position: relative;
+  /* חשוב ל-z-index */
 }
 
 /* החוק המאוחד: 
@@ -127,20 +130,25 @@
 .pyramid-line-base:has(.pyramid-word-active),
 .pyramid-line-base:has(.pyramid-syllable-active),
 .pyramid-line-base:has(.pyramid-letter-active) {
-  background: #f0f0f0; /* הרקע האפור שביקשת */
-  transform: scale(1.05); /* הגדלה */
+  background: #f0f0f0;
+  /* הרקע האפור שביקשת */
+  transform: scale(1.05);
+  /* הגדלה */
   box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
-  z-index: 5; /* מרים את השורה מעל האחרות כדי שלא תוסתר בהגדלה */
+  z-index: 5;
+  /* מרים את השורה מעל האחרות כדי שלא תוסתר בהגדלה */
 }
 
 .pyramid-syllable-base {
-  display: inline-block; /* חשוב כדי שהאפקטים יעבדו */
+  display: inline-block;
+  /* חשוב כדי שהאפקטים יעבדו */
   padding: 0 2px;
   border-radius: 4px;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
   transform-origin: center;
-  position: relative; /* מאפשר שימוש ב z-index */
+  position: relative;
+  /* מאפשר שימוש ב z-index */
 }
 
 .pyramid-syllable-base:hover {
@@ -152,7 +160,7 @@
 
 .pyramid-syllable-active {
   /* הוחלף הגרדיאנט בצבע הצהוב האחיד של המילים */
-  background: #fff59d !important; 
+  background: #fff59d !important;
   padding: 0 2px;
   border-radius: 4px;
   box-shadow: 0 3px 10px rgba(255, 235, 59, 0.6);
@@ -162,7 +170,8 @@
 }
 
 .pyramid-letter-base {
-  display: inline-block; /* חשוב כדי שהאפקטים יעבדו */
+  display: inline-block;
+  /* חשוב כדי שהאפקטים יעבדו */
   padding: 0 1px;
   border-radius: 4px;
   transition: all 0.2s ease-in-out;
@@ -193,7 +202,8 @@
   display: inline-block;
   /* משתמשים באותו משתנה בדיוק! */
   margin: 0 calc(var(--dynamic-word-gap, 6px) / 2);
-  white-space: nowrap; /* מונע שבירת שורה באמצע מילה */
+  white-space: nowrap;
+  /* מונע שבירת שורה באמצע מילה */
   padding: 2px 6px;
   border-radius: 6px;
   background: white;
@@ -202,4 +212,3 @@
   position: relative;
   z-index: 1;
 }
-

@@ -99,10 +99,10 @@ export function EditableSyllablesTextarea({
   const groupLettersWithNiqqud = (text: string): Array<{ text: string; index: number; isHebrew: boolean }> => {
     const groups: Array<{ text: string; index: number; isHebrew: boolean }> = [];
     let i = 0;
-    
+
     while (i < text.length) {
       const char = text[i];
-      
+
       if (isHebrewLetter(char)) {
         let combined = char;
         let j = i + 1;
@@ -118,7 +118,7 @@ export function EditableSyllablesTextarea({
         i++;
       }
     }
-    
+
     return groups;
   };
 
@@ -153,7 +153,7 @@ export function EditableSyllablesTextarea({
         if (navigationMode === "words") {
           const words = getWordsFromText(text);
           const currentWordIdx = currentPosition?.wordIndex ?? 0;
-          
+
           if (isForward && currentWordIdx < words.length - 1) {
             newPosition = { mode: "words", wordIndex: currentWordIdx + 1 };
           } else if (isBackward && currentWordIdx > 0) {
@@ -164,7 +164,7 @@ export function EditableSyllablesTextarea({
         } else if (navigationMode === "letters") {
           const letters = getHebrewLetters(text);
           const currentLetterIdx = currentPosition?.letterIndex ?? 0;
-          
+
           if (isForward && currentLetterIdx < letters.length - 1) {
             newPosition = { mode: "letters", wordIndex: 0, letterIndex: currentLetterIdx + 1 };
           } else if (isBackward && currentLetterIdx > 0) {
@@ -222,7 +222,7 @@ export function EditableSyllablesTextarea({
         } else if (mode === "letters") {
           // Navigate between letters - only Hebrew letters, skip niqqud
           const allLetters: Array<{ wordIdx: number; syllableIdx: number; letterIdx: number }> = [];
-          
+
           // Collect all Hebrew letters from all words/syllables
           words.forEach((word, wIdx) => {
             word.syllables.forEach((syllable, sIdx) => {
@@ -240,15 +240,15 @@ export function EditableSyllablesTextarea({
             const currentWord = words[wordIndex];
             const currentSyllableIdx = syllableIndex ?? 0;
             const currentLetterIdx = letterIndex ?? 0;
-            
+
             if (currentSyllableIdx < currentWord.syllables.length) {
               const currentSyllable = currentWord.syllables[currentSyllableIdx];
               if (currentLetterIdx < currentSyllable.length && isHebrewLetter(currentSyllable[currentLetterIdx])) {
                 // Current position points to a Hebrew letter, find it in the list
                 currentLetterGlobalIdx = allLetters.findIndex(
-                  l => l.wordIdx === wordIndex && 
-                       l.syllableIdx === currentSyllableIdx && 
-                       l.letterIdx === currentLetterIdx
+                  l => l.wordIdx === wordIndex &&
+                    l.syllableIdx === currentSyllableIdx &&
+                    l.letterIdx === currentLetterIdx
                 );
               }
             }
@@ -308,9 +308,9 @@ export function EditableSyllablesTextarea({
     const textChanged = initializedTextRef.current !== text;
     if (textChanged || !currentPosition) {
       initializedTextRef.current = text;
-      
+
       let initialPosition: CurrentPosition;
-      
+
       if (isSyllablesActive && syllablesData) {
         initialPosition = {
           mode: navigationMode,
@@ -329,7 +329,7 @@ export function EditableSyllablesTextarea({
           return;
         }
       }
-      
+
       onPositionChange(initialPosition);
       saveCurrentPosition(initialPosition);
     }
@@ -393,7 +393,7 @@ export function EditableSyllablesTextarea({
       const letters = getHebrewLetters(text);
       const currentWordIdx = currentPosition?.wordIndex ?? 0;
       const currentLetterIdx = currentPosition?.letterIndex ?? 0;
-      
+
       // Split text into lines
       const textLines = text.split('\n');
 
@@ -424,7 +424,7 @@ export function EditableSyllablesTextarea({
                       globalWordIndex += getWordsFromText(textLines[i]).length;
                     }
                     globalWordIndex += wordIndex;
-                    
+
                     const isCurrentWord = globalWordIndex === currentWordIdx;
                     const isHoveredWord = globalWordIndex === hoveredWordIndex;
                     return (
@@ -434,11 +434,11 @@ export function EditableSyllablesTextarea({
                         onMouseEnter={() => setHoveredWordIndex(globalWordIndex)}
                         onMouseLeave={() => setHoveredWordIndex(null)}
                         style={{
-                          backgroundColor: isHoveredWord 
-                            ? HOVER_HIGHLIGHT_COLOR 
-                            : isCurrentWord 
-                            ? WORD_HIGHLIGHT_COLOR 
-                            : undefined,
+                          backgroundColor: isHoveredWord
+                            ? HOVER_HIGHLIGHT_COLOR
+                            : isCurrentWord
+                              ? WORD_HIGHLIGHT_COLOR
+                              : undefined,
                           outline: "none",
                         }}
                       >
@@ -459,10 +459,10 @@ export function EditableSyllablesTextarea({
                         wordCharOffset += 1; // space character
                       }
                     }
-                    
+
                     // Find letters in this word
                     const wordLetters = getHebrewLetters(word);
-                    
+
                     // Calculate global letter offset (letters from previous lines + previous words in this line)
                     let globalLetterOffset = 0;
                     for (let i = 0; i < lineIndex; i++) {
@@ -471,30 +471,30 @@ export function EditableSyllablesTextarea({
                     for (let i = 0; i < wordIndex; i++) {
                       globalLetterOffset += getHebrewLetters(lineWords[i]).length;
                     }
-                    
+
                     // Use grouping function to combine letters with their niqqud
                     const charGroups = groupLettersWithNiqqud(word);
-                    
+
                     return (
                       <span key={wordIndex} className="pyramid-word-wrapper">
                         {charGroups.map((group, groupIdx) => {
                           const charIndex = wordCharOffset + group.index;
                           const globalIndex = lineCharOffset + charIndex;
-                          
+
                           // Find the Hebrew letter in this group
                           const letterInfo = wordLetters.find(l => l.index === group.index);
                           const letterIdx = letterInfo ? wordLetters.indexOf(letterInfo) : -1;
-                          
+
                           // Find global letter index
                           const globalLetterIdx = letterIdx !== -1 ? globalLetterOffset + letterIdx : -1;
-                          
+
                           const isCurrentLetter = globalLetterIdx === currentLetterIdx;
                           const isHoveredLetter = globalIndex === hoveredLetterIndex;
-                          
+
                           if (!group.isHebrew) {
                             return <span key={groupIdx}>{group.text}</span>;
                           }
-                          
+
                           return (
                             <span
                               key={groupIdx}
@@ -505,8 +505,8 @@ export function EditableSyllablesTextarea({
                                 backgroundColor: isHoveredLetter
                                   ? HOVER_HIGHLIGHT_COLOR
                                   : isCurrentLetter
-                                  ? LETTER_HIGHLIGHT_COLOR
-                                  : undefined,
+                                    ? LETTER_HIGHLIGHT_COLOR
+                                    : undefined,
                                 outline: "none",
                               }}
                             >
@@ -533,11 +533,11 @@ export function EditableSyllablesTextarea({
 
     // Split original text into lines to preserve line structure
     const textLines = text.split('\n');
-    
+
     // Build word-to-line mapping based on original text
     const wordToLineMap: number[] = [];
     const originalWords = text.split(/\s+/).filter(w => w.trim().length > 0);
-    
+
     // Map syllables words to original text words by line
     let wordCount = 0;
     for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
@@ -547,7 +547,7 @@ export function EditableSyllablesTextarea({
         wordCount++;
       }
     }
-    
+
     // Group words by line
     const wordsByLine: Array<Array<{ wordIdx: number; wordEntry: typeof words[0] }>> = [];
     textLines.forEach((_, lineIdx) => {
@@ -587,11 +587,11 @@ export function EditableSyllablesTextarea({
                       onMouseEnter={() => setHoveredWordIndex(wordIdx)}
                       onMouseLeave={() => setHoveredWordIndex(null)}
                       style={{
-                        backgroundColor: isHoveredWord 
-                          ? HOVER_HIGHLIGHT_COLOR 
-                          : isCurrentWord 
-                          ? WORD_HIGHLIGHT_COLOR 
-                          : undefined,
+                        backgroundColor: isHoveredWord
+                          ? HOVER_HIGHLIGHT_COLOR
+                          : isCurrentWord
+                            ? WORD_HIGHLIGHT_COLOR
+                            : undefined,
                         outline: "none",
                       }}
                     >
@@ -606,10 +606,10 @@ export function EditableSyllablesTextarea({
                   return (
                     <span key={wordIdx} className="pyramid-word-wrapper">
                       {syllables.map((syllable, syllableIndex) => {
-                        const isCurrentSyllable = 
-                          wordIdx === currentWordIdx && 
+                        const isCurrentSyllable =
+                          wordIdx === currentWordIdx &&
                           syllableIndex === currentSyllableIdx;
-                        
+
                         return (
                           <span
                             key={`${wordIdx}-${syllableIndex}`}
@@ -632,11 +632,11 @@ export function EditableSyllablesTextarea({
                 lineWords.map(({ wordIdx, wordEntry }) => {
                   const syllables = wordEntry.syllables;
                   const wordText = syllables.join("");
-                  
+
                   // Build map of Hebrew letter positions
                   const letterPositions: Array<{ syllableIdx: number; letterIdx: number; charIndex: number }> = [];
                   let charCount = 0;
-                  
+
                   for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
                     const syllable = syllables[sIdx];
                     for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
@@ -646,26 +646,26 @@ export function EditableSyllablesTextarea({
                       charCount++;
                     }
                   }
-                  
+
                   // Use grouping function to combine letters with their niqqud
                   const charGroups = groupLettersWithNiqqud(wordText);
-                  
+
                   return (
                     <span key={wordIdx} className="pyramid-word-wrapper">
                       {charGroups.map((group, groupIdx) => {
                         // Find if this group matches current letter position
                         const letterPos = letterPositions.find(lp => lp.charIndex === group.index);
-                        const isCurrentLetter = 
+                        const isCurrentLetter =
                           wordIdx === currentWordIdx &&
                           letterPos &&
                           letterPos.syllableIdx === currentSyllableIdx &&
                           letterPos.letterIdx === currentLetterIdx &&
                           group.isHebrew;
-                        
+
                         if (!group.isHebrew) {
                           return <span key={`${wordIdx}-${groupIdx}`}>{group.text}</span>;
                         }
-                        
+
                         return (
                           <span
                             key={`${wordIdx}-${groupIdx}`}

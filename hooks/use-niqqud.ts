@@ -37,7 +37,7 @@ export function useNiqqud(initialText: string = "") {
         const normalizedInitial = initialText.trim();
         const normalizedOriginal = cache.original.trim();
         const normalizedNiqqud = cache.niqqud.trim();
-        
+
         // Only clear cache if the new text doesn't match either cached version
         if (
           normalizedInitial !== normalizedOriginal &&
@@ -71,7 +71,7 @@ export function useNiqqud(initialText: string = "") {
 
       const apiKey = settings.niqqudApiKey || settings.apiKey;
       const model = settings.niqqudModel || settings.model;
-      
+
       if (!apiKey) {
         setError("אנא הגדר API Key בהגדרות");
         setIsLoading(false);
@@ -163,7 +163,7 @@ export function useNiqqud(initialText: string = "") {
       // Verify that niqqud was actually added (text should be different)
       const normalizedOriginal = removeNiqqud(currentText.trim());
       const normalizedReturned = removeNiqqud(result.niqqudText.trim());
-      
+
       // If texts are the same after removing niqqud, but returned has niqqud, that's good
       // If returned text doesn't have niqqud, we already checked above
       // So if we reach here, niqqud was successfully added
@@ -190,10 +190,10 @@ export function useNiqqud(initialText: string = "") {
   // Remove niqqud from text
   const removeNiqqudFromText = useCallback(() => {
     const currentText = text;
-    
+
     // Normalize for comparison
     const normalizedCurrent = currentText.trim();
-    
+
     // If we have cache and current text matches the niqqud version, restore original
     if (cache) {
       const normalizedNiqqud = cache.niqqud.trim();
@@ -206,13 +206,13 @@ export function useNiqqud(initialText: string = "") {
     // If no cache or text doesn't match cache, create new cache
     // This handles the case where user pastes text with niqqud and wants to remove it
     const textWithoutNiqqud = removeNiqqud(currentText);
-    
+
     // Cache both versions: original (without niqqud) and niqqud (with niqqud)
     setCache({
       original: textWithoutNiqqud,
       niqqud: currentText, // The current text has niqqud
     });
-    
+
     // Set text to version without niqqud
     setText(textWithoutNiqqud);
   }, [text, cache]);
