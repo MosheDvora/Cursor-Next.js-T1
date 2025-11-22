@@ -74,12 +74,14 @@ export function useNiqqud(initialText: string = "") {
         ) {
           setCache(null);
           setDisplayMode('original');
-          setTargetState('original');
+          // If text is clean, we want to add niqqud (full). If partial, restore original.
+          setTargetState(currentStatus === 'none' ? 'full' : 'original');
         }
       } else {
         // No cache and not full niqqud - reset
         setDisplayMode('original');
-        setTargetState('original');
+        // If text is clean, we want to add niqqud (full). If partial, restore original.
+        setTargetState(currentStatus === 'none' ? 'full' : 'original');
       }
     }
   }, [initialText, cache]);
