@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
+import { Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
-import { Toaster } from "@/components/ui/toaster";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
 import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
 
@@ -358,17 +356,11 @@ export default function Home() {
     <>
       <main className="flex min-h-screen flex-col p-6 md:p-12">
         <div className="w-full max-w-6xl mx-auto">
-          {/* Header with title and settings link */}
-          <div className="flex items-center justify-between mb-6">
+          {/* Title */}
+          <div className="mb-6">
             <h1 className="text-4xl md:text-5xl font-bold text-right">
               לימוד קריאה
             </h1>
-            <Link href="/settings">
-              <Button variant="ghost" size="icon" className="h-10 w-10">
-                <Settings className="h-6 w-6" />
-                <span className="sr-only">הגדרות</span>
-              </Button>
-            </Link>
           </div>
 
           {/* Navigation Mode Selector and Font Size Controls */}
@@ -568,7 +560,6 @@ export default function Home() {
           </div>
         </div>
       </main>
-      <Toaster />
     </>
   );
 }
