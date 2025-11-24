@@ -37,7 +37,7 @@ export async function createTextHash(text: string): Promise<string> {
       .map((b) => b.toString(16).padStart(2, "0"))
       .join("");
     return hashHex.substring(0, 16); // Use first 16 chars for shorter key
-  } catch (error) {
+  } catch {
     // Fallback to simple hash
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
@@ -88,7 +88,7 @@ export function parseSyllablesResponse(
   try {
     // Clean the response - remove markdown code blocks if present
     let text = response.trim();
-    
+
     // Remove markdown code blocks if present
     const codeBlockMatch = text.match(/```(?:[a-z]+)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
@@ -105,7 +105,7 @@ export function parseSyllablesResponse(
     // Parse each line - a line may contain multiple words separated by spaces
     // Each word should have syllables separated by hyphens
     const validWords: SyllableWord[] = [];
-    
+
     for (const line of lines) {
       // Skip lines that look like explanations or comments
       if (line.startsWith("//") || line.startsWith("#") || line.includes("דוגמה") || line.includes("התגובה")) {
@@ -115,10 +115,10 @@ export function parseSyllablesResponse(
       // First, split the line into words by spaces (but preserve hyphens within words)
       // We need to be careful: a space separates words, but hyphens separate syllables within a word
       const wordsInLine = line.split(/\s+/).map((w) => w.trim()).filter((w) => w.length > 0);
-      
+
       for (const wordText of wordsInLine) {
         let syllables: string[] = [];
-        
+
         // Try to split by hyphen first (preferred format for syllables)
         if (wordText.includes("-")) {
           syllables = wordText.split(/-/).map((s) => s.trim()).filter((s) => s.length > 0);
@@ -131,7 +131,7 @@ export function parseSyllablesResponse(
         else {
           syllables = [wordText.trim()];
         }
-        
+
         if (syllables.length === 0) {
           continue; // Skip empty words
         }
@@ -139,7 +139,7 @@ export function parseSyllablesResponse(
         // Remove separators from the original word to get the base word
         // This is an approximation - we'll use the syllables joined together
         const baseWord = syllables.join("").replace(/[\u0591-\u05C7]/g, ""); // Remove niqqud marks for comparison
-        
+
         // If we can't extract a clean base word, use the first syllable without niqqud
         const word = baseWord || syllables[0].replace(/[\u0591-\u05C7]/g, "") || wordText.replace(/[-*\s]/g, "");
 
@@ -269,7 +269,7 @@ export function clearAllSyllablesCache(): void {
 
   try {
     const keysToRemove: string[] = [];
-    
+
     // Iterate through all localStorage keys
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
@@ -277,12 +277,12 @@ export function clearAllSyllablesCache(): void {
         keysToRemove.push(key);
       }
     }
-    
+
     // Remove all syllables cache keys
     keysToRemove.forEach((key) => {
       localStorage.removeItem(key);
     });
-    
+
     console.log(`[Syllables] Cleared ${keysToRemove.length} cache entries`);
   } catch (error) {
     console.error("[Syllables] Failed to clear all cache:", error);

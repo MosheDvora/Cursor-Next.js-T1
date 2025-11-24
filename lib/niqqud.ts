@@ -54,7 +54,7 @@ export function detectNiqqud(text: string): NiqqudStatus {
   }
 
   let wordsWithNiqqud = 0;
-  let totalHebrewChars = 0;
+
 
   for (const word of words) {
     let hasNiqqud = false;
@@ -72,7 +72,6 @@ export function detectNiqqud(text: string): NiqqudStatus {
     }
 
     if (hebrewChars > 0) {
-      totalHebrewChars += hebrewChars;
       if (hasNiqqud) {
         wordsWithNiqqud++;
       }

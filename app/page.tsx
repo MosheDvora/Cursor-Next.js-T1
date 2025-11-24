@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check, ChevronDown } from "lucide-react";
+import { Settings, Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import * as SelectPrimitive from "@radix-ui/react-select";
+
 import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
@@ -47,20 +47,17 @@ export default function Home() {
     text: niqqudText,
     setText: setNiqqudText,
     hasNiqqud,
-    niqqudStatus,
+
     originalStatus,
-    displayMode,
+
     targetState,
     isLoading,
     error,
     getButtonText,
     toggleNiqqud,
-    addNiqqud,
+
     completeNiqqud,
-    removeNiqqud,
     switchToOriginal,
-    switchToClean,
-    switchToFull,
     clearNiqqud,
     clearError,
   } = useNiqqud(localText);
@@ -155,7 +152,7 @@ export default function Home() {
 
   const handleToggleNiqqud = async () => {
     clearError();
-    const wasNiqqud = hasNiqqud;
+
 
     try {
       await toggleNiqqud();

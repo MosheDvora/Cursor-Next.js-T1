@@ -79,9 +79,26 @@ export function getUserSettings(userId: string): AppSettings | null {
       niqqudApiKey: row.niqqudApiKey || "",
       niqqudModel: row.niqqudModel || DEFAULT_MODELS[0].value,
       niqqudPrompt: row.niqqudPrompt || DEFAULT_NIQQUD_PROMPT,
+      niqqudSystemPrompt: DEFAULT_NIQQUD_PROMPT.split('\n\n')[0],
+      niqqudUserPrompt: DEFAULT_NIQQUD_PROMPT.split('\n\n').slice(1).join('\n\n'),
+      niqqudTemperature: 0.2,
+      niqqudCompletionSystemPrompt: `אתה מומחה בעברית ובניקוד. המשימה שלך היא להשלים את הניקוד בטקסט עברי שכבר מכיל ניקוד חלקי. שמור על הניקוד הקיים והוסף ניקוד רק למקומות שחסר.`,
+      niqqudCompletionUserPrompt: `הטקסט הבא מכיל ניקוד חלקי. אנא השלם את הניקוד החסר בלבד. אל תסיר או תשנה את הניקוד הקיים. החזר רק את הטקסט המנוקד במלואו ללא הסברים נוספים.\n\n{text}`,
       syllablesApiKey: row.syllablesApiKey || "",
       syllablesModel: row.syllablesModel || DEFAULT_MODELS[0].value,
       syllablesPrompt: row.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT,
+      syllablesTemperature: 0.2,
+      syllableBorderSize: 2,
+      syllableBackgroundColor: "#dbeafe",
+      wordSpacing: 12,
+      letterSpacing: 0,
+      fontSize: 30,
+      wordHighlightPadding: 4,
+      syllableHighlightPadding: 3,
+      letterHighlightPadding: 2,
+      wordHighlightColor: "#fff176",
+      syllableHighlightColor: "#fff176",
+      letterHighlightColor: "#fff176",
     };
   } catch (error) {
     console.error("[DB] Error getting user settings:", error);
@@ -95,7 +112,7 @@ export function getUserSettings(userId: string): AppSettings | null {
 export function saveUserSettings(userId: string, settings: Partial<AppSettings>): boolean {
   try {
     const database = getDb();
-    
+
     // Check if user settings exist
     const existing = getUserSettings(userId);
 

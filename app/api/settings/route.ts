@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+
 import { getUserSettings, saveUserSettings } from "@/lib/db";
 import { getUserIdFromRequest, getOrCreateUserIdFromRequest } from "@/lib/user";
 import { AppSettings } from "@/lib/settings";
@@ -10,9 +10,9 @@ import { AppSettings } from "@/lib/settings";
  */
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
+
     const cookieHeader = request.headers.get("cookie") || "";
-    
+
     // Get user ID from cookies
     const userId = getUserIdFromRequest(cookieHeader) || getOrCreateUserIdFromRequest(cookieHeader);
 
@@ -66,10 +66,10 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const cookieHeader = request.headers.get("cookie") || "";
-    
+
     // Get or create user ID
     let userId = getUserIdFromRequest(cookieHeader);
-    
+
     if (!userId) {
       userId = getOrCreateUserIdFromRequest(cookieHeader);
     }
