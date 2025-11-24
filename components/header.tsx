@@ -15,10 +15,26 @@ export function Header() {
   const router = useRouter();
   const { toast } = useToast();
   
-  // Create a stable supabase client reference using useMemo
-  const supabase = useMemo(() => createClient(), []);
+  // Create supabase client only on client-side
+  const supabase = useMemo(() => {
+    // Only create client if we're in the browser and env vars are available
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    try {
+      return createClient();
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
+    // Don't run if supabase client is not available
+    if (!supabase) {
+      setIsLoading(false);
+      return;
+    }
+
     const getUser = async () => {
       const {
         data: { user },
@@ -65,6 +81,8 @@ export function Header() {
   }, [supabase]);
 
   const handleLogout = async () => {
+    if (!supabase) return;
+    
     const { error } = await supabase.auth.signOut();
     if (error) {
       toast({

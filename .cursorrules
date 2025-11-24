@@ -1,0 +1,63 @@
+# Project context
+- This is a Next.js app deployed to Vercel.
+- The code must always be safe to deploy to Vercel: it should pass `npm run lint` and `npm run build` without errors.
+- The project may use Supabase on the server side and/or client side via the official libraries.
+
+# General behavior
+- When you modify or add code, prefer small, incremental changes with clear explanations.
+- Always keep files and imports organized and consistent.
+- Avoid introducing unused variables, unreachable code, or dead imports.
+- Prefer clear, readable code over overly clever solutions.
+
+# ✨ Documentation rules (VERY IMPORTANT)
+- ALWAYS write detailed documentation inside the code.
+- Every new function must include clear comments or JSDoc/TSdoc explaining:
+  - What the function does
+  - The meaning of parameters and return values
+  - Any assumptions or edge cases
+  - Why a certain approach was chosen (not only what it does)
+- Complex logic must include inline comments explaining the thought process.
+- New components must include a comment at the top summarizing their purpose and structure.
+- When modifying existing code, add comments describing the reason for the change.
+- All documentation must be clear, professional, and helpful for future developers.
+
+# Next.js & Vercel build safety
+- Assume the final code will be deployed to Vercel after each merge to `main`.
+- Before considering a task "done", you MUST reason about whether the changes will:
+  - Compile with `npm run build` (Next.js build).
+  - Pass `npm run lint` if it exists.
+- Do NOT use Node.js server-only APIs (fs, path, process.env without NEXT_PUBLIC, etc.) in Client Components or code that runs in the browser.
+- Make sure imports use correct relative paths and that all imported files exist.
+- When adding pages, components, or API routes, follow the project conventions.
+- When adding environment variables, specify clearly whether they are server-only or public (NEXT_PUBLIC_).
+
+# Error handling & robustness
+- Handle errors gracefully, especially with external services like Supabase.
+- For async code, handle rejected promises and avoid unhandled rejections.
+- Prefer safe patterns that won’t break the Next.js build or runtime.
+
+# Supabase usage (if present)
+- Use the official Supabase initialization pattern used in the project.
+- Do not create multiple conflicting clients.
+- Keep all Supabase keys in environment variables.
+- Server-side logic must use server-side clients; never leak secrets to the client.
+
+# Types & code quality
+- If the project uses TypeScript:
+  - Avoid `any` unless absolutely required.
+  - Write explicit types for functions and API handlers.
+- If the project uses JavaScript:
+  - Write code in a way that could be later migrated to TypeScript (clear shapes, consistent signatures).
+
+# Git & workflow assumptions
+- Work is done on feature branches first.
+- Merge into `main` only after verifying Preview Deployment works.
+- Keep commits clean and logical.
+- Summaries should be clear so the diff is easy to review.
+
+# What to do at the end of a task
+- Before closing a task:
+  - Ensure the code will not fail `npm run build` or `npm run lint`.
+  - Ensure no Vercel-incompatible patterns were introduced.
+  - Ensure documentation and comments have been added properly.
+  - Provide a short summary of what changed and potential impact.
