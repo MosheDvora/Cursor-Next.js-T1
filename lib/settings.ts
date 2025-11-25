@@ -1,7 +1,13 @@
 /**
  * Settings management utilities
- * Handles localStorage for app settings
+ * Handles localStorage for app settings and user preferences from Supabase
  */
+
+import {
+  getUserPreferencesClient,
+  saveUserPreferencesClient,
+  isAuthenticatedClient,
+} from './user-preferences-client';
 
 /**
  * Current position in syllables navigation
@@ -669,6 +675,55 @@ export async function saveSettingsToServer(settings: Partial<AppSettings>): Prom
     console.error("[Settings] Failed to save to server:", error);
     // Settings already saved to localStorage, so return false but data is still cached
     return false;
+  }
+}
+
+/**
+ * Get wordSpacing preference
+ * For authenticated users: prefers preferences from Supabase
+ * For unauthenticated users: uses localStorage
+ * Returns default value if neither is available
+ */
+export async function getWordSpacing(): Promise<number> {
+  // Try to get from user preferences (authenticated users)
+  const isAuth = await isAuthenticatedClient();
+  if (isAuth) {
+    const preferences = await getUserPreferencesClient();
+    if (preferences?.wordSpacing !== undefined) {
+      return preferences.wordSpacing;
+    }
+  }
+
+  // Fallback to localStorage
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem(SETTINGS_KEYS.WORD_SPACING);
+    if (saved !== null) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  // Return default
+  return DEFAULT_WORD_SPACING;
+}
+
+/**
+ * Save wordSpacing preference
+ * For authenticated users: saves to both Supabase preferences and localStorage
+ * For unauthenticated users: saves only to localStorage
+ */
+export async function saveWordSpacing(wordSpacing: number): Promise<void> {
+  // Always save to localStorage as backup
+  if (typeof window !== "undefined") {
+    localStorage.setItem(SETTINGS_KEYS.WORD_SPACING, String(wordSpacing));
+  }
+
+  // If authenticated, also save to Supabase preferences
+  const isAuth = await isAuthenticatedClient();
+  if (isAuth) {
+    await saveUserPreferencesClient({ wordSpacing });
   }
 }
 

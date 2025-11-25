@@ -24,6 +24,8 @@ import {
   getSettings,
   saveSettings,
   getRawResponse,
+  getWordSpacing,
+  saveWordSpacing,
   DEFAULT_MODELS,
   DEFAULT_NIQQUD_PROMPT,
   DEFAULT_NIQQUD_SYSTEM_PROMPT,
@@ -71,33 +73,45 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    const settings = getSettings();
-    setNiqqudApiKey(settings.niqqudApiKey || "");
-    setNiqqudModel(settings.niqqudModel || DEFAULT_MODELS[0].value);
-    setNiqqudPrompt(settings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT);
-    setNiqqudSystemPrompt(settings.niqqudSystemPrompt || DEFAULT_NIQQUD_SYSTEM_PROMPT);
-    setNiqqudUserPrompt(settings.niqqudUserPrompt || DEFAULT_NIQQUD_USER_PROMPT);
-    setNiqqudTemperature(settings.niqqudTemperature || DEFAULT_TEMPERATURE);
-    setNiqqudCompletionSystemPrompt(settings.niqqudCompletionSystemPrompt || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
-    setNiqqudCompletionUserPrompt(settings.niqqudCompletionUserPrompt || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
-    setSyllablesApiKey(settings.syllablesApiKey || "");
-    setSyllablesModel(settings.syllablesModel || DEFAULT_MODELS[0].value);
-    setSyllablesPrompt(settings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT);
-    setSyllablesTemperature(settings.syllablesTemperature || DEFAULT_TEMPERATURE);
-    setSyllableBorderSize(settings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE);
-    setSyllableBackgroundColor(settings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
-    setWordSpacing(settings.wordSpacing || DEFAULT_WORD_SPACING);
-    setLetterSpacing(settings.letterSpacing || DEFAULT_LETTER_SPACING);
-    setWordHighlightPadding(settings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING);
-    setSyllableHighlightPadding(settings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
-    setLetterHighlightPadding(settings.letterHighlightPadding || DEFAULT_LETTER_HIGHLIGHT_PADDING);
-    setWordHighlightColor(settings.wordHighlightColor || DEFAULT_WORD_HIGHLIGHT_COLOR);
-    setSyllableHighlightColor(settings.syllableHighlightColor || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
-    setLetterHighlightColor(settings.letterHighlightColor || DEFAULT_LETTER_HIGHLIGHT_COLOR);
-    setSyllablesRawResponse(getRawResponse());
+    const loadSettings = async () => {
+      const settings = getSettings();
+      setNiqqudApiKey(settings.niqqudApiKey || "");
+      setNiqqudModel(settings.niqqudModel || DEFAULT_MODELS[0].value);
+      setNiqqudPrompt(settings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT);
+      setNiqqudSystemPrompt(settings.niqqudSystemPrompt || DEFAULT_NIQQUD_SYSTEM_PROMPT);
+      setNiqqudUserPrompt(settings.niqqudUserPrompt || DEFAULT_NIQQUD_USER_PROMPT);
+      setNiqqudTemperature(settings.niqqudTemperature || DEFAULT_TEMPERATURE);
+      setNiqqudCompletionSystemPrompt(settings.niqqudCompletionSystemPrompt || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
+      setNiqqudCompletionUserPrompt(settings.niqqudCompletionUserPrompt || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
+      setSyllablesApiKey(settings.syllablesApiKey || "");
+      setSyllablesModel(settings.syllablesModel || DEFAULT_MODELS[0].value);
+      setSyllablesPrompt(settings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT);
+      setSyllablesTemperature(settings.syllablesTemperature || DEFAULT_TEMPERATURE);
+      setSyllableBorderSize(settings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE);
+      setSyllableBackgroundColor(settings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
+      
+      // Load wordSpacing from preferences (authenticated) or localStorage (unauthenticated)
+      const loadedWordSpacing = await getWordSpacing();
+      setWordSpacing(loadedWordSpacing);
+      
+      setLetterSpacing(settings.letterSpacing || DEFAULT_LETTER_SPACING);
+      setWordHighlightPadding(settings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING);
+      setSyllableHighlightPadding(settings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
+      setLetterHighlightPadding(settings.letterHighlightPadding || DEFAULT_LETTER_HIGHLIGHT_PADDING);
+      setWordHighlightColor(settings.wordHighlightColor || DEFAULT_WORD_HIGHLIGHT_COLOR);
+      setSyllableHighlightColor(settings.syllableHighlightColor || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
+      setLetterHighlightColor(settings.letterHighlightColor || DEFAULT_LETTER_HIGHLIGHT_COLOR);
+      setSyllablesRawResponse(getRawResponse());
+    };
+    
+    loadSettings();
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    // Save wordSpacing to preferences (authenticated) and localStorage (backup)
+    await saveWordSpacing(wordSpacing);
+    
+    // Save other settings to localStorage
     saveSettings({
       niqqudApiKey,
       niqqudModel,

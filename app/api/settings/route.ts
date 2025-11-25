@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getUserSettings, saveUserSettings } from "@/lib/db";
 import { getUserIdFromRequest, getOrCreateUserIdFromRequest } from "@/lib/user";
-import { AppSettings } from "@/lib/settings";
+import { AppSettings, DEFAULT_WORD_SPACING } from "@/lib/settings";
+import { getUserPreferences, saveUserPreferences, isAuthenticated } from "@/lib/user-preferences-server";
 
 /**
  * GET /api/settings
@@ -23,24 +24,56 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check if user is authenticated via Supabase
+    const authenticated = await isAuthenticated();
+    let wordSpacing = DEFAULT_WORD_SPACING;
+
+    // If authenticated, try to get wordSpacing from preferences
+    if (authenticated) {
+      const preferences = await getUserPreferences();
+      if (preferences?.wordSpacing !== undefined) {
+        wordSpacing = preferences.wordSpacing;
+      }
+    }
+
     // Get settings from database
     const settings = getUserSettings(userId);
 
     if (!settings) {
       // Return default settings if user doesn't exist yet
-      return NextResponse.json({
+      const defaultSettings = {
         niqqudApiKey: "",
         niqqudModel: "",
         niqqudPrompt: "",
         syllablesApiKey: "",
         syllablesModel: "",
         syllablesPrompt: "",
-      });
+        wordSpacing,
+      };
+      
+      // Set user ID cookie if not already set
+      if (!getUserIdFromRequest(cookieHeader)) {
+        const response = NextResponse.json(defaultSettings);
+        response.cookies.set("user_id", userId, {
+          maxAge: 365 * 24 * 60 * 60, // 1 year
+          path: "/",
+          sameSite: "lax",
+        });
+        return response;
+      }
+      
+      return NextResponse.json(defaultSettings);
     }
+
+    // Override wordSpacing with value from preferences if authenticated
+    const finalSettings = {
+      ...settings,
+      wordSpacing,
+    };
 
     // Set user ID cookie if not already set
     if (!getUserIdFromRequest(cookieHeader)) {
-      const response = NextResponse.json(settings);
+      const response = NextResponse.json(finalSettings);
       response.cookies.set("user_id", userId, {
         maxAge: 365 * 24 * 60 * 60, // 1 year
         path: "/",
@@ -49,7 +82,7 @@ export async function GET(request: NextRequest) {
       return response;
     }
 
-    return NextResponse.json(settings);
+    return NextResponse.json(finalSettings);
   } catch (error) {
     console.error("[API] Error fetching settings:", error);
     return NextResponse.json(
@@ -92,7 +125,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Save settings to database
+    // Check if user is authenticated via Supabase
+    const authenticated = await isAuthenticated();
+
+    // If authenticated and wordSpacing is provided, save to preferences
+    if (authenticated && body.wordSpacing !== undefined) {
+      await saveUserPreferences({ wordSpacing: body.wordSpacing });
+    }
+
+    // Save settings to database (localStorage fallback for unauthenticated users)
     const success = saveUserSettings(userId, body);
 
     if (!success) {
@@ -102,8 +143,44 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Return updated settings
-    const updatedSettings = getUserSettings(userId);
+    // Get updated settings
+    const baseSettings = getUserSettings(userId);
+    
+    // If authenticated, override wordSpacing with value from preferences
+    let finalWordSpacing = baseSettings?.wordSpacing || DEFAULT_WORD_SPACING;
+    if (authenticated) {
+      const preferences = await getUserPreferences();
+      if (preferences?.wordSpacing !== undefined) {
+        finalWordSpacing = preferences.wordSpacing;
+      }
+    }
+    
+    // Build updated settings with proper typing
+    const updatedSettings: AppSettings = {
+      niqqudApiKey: baseSettings?.niqqudApiKey || "",
+      niqqudModel: baseSettings?.niqqudModel || "",
+      niqqudPrompt: baseSettings?.niqqudPrompt || "",
+      niqqudSystemPrompt: baseSettings?.niqqudSystemPrompt || "",
+      niqqudUserPrompt: baseSettings?.niqqudUserPrompt || "",
+      niqqudTemperature: baseSettings?.niqqudTemperature || 0.2,
+      niqqudCompletionSystemPrompt: baseSettings?.niqqudCompletionSystemPrompt || "",
+      niqqudCompletionUserPrompt: baseSettings?.niqqudCompletionUserPrompt || "",
+      syllablesApiKey: baseSettings?.syllablesApiKey || "",
+      syllablesModel: baseSettings?.syllablesModel || "",
+      syllablesPrompt: baseSettings?.syllablesPrompt || "",
+      syllablesTemperature: baseSettings?.syllablesTemperature || 0.2,
+      syllableBorderSize: baseSettings?.syllableBorderSize || 2,
+      syllableBackgroundColor: baseSettings?.syllableBackgroundColor || "#dbeafe",
+      wordSpacing: finalWordSpacing,
+      letterSpacing: baseSettings?.letterSpacing || 0,
+      fontSize: baseSettings?.fontSize || 30,
+      wordHighlightPadding: baseSettings?.wordHighlightPadding || 4,
+      syllableHighlightPadding: baseSettings?.syllableHighlightPadding || 3,
+      letterHighlightPadding: baseSettings?.letterHighlightPadding || 2,
+      wordHighlightColor: baseSettings?.wordHighlightColor || "#fff176",
+      syllableHighlightColor: baseSettings?.syllableHighlightColor || "#fff176",
+      letterHighlightColor: baseSettings?.letterHighlightColor || "#fff176",
+    };
 
     // Set user ID cookie
     const response = NextResponse.json({
