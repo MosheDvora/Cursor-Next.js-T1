@@ -1,0 +1,16 @@
+---
+description: Guidelines for Hebrew text handling, RTL support, and Supabase integration.
+globs: ["**/*.{ts,tsx}"]
+---
+
+# Project Core Guidelines
+
+## Hebrew & RTL Support
+1.  **Directionality**: Ensure all container components support `dir="rtl"` or inherit it properly.
+2.  **Text Handling**: When manipulating strings involving Hebrew Niqqud (vowels), be careful not to split diacritics from their letters. Use libraries or helper functions (like `lib/niqqud.ts`) designed for this.
+3.  **Localization**: Hardcoded Hebrew text is allowed for now, but ensure proper spacing and typography.
+
+## Supabase & Database
+1.  **Type Safety**: Always generate types from the database schema and use them. Avoid `any` when dealing with DB rows.
+2.  **Server Actions**: Prefer using Server Actions for data mutations (INSERT/UPDATE) over Client-side requests.
+3.  **Client**: For reading data in Client Components, use the typed Supabase browser client.

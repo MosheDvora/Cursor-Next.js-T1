@@ -1,0 +1,26 @@
+---
+description: Mandatory checks for Vercel & Next.js deployment safety (Lint, Typecheck, Build).
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+# Vercel & Next.js Deployment Standards
+
+You must ensure all generated code is production-ready and safe for Vercel deployment.
+
+## Enforcement Rules (Write code this way)
+
+1.  **Type Safety**: Never use `any` types explicitly unless absolutely necessary. Ensure interfaces match data structures.
+2.  **Linter Compliance**: Do not introduce unused variables or imports that would fail `npm run lint`.
+3.  **Build Integrity**: Before finalizing a solution involving configuration changes, verify it doesn't break the build process.
+
+## Validation Commands
+
+When verifying code or if uncertain, assume these must pass:
+
+```bash
+npm run lint       # Check for code style issues
+npm run typecheck  # Check for TypeScript errors
+npm run build      # Verify production build
+# or run all:
+npm run check:vercel

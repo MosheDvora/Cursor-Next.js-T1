@@ -1,0 +1,46 @@
+---
+description: Enforce modern, beautiful, and polished UI design using Tailwind CSS & Shadcn.
+globs: ["**/*.tsx", "**/*.css"]
+---
+
+# Modern Design System & UI Standards
+
+You are an expert UI/UX designer. Your goal is not just to build functionality, but to create a **visually stunning, modern, and polished interface**.
+
+## 1. Visual Hierarchy & Typography
+- **Text Colors**: Never use pure black on white.
+  - Use `text-foreground` for headings/primary text.
+  - Use `text-muted-foreground` for descriptions, metadata, and secondary text (Crucial for a "clean" look).
+- **Font Weights**: Use font weights to create hierarchy. Headings should be `font-semibold` or `font-bold`.
+- **Readability**: Ensure strict distinctness between primary and secondary content using size and color.
+
+## 2. Micro-Interactions & "Feel"
+- **Alive UI**: Interactive elements (Buttons, Cards, Links) MUST have visual feedback.
+  - Add `transition-all duration-200` to interactive elements.
+  - Always define a `:hover` state (e.g., `hover:bg-accent`, `hover:text-accent-foreground`).
+  - Use `active:scale-95` for buttons to give a tactile click feel.
+
+## 3. Spacing & Layout (Whitespace is King)
+- **Breathe**: Avoid dense UIs. Use generous padding (`p-6` instead of `p-2`) and gaps (`gap-4` or `gap-6`).
+- **Cards & Containers**: Use `rounded-xl` or `rounded-2xl` for a modern, friendly feel. Avoid sharp corners unless strictly necessary.
+- **Glassmorphism**: When using overlays or sticky headers, use `bg-background/80 backdrop-blur-md` for a modern glass effect.
+
+## 4. Tailwind & Shadcn Usage
+- **Class Merging**: ALWAYS use `cn()` for dynamic classes.
+- **Colors**: STRICTLY use semantic variables (`bg-primary`, `bg-card`, `border-input`). NEVER use hardcoded hex values (e.g., `bg-[#fff]`).
+- **Borders**: Use subtle borders (`border border-border/50`) rather than thick outlines.
+
+## 5. Mobile Responsiveness
+- **Touch Targets**: Ensure buttons are large enough on mobile (`min-h-[44px]`).
+- **Responsive Grids**: Use `grid-cols-1 md:grid-cols-2 lg:grid-cols-3` pattern.
+
+## Example of Good Output
+```tsx
+// Good: Polished, interactive, semantic
+<div className="group rounded-xl border border-border/50 bg-card p-6 transition-all hover:shadow-md">
+  <h3 className="text-lg font-semibold text-foreground">Title</h3>
+  <p className="mt-2 text-sm text-muted-foreground">Description goes here...</p>
+  <button className="mt-4 rounded-md bg-primary px-4 py-2 text-primary-foreground transition-transform active:scale-95">
+    Action
+  </button>
+</div>

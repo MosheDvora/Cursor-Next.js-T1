@@ -10,8 +10,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "check:vercel": "npm run lint && npm run typecheck && npm run build",
     "prepare": "husky install"
   },
   "lint-staged": {

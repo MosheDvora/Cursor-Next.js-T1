@@ -1,0 +1,16 @@
+---
+description: Best practices for Next.js App Router, Server Components, and Data Fetching.
+globs: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"]
+---
+
+# Next.js App Router Standards
+
+## Component Architecture
+1.  **Server First**: By default, all components are Server Components. Only add `"use client"` when absolutely necessary (hooks, event listeners, browser APIs).
+2.  **Client Boundaries**: Move client logic to the leaves of the component tree. Pass Server Components as `children` to Client Components to avoid de-optimizing the tree.
+3.  **Data Fetching**: Fetch data in Server Components (async/await) directly from the DB or API. Do NOT use `useEffect` for initial data fetching.
+
+## Routing & Navigation
+- Use `next/link` for internal navigation.
+- Use `useRouter` only inside Client Components and for programmatic navigation (e.g., after form submission).
+- Use `redirect()` from `next/navigation` in Server Actions.
