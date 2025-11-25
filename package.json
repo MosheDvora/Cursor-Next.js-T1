@@ -14,7 +14,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:vercel": "npm run lint && npm run typecheck && npm run build",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:studio": "supabase studio",
+    "supabase:migration:new": "supabase migration new",
+    "supabase:db:reset": "supabase db reset",
+    "supabase:db:push": "supabase db push"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -54,6 +61,7 @@
     "lint-staged": "^15.2.0",
     "postcss": "^8.4.38",
     "prettier": "^3.2.5",
+    "supabase": "^2.62.5",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.4.0"
   }
