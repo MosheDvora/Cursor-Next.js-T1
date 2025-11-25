@@ -119,7 +119,39 @@ export function EditableSyllablesTextarea({
   const LETTER_HIGHLIGHT_COLOR = letterHighlightColor;
   const HOVER_HIGHLIGHT_COLOR = "#fffacd"; // Soft yellow for hover
 
+  /**
+   * Helper function to get line index and word index within line for a given word index
+   * Used for vertical navigation (up/down arrows)
+   */
+  const getLineAndWordPosition = (wordIndex: number, textLines: string[]): { lineIndex: number; wordIndexInLine: number } | null => {
+    let currentWordCount = 0;
+    for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+      const lineWords = getWordsFromText(textLines[lineIdx]);
+      if (currentWordCount + lineWords.length > wordIndex) {
+        return {
+          lineIndex: lineIdx,
+          wordIndexInLine: wordIndex - currentWordCount,
+        };
+      }
+      currentWordCount += lineWords.length;
+    }
+    return null;
+  };
 
+  /**
+   * Helper function to get line index for a word when syllables data is available
+   */
+  const getLineIndexForWord = (wordIndex: number, textLines: string[]): number => {
+    let wordCount = 0;
+    for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+      const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
+      if (wordCount + lineWords.length > wordIndex) {
+        return lineIdx;
+      }
+      wordCount += lineWords.length;
+    }
+    return 0;
+  };
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
@@ -131,15 +163,186 @@ export function EditableSyllablesTextarea({
       // Handle arrow keys and Tab
       const isArrowLeft = e.key === "ArrowLeft";
       const isArrowRight = e.key === "ArrowRight";
+      const isArrowUp = e.key === "ArrowUp";
+      const isArrowDown = e.key === "ArrowDown";
       const isTab = e.key === "Tab" && !e.shiftKey;
       const isShiftTab = e.key === "Tab" && e.shiftKey;
 
-      if (!isArrowLeft && !isArrowRight && !isTab && !isShiftTab) {
+      if (!isArrowLeft && !isArrowRight && !isArrowUp && !isArrowDown && !isTab && !isShiftTab) {
         return;
       }
 
       e.preventDefault();
       e.stopPropagation();
+
+      // Handle vertical navigation (up/down)
+      if (isArrowUp || isArrowDown) {
+        if (!currentPosition) return;
+
+        const textLines = text.split('\n');
+        const isMovingUp = isArrowUp;
+        let newPosition: CurrentPosition | null = null;
+
+        // If no syllables data, navigate on raw text
+        if (!syllablesData || !isSyllablesActive) {
+          if (navigationMode === "words") {
+            const currentWordIdx = currentPosition.wordIndex ?? 0;
+            const pos = getLineAndWordPosition(currentWordIdx, textLines);
+            if (!pos) return;
+
+            const { lineIndex, wordIndexInLine } = pos;
+            const targetLineIndex = isMovingUp ? lineIndex - 1 : lineIndex + 1;
+
+            // Check if target line exists
+            if (targetLineIndex < 0 || targetLineIndex >= textLines.length) {
+              return;
+            }
+
+            // Get words in target line
+            const targetLineWords = getWordsFromText(textLines[targetLineIndex]);
+            if (targetLineWords.length === 0) return;
+
+            // Find word at same horizontal position, or nearest
+            const targetWordIndexInLine = Math.min(wordIndexInLine, targetLineWords.length - 1);
+
+            // Calculate global word index for target word
+            let globalWordIndex = 0;
+            for (let i = 0; i < targetLineIndex; i++) {
+              globalWordIndex += getWordsFromText(textLines[i]).length;
+            }
+            globalWordIndex += targetWordIndexInLine;
+
+            newPosition = { mode: "words", wordIndex: globalWordIndex };
+          } else if (navigationMode === "letters") {
+            // For letters, find the line containing the current letter
+            const letters = getHebrewLetters(text);
+            const currentLetterIdx = currentPosition.letterIndex ?? 0;
+            if (currentLetterIdx >= letters.length) return;
+
+            // Find which line this letter is in by checking character positions
+            let charCount = 0;
+            let currentLineIndex = 0;
+            for (let i = 0; i < textLines.length; i++) {
+              const lineLength = textLines[i].length;
+              if (charCount + lineLength > letters[currentLetterIdx].index) {
+                currentLineIndex = i;
+                break;
+              }
+              charCount += lineLength + 1; // +1 for \n
+            }
+
+            const targetLineIndex = isMovingUp ? currentLineIndex - 1 : currentLineIndex + 1;
+            if (targetLineIndex < 0 || targetLineIndex >= textLines.length) {
+              return;
+            }
+
+            // Get letters in target line
+            const targetLineLetters = getHebrewLetters(textLines[targetLineIndex]);
+            if (targetLineLetters.length === 0) return;
+
+            // Find letter at similar position (use first letter if moving to new line)
+            const targetLetterInLine = 0; // Start at first letter of target line
+
+            // Calculate global letter index
+            let globalLetterIndex = 0;
+            for (let i = 0; i < targetLineIndex; i++) {
+              globalLetterIndex += getHebrewLetters(textLines[i]).length;
+            }
+            globalLetterIndex += targetLetterInLine;
+
+            if (globalLetterIndex < letters.length) {
+              newPosition = { mode: "letters", wordIndex: 0, letterIndex: globalLetterIndex };
+            }
+          }
+        } else {
+          // Navigate with syllables data
+          const { words } = syllablesData;
+          const { mode, wordIndex } = currentPosition;
+
+          // Build word-to-line mapping
+          const wordToLineMap: number[] = [];
+          let wordCount = 0;
+          for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+            const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
+            for (let i = 0; i < lineWords.length && wordCount < words.length; i++) {
+              wordToLineMap[wordCount] = lineIdx;
+              wordCount++;
+            }
+          }
+
+          const currentLineIndex = getLineIndexForWord(wordIndex, textLines);
+          const targetLineIndex = isMovingUp ? currentLineIndex - 1 : currentLineIndex + 1;
+
+          if (targetLineIndex < 0 || targetLineIndex >= textLines.length) {
+            return;
+          }
+
+          // Get words in target line
+          const wordsByLine: Array<Array<{ wordIdx: number }>> = [];
+          textLines.forEach((_, lineIdx) => {
+            wordsByLine[lineIdx] = [];
+          });
+          words.forEach((_, wordIdx) => {
+            const lineIdx = wordToLineMap[wordIdx] ?? 0;
+            if (!wordsByLine[lineIdx]) {
+              wordsByLine[lineIdx] = [];
+            }
+            wordsByLine[lineIdx].push({ wordIdx });
+          });
+
+          const targetLineWords = wordsByLine[targetLineIndex] || [];
+          if (targetLineWords.length === 0) return;
+
+          // Find word at same horizontal position within line
+          const currentLineWords = wordsByLine[currentLineIndex] || [];
+          const currentWordIndexInLine = currentLineWords.findIndex(w => w.wordIdx === wordIndex);
+          const targetWordIndexInLine = Math.min(
+            currentWordIndexInLine >= 0 ? currentWordIndexInLine : 0,
+            targetLineWords.length - 1
+          );
+
+          const targetWordIdx = targetLineWords[targetWordIndexInLine].wordIdx;
+
+          if (mode === "words") {
+            newPosition = { mode: "words", wordIndex: targetWordIdx };
+          } else if (mode === "syllables") {
+            // Move to first syllable of target word
+            newPosition = {
+              mode: "syllables",
+              wordIndex: targetWordIdx,
+              syllableIndex: 0,
+            };
+          } else if (mode === "letters") {
+            // Move to first letter of target word
+            const targetWord = words[targetWordIdx];
+            if (targetWord) {
+              // Find first Hebrew letter in target word
+              for (let sIdx = 0; sIdx < targetWord.syllables.length; sIdx++) {
+                const syllable = targetWord.syllables[sIdx];
+                for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
+                  if (isHebrewLetter(syllable[lIdx])) {
+                    newPosition = {
+                      mode: "letters",
+                      wordIndex: targetWordIdx,
+                      syllableIndex: sIdx,
+                      letterIndex: lIdx,
+                    };
+                    break;
+                  }
+                }
+                if (newPosition) break;
+              }
+            }
+          }
+        }
+
+        // Update position and save
+        if (newPosition) {
+          onPositionChange(newPosition);
+          saveCurrentPosition(newPosition);
+        }
+        return;
+      }
 
       // Determine direction: ArrowLeft/Tab = forward (increase index), ArrowRight/Shift+Tab = backward (decrease index)
       const isForward = isArrowLeft || isTab;
@@ -379,7 +582,14 @@ export function EditableSyllablesTextarea({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={`min-h-[500px] text-right resize-y ${className}`}
-          style={{ fontSize: `${fontSize}px` }}
+          style={{
+            fontSize: `${fontSize}px`,
+            lineHeight: '1.6',
+            whiteSpace: 'pre-wrap',
+            letterSpacing: `${letterSpacing}px`,
+            padding: '5px 15px',
+            fontFamily: 'inherit',
+          }}
           dir="rtl"
           disabled={disabled}
         />
