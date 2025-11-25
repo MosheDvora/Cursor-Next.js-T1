@@ -179,7 +179,7 @@ export default function SettingsPage() {
                 className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 style={{ justifyContent: 'flex-start' }}
               >
-                API
+                מודלים
               </TabsTrigger>
             </TabsList>
 

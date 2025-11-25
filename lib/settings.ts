@@ -84,12 +84,13 @@ export interface AppSettings {
 
 /**
  * Default model options
+ * The first model in the array is used as the default model
  */
 export const DEFAULT_MODELS = [
+  { value: "gpt-4-turbo", label: "GPT-4 Turbo (OpenAI)" },
   { value: "gpt-5-nano", label: "GPT-5 Nano (OpenAI)" },
   { value: "gpt-5-mini", label: "GPT-5 Mini (OpenAI)" },
   { value: "gpt-4o", label: "GPT-4o (OpenAI)" },
-  { value: "gpt-4-turbo", label: "GPT-4 Turbo (OpenAI)" },
   { value: "gpt-4", label: "GPT-4 (OpenAI)" },
   { value: "gpt-3.5-turbo", label: "GPT-3.5 Turbo (OpenAI)" },
   { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Google)" },
