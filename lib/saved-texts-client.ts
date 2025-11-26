@@ -29,7 +29,7 @@ const LOCAL_STORAGE_NIQQUD_KEY = 'main_text_niqqud';
  * Debounce utility function
  * Delays execution of a function until after a specified delay
  */
-function debounce<T extends (...args: unknown[]) => unknown>(
+function debounce<T extends (...args: any[]) => any>(
   func: T,
   wait: number
 ): (...args: Parameters<T>) => void {
