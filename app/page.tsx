@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,8 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
 import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
+import { getLastWorkedTextClient, saveTextClient } from "@/lib/saved-texts-client";
+import { createClient } from "@/lib/supabase/client";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -73,6 +75,19 @@ export default function Home() {
   const { toast } = useToast();
   const prevHasNiqqudRef = useRef(hasNiqqud);
   const prevIsSyllablesActiveRef = useRef(isSyllablesActive);
+  
+  // Create supabase client for auth state listening
+  const supabase = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return createClient();
+    } catch {
+      return null;
+    }
+  }, []);
+  
+  // Track if we've loaded text initially to avoid overwriting user input
+  const hasLoadedInitialText = useRef(false);
 
   // Mark component as mounted (client-side only)
   useEffect(() => {
@@ -106,24 +121,62 @@ export default function Home() {
     }
   }, [mounted]);
 
-  // Load text from localStorage on mount (client-side only)
+  // Load text from Supabase (if authenticated) or localStorage on mount
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || hasLoadedInitialText.current) return;
 
-    const savedText = localStorage.getItem(MAIN_TEXT_STORAGE_KEY);
-    if (savedText) {
-      setLocalText(savedText);
-      setNiqqudText(savedText);
-    }
+    const loadText = async () => {
+      try {
+        // Try to load from Supabase first (if authenticated)
+        const savedTextData = await getLastWorkedTextClient();
+        
+        if (savedTextData && savedTextData.original_text) {
+          // Prefer niqqud text if available, otherwise use original
+          const textToLoad = savedTextData.niqqud_text || savedTextData.original_text;
+          setLocalText(textToLoad);
+          setNiqqudText(textToLoad);
+          hasLoadedInitialText.current = true;
+          return;
+        }
+        
+        // Fallback to localStorage if no Supabase data
+        const savedText = localStorage.getItem(MAIN_TEXT_STORAGE_KEY);
+        if (savedText) {
+          setLocalText(savedText);
+          setNiqqudText(savedText);
+          hasLoadedInitialText.current = true;
+        }
+      } catch (error) {
+        console.error("[Home] Error loading text:", error);
+        // Fallback to localStorage on error
+        const savedText = localStorage.getItem(MAIN_TEXT_STORAGE_KEY);
+        if (savedText) {
+          setLocalText(savedText);
+          setNiqqudText(savedText);
+        }
+        hasLoadedInitialText.current = true;
+      }
+    };
+
+    loadText();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted]);
 
-  // Save text to localStorage when it changes (client-side only)
+  // Save text to Supabase (debounced) and localStorage when it changes
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !hasLoadedInitialText.current) return;
 
     if (localText !== undefined && localText !== null) {
+      // Always save to localStorage as backup
       localStorage.setItem(MAIN_TEXT_STORAGE_KEY, localText);
+      
+      // Save to Supabase (debounced - will be called after 3 seconds of no changes)
+      // This function is debounced, so it won't fire on every keystroke
+      saveTextClient({
+        original_text: localText,
+        niqqud_text: null, // Will be updated when niqqud is added
+        clean_text: null, // Will be generated automatically
+      });
     }
   }, [localText, mounted]);
 
@@ -135,6 +188,34 @@ export default function Home() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [niqqudText]);
+
+  // Listen for auth state changes and load text when user logs in
+  useEffect(() => {
+    if (!supabase || !mounted) return;
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // When user logs in, load their saved text
+      if (event === 'SIGNED_IN' && session?.user) {
+        try {
+          const savedTextData = await getLastWorkedTextClient();
+          
+          if (savedTextData && savedTextData.original_text) {
+            // Prefer niqqud text if available, otherwise use original
+            const textToLoad = savedTextData.niqqud_text || savedTextData.original_text;
+            setLocalText(textToLoad);
+            setNiqqudText(textToLoad);
+          }
+        } catch (error) {
+          console.error("[Home] Error loading text on login:", error);
+        }
+      }
+      // When user logs out, we keep using localStorage (already saved there)
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase, mounted]);
 
   // Save raw response to localStorage for display in settings
   useEffect(() => {

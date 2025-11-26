@@ -6,6 +6,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { detectNiqqud, removeNiqqud, hasNiqqud as checkHasNiqqud } from "@/lib/niqqud";
 import { addNiqqud as addNiqqudService } from "@/services/niqqud-service";
 import { getSettings } from "@/lib/settings";
+import { saveNiqqudTextClient } from "@/lib/saved-texts-client";
 
 // Debug: Verify imports
 if (typeof checkHasNiqqud !== "function") {
@@ -202,6 +203,14 @@ export function useNiqqud(initialText: string = "") {
       setText(result.niqqudText);
       setDisplayMode('full');
       setTargetState('full');
+      
+      // Save niqqud text to Supabase (and localStorage as backup)
+      // This is done asynchronously and doesn't block the UI
+      saveNiqqudTextClient(currentText, result.niqqudText).catch((err) => {
+        console.error("[useNiqqud] Error saving niqqud text to Supabase:", err);
+        // Don't show error to user - this is a background operation
+      });
+      
       setIsLoading(false);
     } catch (err) {
       console.error("[useNiqqud] Unexpected error in addNiqqud", err);
@@ -301,8 +310,9 @@ export function useNiqqud(initialText: string = "") {
 
       // Update cache with full niqqud version
       const cleanText = removeNiqqud(currentText);
+      const originalText = cache?.original || currentText;
       const newCache: NiqqudCache = {
-        original: cache?.original || currentText,
+        original: originalText,
         clean: cache?.clean || cleanText,
         full: result.niqqudText,
       };
@@ -311,6 +321,14 @@ export function useNiqqud(initialText: string = "") {
       setText(result.niqqudText);
       setDisplayMode('full');
       setTargetState('full');
+      
+      // Save niqqud text to Supabase (and localStorage as backup)
+      // This is done asynchronously and doesn't block the UI
+      saveNiqqudTextClient(originalText, result.niqqudText).catch((err) => {
+        console.error("[useNiqqud] Error saving niqqud text to Supabase:", err);
+        // Don't show error to user - this is a background operation
+      });
+      
       setIsLoading(false);
     } catch (err) {
       console.error("[useNiqqud] Unexpected error in completeNiqqud", err);
