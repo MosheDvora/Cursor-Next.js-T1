@@ -1,0 +1,93 @@
+---
+description: Mandatory unit testing requirements - every new function/module must have tests.
+globs: ["**/*.{ts,tsx,js,jsx}"]
+alwaysApply: true
+---
+
+# Unit Testing Requirements
+
+## Mandatory Testing Rules
+
+1. **Every new utility function** (in `lib/`, `utils/`, `services/`) MUST have corresponding unit tests in a `__tests__` folder or `.test.ts` file.
+
+2. **Every new React component** should have component tests using React Testing Library.
+
+3. **Every new API route handler** should have integration tests for critical paths.
+
+4. **Test coverage** should be maintained for all business logic functions.
+
+## Test File Structure
+
+- Place test files next to the source file: `lib/utils.ts` → `lib/__tests__/utils.test.ts`
+- OR use the same directory: `lib/utils.test.ts`
+- Group related tests in `__tests__` folders for organization
+
+## What to Test
+
+### Priority 1 - MUST TEST:
+- Pure utility functions (string manipulation, calculations, transformations)
+- Business logic functions (validation, data processing)
+- Helper functions that have multiple branches/conditions
+
+### Priority 2 - SHOULD TEST:
+- React components (rendering, user interactions)
+- API route handlers (request/response handling)
+- Custom hooks (state management, side effects)
+
+### Priority 3 - NICE TO HAVE:
+- Simple wrappers
+- Configuration files
+- Type definitions
+
+## Testing Patterns
+
+### Utility Functions Example:
+```typescript
+// lib/utils.ts
+export function formatText(text: string): string {
+  // implementation
+}
+
+// lib/__tests__/utils.test.ts
+import { describe, it, expect } from 'vitest'
+import { formatText } from '../utils'
+
+describe('formatText', () => {
+  it('should format text correctly', () => {
+    expect(formatText('hello')).toBe('Hello')
+  })
+  
+  it('should handle edge cases', () => {
+    expect(formatText('')).toBe('')
+  })
+})
+```
+
+## When Adding New Code
+
+1. **Before completing a task** - Ensure tests pass: `npm run test:run`
+2. **Test coverage** - Aim for at least 80% coverage on new utility functions
+3. **Edge cases** - Always test edge cases: empty strings, null values, boundary conditions
+4. **Documentation** - Tests serve as documentation - make them readable
+
+## Exceptions
+
+- Very simple getters/setters (unless they have logic)
+- Type-only files (interfaces, types)
+- Configuration files without logic
+- Next.js routing files (unless they contain business logic)
+
+## Commands
+
+```bash
+npm run test          # Run tests in watch mode
+npm run test:run      # Run all tests once
+npm run test:coverage # Run tests with coverage report
+```
+
+## Enforcement
+
+- When creating new functions/modules, ALWAYS create tests alongside them
+- If tests are missing for new code, add them before marking the task as complete
+- Use descriptive test names that explain what is being tested
+- Write tests FIRST for complex logic (TDD approach recommended for critical functions)
