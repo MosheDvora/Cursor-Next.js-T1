@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Settings, LogOut, User } from "lucide-react";
+import { Settings, LogOut, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 export function Header() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const { toast } = useToast();
@@ -43,14 +44,15 @@ export function Header() {
       if (user) {
         setUser(user);
 
-        // Fetch profile
+        // Fetch profile with is_admin field
         const { data: profileData } = await supabase
           .from("profiles")
-          .select("full_name, avatar_url")
+          .select("full_name, avatar_url, is_admin")
           .eq("id", user.id)
           .single();
 
         setProfile(profileData);
+        setIsAdmin(profileData?.is_admin === true);
       }
 
       setIsLoading(false);
@@ -67,13 +69,17 @@ export function Header() {
         // Fetch profile when user changes
         supabase
           .from("profiles")
-          .select("full_name, avatar_url")
+          .select("full_name, avatar_url, is_admin")
           .eq("id", session.user.id)
           .single()
-          .then(({ data }) => setProfile(data));
+          .then(({ data }) => {
+            setProfile(data);
+            setIsAdmin(data?.is_admin === true);
+          });
       } else {
         setUser(null);
         setProfile(null);
+        setIsAdmin(false);
       }
     });
 
@@ -114,6 +120,14 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Link href="/admin/defaults">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Shield className="h-4 w-4" />
+                <span className="hidden md:inline-block">ניהול</span>
+              </Button>
+            </Link>
+          )}
           <Link href="/settings">
             <Button variant="ghost" size="icon" className="h-10 w-10">
               <Settings className="h-5 w-5" />
@@ -134,11 +148,19 @@ export function Header() {
                   <User className="h-4 w-4" />
                 </div>
               )}
-              {profile?.full_name && (
-                <span className="text-sm font-medium hidden md:inline-block">
-                  {profile.full_name}
-                </span>
-              )}
+              <div className="flex flex-col items-end">
+                {profile?.full_name && (
+                  <span className="text-sm font-medium hidden md:inline-block">
+                    {profile.full_name}
+                  </span>
+                )}
+                {isAdmin && (
+                  <div className="flex items-center gap-1 text-xs text-primary">
+                    <Shield className="h-3 w-3" />
+                    <span className="hidden md:inline-block">מנהל</span>
+                  </div>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="icon"

@@ -727,3 +727,126 @@ export async function saveWordSpacing(wordSpacing: number): Promise<void> {
   }
 }
 
+/**
+ * Get app defaults from server API
+ * This function fetches site-wide default values set by administrators
+ * @returns Partial<AppSettings> with default values, or empty object if none exist or on error
+ */
+export async function getAppDefaults(): Promise<Partial<AppSettings>> {
+  if (typeof window === "undefined") {
+    return {};
+  }
+
+  try {
+    const response = await fetch("/api/admin/defaults", {
+      method: "GET",
+      credentials: "include",
+    });
+
+    // If not authorized or defaults don't exist, return empty object
+    if (!response.ok) {
+      return {};
+    }
+
+    const defaults = (await response.json()) as Partial<AppSettings>;
+    return defaults;
+  } catch (error) {
+    console.warn("[Settings] Failed to fetch app defaults:", error);
+    return {};
+  }
+}
+
+/**
+ * Get settings with app defaults as fallback
+ * This function combines user settings with app-wide defaults
+ * User settings take precedence, but defaults are used as fallback
+ * @returns AppSettings with user settings merged with app defaults
+ */
+export async function getSettingsWithDefaults(): Promise<AppSettings> {
+  // Get user settings (from localStorage)
+  const userSettings = getSettings();
+
+  // Get app defaults from server
+  const appDefaults = await getAppDefaults();
+
+  // Merge: user settings take precedence, but defaults fill in missing values
+  return {
+    // Use app defaults as base, then override with user settings
+    niqqudApiKey: userSettings.niqqudApiKey || (appDefaults.niqqudApiKey as string) || "",
+    niqqudModel: userSettings.niqqudModel || (appDefaults.niqqudModel as string) || DEFAULT_MODELS[0].value,
+    niqqudPrompt: userSettings.niqqudPrompt || (appDefaults.niqqudPrompt as string) || DEFAULT_NIQQUD_PROMPT,
+    niqqudSystemPrompt: userSettings.niqqudSystemPrompt || (appDefaults.niqqudSystemPrompt as string) || DEFAULT_NIQQUD_SYSTEM_PROMPT,
+    niqqudUserPrompt: userSettings.niqqudUserPrompt || (appDefaults.niqqudUserPrompt as string) || DEFAULT_NIQQUD_USER_PROMPT,
+    niqqudTemperature: userSettings.niqqudTemperature ?? (appDefaults.niqqudTemperature as number) ?? DEFAULT_TEMPERATURE,
+    niqqudCompletionSystemPrompt: userSettings.niqqudCompletionSystemPrompt || (appDefaults.niqqudCompletionSystemPrompt as string) || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT,
+    niqqudCompletionUserPrompt: userSettings.niqqudCompletionUserPrompt || (appDefaults.niqqudCompletionUserPrompt as string) || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT,
+    syllablesApiKey: userSettings.syllablesApiKey || (appDefaults.syllablesApiKey as string) || "",
+    syllablesModel: userSettings.syllablesModel || (appDefaults.syllablesModel as string) || DEFAULT_MODELS[0].value,
+    syllablesPrompt: userSettings.syllablesPrompt || (appDefaults.syllablesPrompt as string) || DEFAULT_SYLLABLES_PROMPT,
+    syllablesTemperature: userSettings.syllablesTemperature ?? (appDefaults.syllablesTemperature as number) ?? DEFAULT_TEMPERATURE,
+    syllableBorderSize: userSettings.syllableBorderSize ?? (appDefaults.syllableBorderSize as number) ?? DEFAULT_SYLLABLE_BORDER_SIZE,
+    syllableBackgroundColor: userSettings.syllableBackgroundColor || (appDefaults.syllableBackgroundColor as string) || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
+    wordSpacing: userSettings.wordSpacing ?? (appDefaults.wordSpacing as number) ?? DEFAULT_WORD_SPACING,
+    letterSpacing: userSettings.letterSpacing ?? (appDefaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING,
+    fontSize: userSettings.fontSize ?? (appDefaults.fontSize as number) ?? DEFAULT_FONT_SIZE,
+    wordHighlightPadding: userSettings.wordHighlightPadding ?? (appDefaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING,
+    syllableHighlightPadding: userSettings.syllableHighlightPadding ?? (appDefaults.syllableHighlightPadding as number) ?? DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
+    letterHighlightPadding: userSettings.letterHighlightPadding ?? (appDefaults.letterHighlightPadding as number) ?? DEFAULT_LETTER_HIGHLIGHT_PADDING,
+    wordHighlightColor: userSettings.wordHighlightColor || (appDefaults.wordHighlightColor as string) || DEFAULT_WORD_HIGHLIGHT_COLOR,
+    syllableHighlightColor: userSettings.syllableHighlightColor || (appDefaults.syllableHighlightColor as string) || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR,
+    letterHighlightColor: userSettings.letterHighlightColor || (appDefaults.letterHighlightColor as string) || DEFAULT_LETTER_HIGHLIGHT_COLOR,
+  };
+}
+
+/**
+ * Reset user settings to app defaults
+ * This function fetches app defaults and applies them to user settings
+ * @returns true if successful, false otherwise
+ */
+export async function resetToDefaults(): Promise<boolean> {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    // Get app defaults
+    const defaults = await getAppDefaults();
+
+    // If no defaults exist, use hardcoded defaults
+    const resetValues: Partial<AppSettings> = {
+      niqqudModel: (defaults.niqqudModel as string) || DEFAULT_MODELS[0].value,
+      niqqudSystemPrompt: (defaults.niqqudSystemPrompt as string) || DEFAULT_NIQQUD_SYSTEM_PROMPT,
+      niqqudUserPrompt: (defaults.niqqudUserPrompt as string) || DEFAULT_NIQQUD_USER_PROMPT,
+      niqqudTemperature: (defaults.niqqudTemperature as number) ?? DEFAULT_TEMPERATURE,
+      niqqudCompletionSystemPrompt: (defaults.niqqudCompletionSystemPrompt as string) || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT,
+      niqqudCompletionUserPrompt: (defaults.niqqudCompletionUserPrompt as string) || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT,
+      syllablesModel: (defaults.syllablesModel as string) || DEFAULT_MODELS[0].value,
+      syllablesPrompt: (defaults.syllablesPrompt as string) || DEFAULT_SYLLABLES_PROMPT,
+      syllablesTemperature: (defaults.syllablesTemperature as number) ?? DEFAULT_TEMPERATURE,
+      syllableBorderSize: (defaults.syllableBorderSize as number) ?? DEFAULT_SYLLABLE_BORDER_SIZE,
+      syllableBackgroundColor: (defaults.syllableBackgroundColor as string) || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
+      wordSpacing: (defaults.wordSpacing as number) ?? DEFAULT_WORD_SPACING,
+      letterSpacing: (defaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING,
+      wordHighlightPadding: (defaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING,
+      syllableHighlightPadding: (defaults.syllableHighlightPadding as number) ?? DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
+      letterHighlightPadding: (defaults.letterHighlightPadding as number) ?? DEFAULT_LETTER_HIGHLIGHT_PADDING,
+      wordHighlightColor: (defaults.wordHighlightColor as string) || DEFAULT_WORD_HIGHLIGHT_COLOR,
+      syllableHighlightColor: (defaults.syllableHighlightColor as string) || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR,
+      letterHighlightColor: (defaults.letterHighlightColor as string) || DEFAULT_LETTER_HIGHLIGHT_COLOR,
+    };
+
+    // Save reset values to localStorage
+    saveSettings(resetValues);
+
+    // If authenticated, also save wordSpacing to preferences
+    if (resetValues.wordSpacing !== undefined) {
+      await saveWordSpacing(resetValues.wordSpacing);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("[Settings] Error resetting to defaults:", error);
+    return false;
+  }
+}
+

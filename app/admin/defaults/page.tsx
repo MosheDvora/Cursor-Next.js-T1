@@ -1,8 +1,21 @@
 "use client";
 
+/**
+ * Admin Defaults Management Page
+ * 
+ * This page allows administrators to set site-wide default values that will be used:
+ * - For new users (initial values)
+ * - For anonymous users (users without authentication)
+ * - As fallback values when user doesn't have a specific setting
+ * - As reset values for existing users
+ * 
+ * The page is protected and only accessible to users with is_admin = true in their profile.
+ */
+
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Save, RotateCcw } from "lucide-react";
+import { ArrowRight, Save, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,15 +34,7 @@ import {
   TabsContent,
 } from "@/components/ui/tabs";
 import {
-  getSettings,
-  saveSettings,
-  getRawResponse,
-  getWordSpacing,
-  saveWordSpacing,
-  resetToDefaults,
-  getAppDefaults,
   DEFAULT_MODELS,
-  DEFAULT_NIQQUD_PROMPT,
   DEFAULT_NIQQUD_SYSTEM_PROMPT,
   DEFAULT_NIQQUD_USER_PROMPT,
   DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT,
@@ -46,21 +51,29 @@ import {
   DEFAULT_SYLLABLE_HIGHLIGHT_COLOR,
   DEFAULT_LETTER_HIGHLIGHT_COLOR,
   DEFAULT_TEMPERATURE,
+  AppSettings,
 } from "@/lib/settings";
 
-export default function SettingsPage() {
-  const [niqqudApiKey, setNiqqudApiKey] = useState("");
+export default function AdminDefaultsPage() {
+  const router = useRouter();
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  
+  // Niqqud settings
   const [niqqudModel, setNiqqudModel] = useState(DEFAULT_MODELS[0].value);
-  const [niqqudPrompt, setNiqqudPrompt] = useState(DEFAULT_NIQQUD_PROMPT);
   const [niqqudSystemPrompt, setNiqqudSystemPrompt] = useState(DEFAULT_NIQQUD_SYSTEM_PROMPT);
   const [niqqudUserPrompt, setNiqqudUserPrompt] = useState(DEFAULT_NIQQUD_USER_PROMPT);
   const [niqqudTemperature, setNiqqudTemperature] = useState(DEFAULT_TEMPERATURE);
   const [niqqudCompletionSystemPrompt, setNiqqudCompletionSystemPrompt] = useState(DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
   const [niqqudCompletionUserPrompt, setNiqqudCompletionUserPrompt] = useState(DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
-  const [syllablesApiKey, setSyllablesApiKey] = useState("");
+  
+  // Syllables settings
   const [syllablesModel, setSyllablesModel] = useState(DEFAULT_MODELS[0].value);
   const [syllablesPrompt, setSyllablesPrompt] = useState(DEFAULT_SYLLABLES_PROMPT);
   const [syllablesTemperature, setSyllablesTemperature] = useState(DEFAULT_TEMPERATURE);
+  
+  // Appearance settings
   const [syllableBorderSize, setSyllableBorderSize] = useState(DEFAULT_SYLLABLE_BORDER_SIZE);
   const [syllableBackgroundColor, setSyllableBackgroundColor] = useState(DEFAULT_SYLLABLE_BACKGROUND_COLOR);
   const [wordSpacing, setWordSpacing] = useState(DEFAULT_WORD_SPACING);
@@ -71,123 +84,154 @@ export default function SettingsPage() {
   const [wordHighlightColor, setWordHighlightColor] = useState(DEFAULT_WORD_HIGHLIGHT_COLOR);
   const [syllableHighlightColor, setSyllableHighlightColor] = useState(DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
   const [letterHighlightColor, setLetterHighlightColor] = useState(DEFAULT_LETTER_HIGHLIGHT_COLOR);
-  const [syllablesRawResponse, setSyllablesRawResponse] = useState<string | null>(null);
+  
   const [saved, setSaved] = useState(false);
-  const [resetting, setResetting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // Check admin status and load defaults
   useEffect(() => {
-    const loadSettings = async () => {
-      const settings = getSettings();
-      setNiqqudApiKey(settings.niqqudApiKey || "");
-      setNiqqudModel(settings.niqqudModel || DEFAULT_MODELS[0].value);
-      setNiqqudPrompt(settings.niqqudPrompt || DEFAULT_NIQQUD_PROMPT);
-      setNiqqudSystemPrompt(settings.niqqudSystemPrompt || DEFAULT_NIQQUD_SYSTEM_PROMPT);
-      setNiqqudUserPrompt(settings.niqqudUserPrompt || DEFAULT_NIQQUD_USER_PROMPT);
-      setNiqqudTemperature(settings.niqqudTemperature || DEFAULT_TEMPERATURE);
-      setNiqqudCompletionSystemPrompt(settings.niqqudCompletionSystemPrompt || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
-      setNiqqudCompletionUserPrompt(settings.niqqudCompletionUserPrompt || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
-      setSyllablesApiKey(settings.syllablesApiKey || "");
-      setSyllablesModel(settings.syllablesModel || DEFAULT_MODELS[0].value);
-      setSyllablesPrompt(settings.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT);
-      setSyllablesTemperature(settings.syllablesTemperature || DEFAULT_TEMPERATURE);
-      setSyllableBorderSize(settings.syllableBorderSize || DEFAULT_SYLLABLE_BORDER_SIZE);
-      setSyllableBackgroundColor(settings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
-      
-      // Load wordSpacing from preferences (authenticated) or localStorage (unauthenticated)
-      const loadedWordSpacing = await getWordSpacing();
-      setWordSpacing(loadedWordSpacing);
-      
-      setLetterSpacing(settings.letterSpacing || DEFAULT_LETTER_SPACING);
-      setWordHighlightPadding(settings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING);
-      setSyllableHighlightPadding(settings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
-      setLetterHighlightPadding(settings.letterHighlightPadding || DEFAULT_LETTER_HIGHLIGHT_PADDING);
-      setWordHighlightColor(settings.wordHighlightColor || DEFAULT_WORD_HIGHLIGHT_COLOR);
-      setSyllableHighlightColor(settings.syllableHighlightColor || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
-      setLetterHighlightColor(settings.letterHighlightColor || DEFAULT_LETTER_HIGHLIGHT_COLOR);
-      setSyllablesRawResponse(getRawResponse());
+    const loadDefaults = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch defaults from API (this will also check admin status)
+        const response = await fetch("/api/admin/defaults", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (response.status === 403) {
+          // User is not an admin
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error("Failed to load defaults");
+        }
+
+        // User is admin, load the defaults
+        setIsAdmin(true);
+        const defaults = (await response.json()) as Partial<AppSettings>;
+
+        // Set state with loaded defaults or fallback to hardcoded defaults
+        setNiqqudModel(defaults.niqqudModel || DEFAULT_MODELS[0].value);
+        setNiqqudSystemPrompt(defaults.niqqudSystemPrompt || DEFAULT_NIQQUD_SYSTEM_PROMPT);
+        setNiqqudUserPrompt(defaults.niqqudUserPrompt || DEFAULT_NIQQUD_USER_PROMPT);
+        setNiqqudTemperature(defaults.niqqudTemperature ?? DEFAULT_TEMPERATURE);
+        setNiqqudCompletionSystemPrompt(defaults.niqqudCompletionSystemPrompt || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
+        setNiqqudCompletionUserPrompt(defaults.niqqudCompletionUserPrompt || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
+        setSyllablesModel(defaults.syllablesModel || DEFAULT_MODELS[0].value);
+        setSyllablesPrompt(defaults.syllablesPrompt || DEFAULT_SYLLABLES_PROMPT);
+        setSyllablesTemperature(defaults.syllablesTemperature ?? DEFAULT_TEMPERATURE);
+        setSyllableBorderSize(defaults.syllableBorderSize ?? DEFAULT_SYLLABLE_BORDER_SIZE);
+        setSyllableBackgroundColor(defaults.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
+        setWordSpacing(defaults.wordSpacing ?? DEFAULT_WORD_SPACING);
+        setLetterSpacing(defaults.letterSpacing ?? DEFAULT_LETTER_SPACING);
+        setWordHighlightPadding(defaults.wordHighlightPadding ?? DEFAULT_WORD_HIGHLIGHT_PADDING);
+        setSyllableHighlightPadding(defaults.syllableHighlightPadding ?? DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
+        setLetterHighlightPadding(defaults.letterHighlightPadding ?? DEFAULT_LETTER_HIGHLIGHT_PADDING);
+        setWordHighlightColor(defaults.wordHighlightColor || DEFAULT_WORD_HIGHLIGHT_COLOR);
+        setSyllableHighlightColor(defaults.syllableHighlightColor || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
+        setLetterHighlightColor(defaults.letterHighlightColor || DEFAULT_LETTER_HIGHLIGHT_COLOR);
+      } catch (err) {
+        console.error("Error loading defaults:", err);
+        setError("שגיאה בטעינת הערכים הדיפולטיביים");
+      } finally {
+        setLoading(false);
+      }
     };
-    
-    loadSettings();
+
+    loadDefaults();
   }, []);
 
   const handleSave = async () => {
-    // Save wordSpacing to preferences (authenticated) and localStorage (backup)
-    await saveWordSpacing(wordSpacing);
-    
-    // Save other settings to localStorage
-    saveSettings({
-      niqqudApiKey,
-      niqqudModel,
-      niqqudPrompt,
-      niqqudSystemPrompt,
-      niqqudUserPrompt,
-      niqqudTemperature,
-      niqqudCompletionSystemPrompt,
-      niqqudCompletionUserPrompt,
-      syllablesApiKey,
-      syllablesModel,
-      syllablesPrompt,
-      syllablesTemperature,
-      syllableBorderSize,
-      syllableBackgroundColor,
-      wordSpacing,
-      letterSpacing,
-      wordHighlightPadding,
-      syllableHighlightPadding,
-      letterHighlightPadding,
-      wordHighlightColor,
-      syllableHighlightColor,
-      letterHighlightColor,
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  const handleReset = async () => {
-    if (!confirm("האם אתה בטוח שברצונך לאפס את כל ההגדרות לערכי ברירת המחדל?")) {
-      return;
-    }
-
-    setResetting(true);
     try {
-      const success = await resetToDefaults();
-      if (success) {
-        // Reload settings after reset
-        const defaults = await getAppDefaults();
-        
-        // Update state with reset values
-        setNiqqudModel((defaults.niqqudModel as string) || DEFAULT_MODELS[0].value);
-        setNiqqudSystemPrompt((defaults.niqqudSystemPrompt as string) || DEFAULT_NIQQUD_SYSTEM_PROMPT);
-        setNiqqudUserPrompt((defaults.niqqudUserPrompt as string) || DEFAULT_NIQQUD_USER_PROMPT);
-        setNiqqudTemperature((defaults.niqqudTemperature as number) ?? DEFAULT_TEMPERATURE);
-        setNiqqudCompletionSystemPrompt((defaults.niqqudCompletionSystemPrompt as string) || DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT);
-        setNiqqudCompletionUserPrompt((defaults.niqqudCompletionUserPrompt as string) || DEFAULT_NIQQUD_COMPLETION_USER_PROMPT);
-        setSyllablesModel((defaults.syllablesModel as string) || DEFAULT_MODELS[0].value);
-        setSyllablesPrompt((defaults.syllablesPrompt as string) || DEFAULT_SYLLABLES_PROMPT);
-        setSyllablesTemperature((defaults.syllablesTemperature as number) ?? DEFAULT_TEMPERATURE);
-        setSyllableBorderSize((defaults.syllableBorderSize as number) ?? DEFAULT_SYLLABLE_BORDER_SIZE);
-        setSyllableBackgroundColor((defaults.syllableBackgroundColor as string) || DEFAULT_SYLLABLE_BACKGROUND_COLOR);
-        
-        const loadedWordSpacing = await getWordSpacing();
-        setWordSpacing(loadedWordSpacing);
-        
-        setLetterSpacing((defaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING);
-        setWordHighlightPadding((defaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING);
-        setSyllableHighlightPadding((defaults.syllableHighlightPadding as number) ?? DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
-        setLetterHighlightPadding((defaults.letterHighlightPadding as number) ?? DEFAULT_LETTER_HIGHLIGHT_PADDING);
-        setWordHighlightColor((defaults.wordHighlightColor as string) || DEFAULT_WORD_HIGHLIGHT_COLOR);
-        setSyllableHighlightColor((defaults.syllableHighlightColor as string) || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
-        setLetterHighlightColor((defaults.letterHighlightColor as string) || DEFAULT_LETTER_HIGHLIGHT_COLOR);
-        
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+      setSaving(true);
+      setError(null);
+      setSaved(false);
+
+      const defaults: Partial<AppSettings> = {
+        niqqudModel,
+        niqqudSystemPrompt,
+        niqqudUserPrompt,
+        niqqudTemperature,
+        niqqudCompletionSystemPrompt,
+        niqqudCompletionUserPrompt,
+        syllablesModel,
+        syllablesPrompt,
+        syllablesTemperature,
+        syllableBorderSize,
+        syllableBackgroundColor,
+        wordSpacing,
+        letterSpacing,
+        wordHighlightPadding,
+        syllableHighlightPadding,
+        letterHighlightPadding,
+        wordHighlightColor,
+        syllableHighlightColor,
+        letterHighlightColor,
+      };
+
+      const response = await fetch("/api/admin/defaults", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(defaults),
+      });
+
+      if (response.status === 403) {
+        setError("אין לך הרשאות מנהל");
+        setIsAdmin(false);
+        return;
       }
-    } catch (error) {
-      console.error("Error resetting settings:", error);
+
+      if (!response.ok) {
+        throw new Error("Failed to save defaults");
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error("Error saving defaults:", err);
+      setError("שגיאה בשמירת הערכים הדיפולטיביים");
     } finally {
-      setResetting(false);
+      setSaving(false);
     }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-6" dir="rtl">
+        <div className="text-center">
+          <p className="text-lg">טוען...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Show unauthorized message
+  if (isAdmin === false) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-6" dir="rtl">
+        <div className="text-center max-w-md">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive" />
+          <h1 className="text-2xl font-bold mb-4">אין הרשאה</h1>
+          <p className="text-muted-foreground mb-6">
+            רק מנהלים יכולים לגשת לדף זה. אם אתה מנהל, ודא שהחשבון שלך מסומן כמנהל במערכת.
+          </p>
+          <Link href="/">
+            <Button>חזרה לעמוד הבית</Button>
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col p-6 md:p-12" dir="rtl">
@@ -200,45 +244,47 @@ export default function SettingsPage() {
               <span className="sr-only">חזרה לעמוד הבית</span>
             </Button>
           </Link>
-          <h1 className="text-4xl md:text-5xl font-bold text-right">
-            הגדרות אישיות
-          </h1>
+          <div className="flex-1">
+            <h1 className="text-4xl md:text-5xl font-bold text-right">
+              ניהול ערכים דיפולטיביים
+            </h1>
+            <p className="text-muted-foreground text-right mt-2">
+              הגדר ערכי ברירת מחדל שישמשו למשתמשים חדשים, משתמשים אנונימיים, וכערכי fallback
+            </p>
+          </div>
         </div>
 
-        {/* Save and Reset Buttons - Accessible from all tabs */}
-        <div className="mb-6 flex flex-col md:flex-row gap-4">
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 border border-destructive rounded-lg bg-destructive/10">
+            <p className="text-destructive text-right">{error}</p>
+          </div>
+        )}
+
+        {/* Save Button */}
+        <div className="mb-6">
           <Button
             onClick={handleSave}
             className="w-full md:w-auto gap-2"
             size="lg"
-            disabled={saved}
+            disabled={saving || saved}
           >
             <Save className="h-4 w-4" />
-            {saved ? "נשמר!" : "שמור הגדרות"}
-          </Button>
-          <Button
-            onClick={handleReset}
-            variant="outline"
-            className="w-full md:w-auto gap-2"
-            size="lg"
-            disabled={resetting}
-          >
-            <RotateCcw className="h-4 w-4" />
-            {resetting ? "מאפס..." : "איפוס להגדרות ברירת מחדל"}
+            {saving ? "שומר..." : saved ? "נשמר!" : "שמור ערכים דיפולטיביים"}
           </Button>
         </div>
 
         {/* Settings Tabs */}
-        <Tabs defaultValue="general" className="w-full" dir="rtl">
+        <Tabs defaultValue="api" className="w-full" dir="rtl">
           <div className="flex flex-col md:flex-row gap-6 items-start">
-            {/* Vertical Tabs List - Left Side */}
+            {/* Vertical Tabs List */}
             <TabsList className="flex flex-col h-auto w-full md:w-56 p-2 bg-muted rounded-lg space-y-1">
               <TabsTrigger
-                value="general"
+                value="api"
                 className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 style={{ justifyContent: 'flex-start' }}
               >
-                כללי
+                מודלים
               </TabsTrigger>
               <TabsTrigger
                 value="appearance"
@@ -246,13 +292,6 @@ export default function SettingsPage() {
                 style={{ justifyContent: 'flex-start' }}
               >
                 מראה
-              </TabsTrigger>
-              <TabsTrigger
-                value="api"
-                className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
-                style={{ justifyContent: 'flex-start' }}
-              >
-                מודלים
               </TabsTrigger>
             </TabsList>
 
@@ -267,25 +306,6 @@ export default function SettingsPage() {
                   </h2>
 
                   <div className="space-y-4">
-                    {/* API Key Input */}
-                    <div className="space-y-2">
-                      <Label htmlFor="niqqud-api-key" className="text-right block text-base">
-                        API Key
-                      </Label>
-                      <Input
-                        id="niqqud-api-key"
-                        type="text"
-                        value={niqqudApiKey}
-                        onChange={(e) => setNiqqudApiKey(e.target.value)}
-                        placeholder="הכנס את ה-API Key שלך"
-                        className="text-right font-mono"
-                        dir="rtl"
-                      />
-                      <p className="text-sm text-muted-foreground text-right">
-                        מפתח API למודל השפה (לדוגמה: OpenAI)
-                      </p>
-                    </div>
-
                     {/* Model Selection */}
                     <div className="space-y-2">
                       <Label htmlFor="niqqud-model" className="text-right block text-base">
@@ -308,7 +328,7 @@ export default function SettingsPage() {
                         </SelectContent>
                       </Select>
                       <p className="text-sm text-muted-foreground text-right">
-                        בחר את מודל השפה שישמש להוספת ניקוד לטקסט
+                        מודל השפה שישמש להוספת ניקוד לטקסט (ברירת מחדל)
                       </p>
                     </div>
 
@@ -326,7 +346,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        הוראות ברמת המערכת שמגדירות את תפקיד המודל
+                        הוראות ברמת המערכת שמגדירות את תפקיד המודל (ברירת מחדל)
                       </p>
                     </div>
 
@@ -344,7 +364,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        הבקשה למשתמש. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
+                        הבקשה למשתמש. השתמש ב-{"{text}"} כמקום לטקסט הקלט (ברירת מחדל)
                       </p>
                     </div>
 
@@ -366,7 +386,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות. ברירת מחדל: 0.2
+                        רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות (ברירת מחדל)
                       </p>
                     </div>
                   </div>
@@ -378,7 +398,7 @@ export default function SettingsPage() {
                     השלמת ניקוד חלקי
                   </h2>
                   <p className="text-sm text-muted-foreground text-right mb-4">
-                    הגדרות עבור השלמת ניקוד בטקסט שכבר מכיל ניקוד חלקי
+                    הגדרות עבור השלמת ניקוד בטקסט שכבר מכיל ניקוד חלקי (ברירת מחדל)
                   </p>
 
                   <div className="space-y-4">
@@ -396,7 +416,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        הוראות למודל לשמירה על ניקוד קיים והוספת ניקוד חסר בלבד
+                        הוראות למודל לשמירה על ניקוד קיים והוספת ניקוד חסר בלבד (ברירת מחדל)
                       </p>
                     </div>
 
@@ -414,7 +434,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        הבקשה למודל. השתמש ב-{"{text}"} כמקום לטקסט עם הניקוד החלקי.
+                        הבקשה למודל. השתמש ב-{"{text}"} כמקום לטקסט עם הניקוד החלקי (ברירת מחדל)
                       </p>
                     </div>
                   </div>
@@ -427,25 +447,6 @@ export default function SettingsPage() {
                   </h2>
 
                   <div className="space-y-4">
-                    {/* API Key Input */}
-                    <div className="space-y-2">
-                      <Label htmlFor="syllables-api-key" className="text-right block text-base">
-                        API Key
-                      </Label>
-                      <Input
-                        id="syllables-api-key"
-                        type="text"
-                        value={syllablesApiKey}
-                        onChange={(e) => setSyllablesApiKey(e.target.value)}
-                        placeholder="הכנס את ה-API Key שלך"
-                        className="text-right font-mono"
-                        dir="rtl"
-                      />
-                      <p className="text-sm text-muted-foreground text-right">
-                        מפתח API למודל השפה (לדוגמה: OpenAI)
-                      </p>
-                    </div>
-
                     {/* Model Selection */}
                     <div className="space-y-2">
                       <Label htmlFor="syllables-model" className="text-right block text-base">
@@ -468,7 +469,7 @@ export default function SettingsPage() {
                         </SelectContent>
                       </Select>
                       <p className="text-sm text-muted-foreground text-right">
-                        בחר את מודל השפה שישמש לחלוקה להברות
+                        מודל השפה שישמש לחלוקה להברות (ברירת מחדל)
                       </p>
                     </div>
 
@@ -486,7 +487,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
+                        הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט (ברירת מחדל)
                       </p>
                     </div>
 
@@ -508,39 +509,10 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות. ברירת מחדל: 0.2
+                        רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות (ברירת מחדל)
                       </p>
                     </div>
-
-                    {/* Raw Response Display */}
-                    {syllablesRawResponse && (
-                      <div className="space-y-2 mt-4">
-                        <Label className="text-right block text-base">
-                          תגובה גולמית מהמודל
-                        </Label>
-                        <div className="p-4 border rounded-lg bg-muted">
-                          <pre className="text-xs overflow-auto text-right bg-background p-3 rounded border whitespace-pre-wrap" dir="rtl">
-                            {syllablesRawResponse}
-                          </pre>
-                        </div>
-                        <p className="text-sm text-muted-foreground text-right">
-                          התגובה הגולמית האחרונה מהמודל לחלוקה להברות
-                        </p>
-                      </div>
-                    )}
                   </div>
-                </div>
-              </TabsContent>
-
-              {/* General Tab */}
-              <TabsContent value="general" className="mt-0">
-                <div className="p-6 border rounded-lg bg-card shadow-sm">
-                  <h2 className="text-2xl font-semibold text-right mb-4">
-                    הגדרות כלליות
-                  </h2>
-                  <p className="text-muted-foreground text-right">
-                    הגדרות כלליות יופיעו כאן בעתיד.
-                  </p>
                 </div>
               </TabsContent>
 
@@ -569,7 +541,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        גודל המסגרת שמקיפה כל הברה בפיקסלים (0-10)
+                        גודל המסגרת שמקיפה כל הברה בפיקסלים (0-10) - ברירת מחדל
                       </p>
                     </div>
 
@@ -596,7 +568,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
-                        צבע הרקע של כל הברה (hex color או שם צבע)
+                        צבע הרקע של כל הברה (hex color או שם צבע) - ברירת מחדל
                       </p>
                     </div>
 
@@ -617,7 +589,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        המרחק בין מילה למילה בתצוגת ההברות בפיקסלים (0-50)
+                        המרחק בין מילה למילה בתצוגת ההברות בפיקסלים (0-50) - ברירת מחדל
                       </p>
                     </div>
 
@@ -638,7 +610,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        המרחק בין אות לאות בכל מצבי הקפיצה בפיקסלים (0-20)
+                        המרחק בין אות לאות בכל מצבי הקפיצה בפיקסלים (0-20) - ברירת מחדל
                       </p>
                     </div>
 
@@ -659,7 +631,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        גודל הרקע שמקיף מילה בעת הדגשה בפיקסלים (0-20)
+                        גודל הרקע שמקיף מילה בעת הדגשה בפיקסלים (0-20) - ברירת מחדל
                       </p>
                     </div>
 
@@ -686,7 +658,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
-                        צבע הרקע של מילה בעת הדגשה (hex color)
+                        צבע הרקע של מילה בעת הדגשה (hex color) - ברירת מחדל
                       </p>
                     </div>
 
@@ -707,7 +679,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        גודל הרקע שמקיף הברה בעת הדגשה בפיקסלים (0-20)
+                        גודל הרקע שמקיף הברה בעת הדגשה בפיקסלים (0-20) - ברירת מחדל
                       </p>
                     </div>
 
@@ -734,7 +706,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
-                        צבע הרקע של הברה בעת הדגשה (hex color)
+                        צבע הרקע של הברה בעת הדגשה (hex color) - ברירת מחדל
                       </p>
                     </div>
 
@@ -755,7 +727,7 @@ export default function SettingsPage() {
                         dir="rtl"
                       />
                       <p className="text-sm text-muted-foreground text-right">
-                        גודל הרקע שמקיף אות בעת הדגשה בפיקסלים (0-20)
+                        גודל הרקע שמקיף אות בעת הדגשה בפיקסלים (0-20) - ברירת מחדל
                       </p>
                     </div>
 
@@ -782,7 +754,7 @@ export default function SettingsPage() {
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
-                        צבע הרקע של אות בעת הדגשה (hex color)
+                        צבע הרקע של אות בעת הדגשה (hex color) - ברירת מחדל
                       </p>
                     </div>
                   </div>
@@ -795,3 +767,4 @@ export default function SettingsPage() {
     </main>
   );
 }
+
