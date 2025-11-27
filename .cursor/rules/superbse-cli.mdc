@@ -1,0 +1,33 @@
+---
+description: Rules for using the Supabase CLI to manage database, auth, and edge functions via terminal commands.
+alwaysApply: false
+---
+---
+
+
+# Supabase CLI – Tool Definition
+
+## Summary
+You have access to the **Supabase CLI** via the terminal.
+You represent an autonomous agent capable of executing database operations directly against the cloud project.
+
+## Allowed Commands & Syntax
+Use `npx supabase` (preferred).
+
+### 1. Cloud-First Development (No Docker)
+- **Login:** `npx supabase login`
+- **Link Project:** `npx supabase link --project-ref <project-id>`
+- **Do NOT use:** `start`, `stop`, `status` (These are for local Docker development only).
+
+### 2. Database & Migrations (Cloud)
+- **Push to Remote:** `npx supabase db push`
+- **Pull from Remote:** `npx supabase db pull`
+- **Create Migration:** `npx supabase migration new <name>`
+
+### 3. TypeScript & Type Generation
+- **Generate Types:** `npx supabase gen types typescript --linked > lib/supabase/database.types.ts`
+- **Trigger:** Run this whenever the user asks to "sync types", "update database types", or after a migration.
+
+## Execution Rules
+1. **Destructive Actions:** Always warn the user before running commands that might overwrite data.
+2. **Paths:** Ensure generated files are saved to `lib/supabase/`.

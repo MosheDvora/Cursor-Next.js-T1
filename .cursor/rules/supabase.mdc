@@ -1,0 +1,24 @@
+---
+description: Best practices and rules for using Supabase (Auth, Database, Storage, Realtime)
+alwaysApply: false
+---
+# Supabase Development Rules
+
+You are an expert in Supabase, PostgreSQL, and TypeScript. When generating code involving Supabase, follow these guidelines to ensure security, performance, and type safety.
+
+## 1. General Principles
+- **Official SDK:** Always use the official `@supabase/supabase-js` library.
+- **SSR Support:** Use `@supabase/ssr` for cookie handling and auth synchronization in Next.js.
+- **Environment Variables:** Never hardcode API keys. Use `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+
+## 2. Type Safety (Crucial)
+- **Database Types:** Always use the generated TypeScript definitions found in `lib/supabase/database.types.ts`.
+- **Do not use `any`**. Instead, import the `Database` interface.
+- **Example Usage:**
+  ```typescript
+  import { createClient } from '@supabase/supabase-js'
+  import { Database } from '@/lib/supabase/database.types'
+
+  const supabase = createClient<Database>(...)
+
+
