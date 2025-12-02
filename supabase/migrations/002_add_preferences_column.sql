@@ -23,3 +23,4 @@ UPDATE public.profiles
 SET preferences = '{}'::jsonb
 WHERE preferences IS NULL;
 
+
