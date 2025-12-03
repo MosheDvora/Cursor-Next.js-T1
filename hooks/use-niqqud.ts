@@ -7,6 +7,11 @@ import { detectNiqqud, removeNiqqud, hasNiqqud as checkHasNiqqud } from "@/lib/n
 import { addNiqqud as addNiqqudService } from "@/services/niqqud-service";
 import { getSettings } from "@/lib/settings";
 
+// localStorage keys for niqqud cache
+const NIQQUD_CACHE_ORIGINAL_KEY = "niqqud_cache_original";
+const NIQQUD_CACHE_CLEAN_KEY = "niqqud_cache_clean";
+const NIQQUD_CACHE_FULL_KEY = "niqqud_cache_full";
+
 // Debug: Verify imports
 if (typeof checkHasNiqqud !== "function") {
   console.error("[useNiqqud] checkHasNiqqud is not a function!", typeof checkHasNiqqud);
@@ -32,6 +37,32 @@ export function useNiqqud(initialText: string = "") {
   const previousTextRef = useRef<string>(initialText);
 
   const [targetState, setTargetState] = useState<'original' | 'full'>('original');
+
+  // Load cache from localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // Server-side check
+
+    const original = localStorage.getItem(NIQQUD_CACHE_ORIGINAL_KEY);
+    const clean = localStorage.getItem(NIQQUD_CACHE_CLEAN_KEY);
+    const full = localStorage.getItem(NIQQUD_CACHE_FULL_KEY);
+
+    // Need at least original and clean to have valid cache
+    if (original && clean) {
+      // Verify cache matches current text (if text exists)
+      // If initialText is empty or matches one of the cache versions, load it
+      if (!initialText ||
+          original === initialText ||
+          clean === initialText ||
+          full === initialText) {
+        setCache({
+          original,
+          clean,
+          full: full || null
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
   // Update when initialText changes externally (user typing/pasting)
   useEffect(() => {
@@ -85,6 +116,26 @@ export function useNiqqud(initialText: string = "") {
       }
     }
   }, [initialText, cache]);
+
+  // Save cache to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // Server-side check
+
+    if (cache) {
+      localStorage.setItem(NIQQUD_CACHE_ORIGINAL_KEY, cache.original);
+      localStorage.setItem(NIQQUD_CACHE_CLEAN_KEY, cache.clean);
+      if (cache.full) {
+        localStorage.setItem(NIQQUD_CACHE_FULL_KEY, cache.full);
+      } else {
+        localStorage.removeItem(NIQQUD_CACHE_FULL_KEY);
+      }
+    } else {
+      // Clear all cache keys
+      localStorage.removeItem(NIQQUD_CACHE_ORIGINAL_KEY);
+      localStorage.removeItem(NIQQUD_CACHE_CLEAN_KEY);
+      localStorage.removeItem(NIQQUD_CACHE_FULL_KEY);
+    }
+  }, [cache]);
 
   // Detect current niqqud status
   const niqqudStatus = detectNiqqud(text);
@@ -382,6 +433,13 @@ export function useNiqqud(initialText: string = "") {
     // Reset text to empty string
     setText("");
     previousTextRef.current = "";
+
+    // Clear all cache keys from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(NIQQUD_CACHE_ORIGINAL_KEY);
+      localStorage.removeItem(NIQQUD_CACHE_CLEAN_KEY);
+      localStorage.removeItem(NIQQUD_CACHE_FULL_KEY);
+    }
   }, []);
 
   return {
