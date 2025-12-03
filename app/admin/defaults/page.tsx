@@ -236,7 +236,7 @@ export default function AdminDefaultsPage() {
       <div className="w-full max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/">
+          <Link href="/" data-testid="admin-back-home-link">
             <Button variant="ghost" size="icon" className="h-10 w-10">
               <ArrowRight className="h-6 w-6" />
               <span className="sr-only">חזרה לעמוד הבית</span>
@@ -266,6 +266,7 @@ export default function AdminDefaultsPage() {
             className="w-full md:w-auto gap-2"
             size="lg"
             disabled={saving || saved}
+            data-testid="admin-save-button"
           >
             <Save className="h-4 w-4" />
             {saving ? "שומר..." : saved ? "נשמר!" : "שמור ערכים דיפולטיביים"}
@@ -281,6 +282,7 @@ export default function AdminDefaultsPage() {
                 value="api"
                 className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 style={{ justifyContent: 'flex-start' }}
+                data-testid="admin-tab-models"
               >
                 מודלים
               </TabsTrigger>
@@ -288,6 +290,7 @@ export default function AdminDefaultsPage() {
                 value="appearance"
                 className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 style={{ justifyContent: 'flex-start' }}
+                data-testid="admin-tab-appearance"
               >
                 מראה
               </TabsTrigger>
@@ -310,7 +313,7 @@ export default function AdminDefaultsPage() {
                         מודל שפה
                       </Label>
                       <Select value={niqqudModel} onValueChange={setNiqqudModel}>
-                        <SelectTrigger id="niqqud-model" className="text-right" dir="rtl">
+                        <SelectTrigger id="niqqud-model" className="text-right" dir="rtl" data-testid="admin-niqqud-model-select">
                           <SelectValue placeholder="בחר מודל" />
                         </SelectTrigger>
                         <SelectContent>
@@ -342,6 +345,7 @@ export default function AdminDefaultsPage() {
                         placeholder="הוראות כלליות למודל"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="admin-niqqud-system-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הוראות ברמת המערכת שמגדירות את תפקיד המודל (ברירת מחדל)
@@ -360,6 +364,7 @@ export default function AdminDefaultsPage() {
                         placeholder="הבקשה הספציפית למודל"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="admin-niqqud-user-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הבקשה למשתמש. השתמש ב-{"{text}"} כמקום לטקסט הקלט (ברירת מחדל)
@@ -382,6 +387,7 @@ export default function AdminDefaultsPage() {
                         placeholder="0.2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-niqqud-temperature-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות (ברירת מחדל)
@@ -412,6 +418,7 @@ export default function AdminDefaultsPage() {
                         placeholder="הוראות למודל להשלמת ניקוד חלקי"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="admin-niqqud-completion-system-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הוראות למודל לשמירה על ניקוד קיים והוספת ניקוד חסר בלבד (ברירת מחדל)
@@ -430,6 +437,7 @@ export default function AdminDefaultsPage() {
                         placeholder="בקשה למודל להשלמת הניקוד"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="admin-niqqud-completion-user-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הבקשה למודל. השתמש ב-{"{text}"} כמקום לטקסט עם הניקוד החלקי (ברירת מחדל)
@@ -451,7 +459,7 @@ export default function AdminDefaultsPage() {
                         מודל שפה
                       </Label>
                       <Select value={syllablesModel} onValueChange={setSyllablesModel}>
-                        <SelectTrigger id="syllables-model" className="text-right" dir="rtl">
+                        <SelectTrigger id="syllables-model" className="text-right" dir="rtl" data-testid="admin-syllables-model-select">
                           <SelectValue placeholder="בחר מודל" />
                         </SelectTrigger>
                         <SelectContent>
@@ -483,6 +491,7 @@ export default function AdminDefaultsPage() {
                         placeholder="הכנס את הפרומפט שיישלח למודל"
                         className="text-right min-h-[120px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="admin-syllables-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט (ברירת מחדל)
@@ -505,6 +514,7 @@ export default function AdminDefaultsPage() {
                         placeholder="0.2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-syllables-temperature-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות (ברירת מחדל)
@@ -537,6 +547,7 @@ export default function AdminDefaultsPage() {
                         placeholder="2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-syllable-border-size-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל המסגרת שמקיפה כל הברה בפיקסלים (0-10) - ברירת מחדל
@@ -555,6 +566,7 @@ export default function AdminDefaultsPage() {
                           value={syllableBackgroundColor}
                           onChange={(e) => setSyllableBackgroundColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="admin-syllable-background-color-picker"
                         />
                         <Input
                           type="text"
@@ -563,6 +575,7 @@ export default function AdminDefaultsPage() {
                           placeholder="#dbeafe"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="admin-syllable-background-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
@@ -585,6 +598,7 @@ export default function AdminDefaultsPage() {
                         placeholder="12"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-word-spacing-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         המרחק בין מילה למילה בתצוגת ההברות בפיקסלים (0-50) - ברירת מחדל
@@ -606,6 +620,7 @@ export default function AdminDefaultsPage() {
                         placeholder="0"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-letter-spacing-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         המרחק בין אות לאות בכל מצבי הקפיצה בפיקסלים (0-20) - ברירת מחדל
@@ -627,6 +642,7 @@ export default function AdminDefaultsPage() {
                         placeholder="4"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-word-highlight-padding-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל הרקע שמקיף מילה בעת הדגשה בפיקסלים (0-20) - ברירת מחדל
@@ -645,6 +661,7 @@ export default function AdminDefaultsPage() {
                           value={wordHighlightColor}
                           onChange={(e) => setWordHighlightColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="admin-word-highlight-color-picker"
                         />
                         <Input
                           type="text"
@@ -653,6 +670,7 @@ export default function AdminDefaultsPage() {
                           placeholder="#fff176"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="admin-word-highlight-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
@@ -675,6 +693,7 @@ export default function AdminDefaultsPage() {
                         placeholder="3"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-syllable-highlight-padding-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל הרקע שמקיף הברה בעת הדגשה בפיקסלים (0-20) - ברירת מחדל
@@ -693,6 +712,7 @@ export default function AdminDefaultsPage() {
                           value={syllableHighlightColor}
                           onChange={(e) => setSyllableHighlightColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="admin-syllable-highlight-color-picker"
                         />
                         <Input
                           type="text"
@@ -701,6 +721,7 @@ export default function AdminDefaultsPage() {
                           placeholder="#fff176"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="admin-syllable-highlight-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
@@ -723,6 +744,7 @@ export default function AdminDefaultsPage() {
                         placeholder="2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="admin-letter-highlight-padding-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל הרקע שמקיף אות בעת הדגשה בפיקסלים (0-20) - ברירת מחדל
@@ -741,6 +763,7 @@ export default function AdminDefaultsPage() {
                           value={letterHighlightColor}
                           onChange={(e) => setLetterHighlightColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="admin-letter-highlight-color-picker"
                         />
                         <Input
                           type="text"
@@ -749,6 +772,7 @@ export default function AdminDefaultsPage() {
                           placeholder="#fff176"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="admin-letter-highlight-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">

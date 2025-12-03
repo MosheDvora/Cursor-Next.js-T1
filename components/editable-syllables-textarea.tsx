@@ -592,6 +592,7 @@ export function EditableSyllablesTextarea({
           }}
           dir="rtl"
           disabled={disabled}
+          data-testid="editable-textarea"
         />
       );
     }
@@ -613,6 +614,7 @@ export function EditableSyllablesTextarea({
           tabIndex={0}
           style={{ outline: "none", fontSize: `${fontSize}px` }}
           contentEditable={false}
+          data-testid="text-display-area"
         >
           {textLines.map((lineText, lineIndex) => {
             const lineWords = getWordsFromText(lineText);
@@ -649,6 +651,7 @@ export function EditableSyllablesTextarea({
                               : undefined,
                           outline: "none",
                         }}
+                        data-testid={isCurrentWord ? "navigation-current-word" : `navigation-word-${globalWordIndex}`}
                       >
                         {word}
                       </span>
@@ -717,6 +720,7 @@ export function EditableSyllablesTextarea({
                                     : undefined,
                                 outline: "none",
                               }}
+                              data-testid={isCurrentLetter ? "navigation-current-letter" : `navigation-letter-0-0-${globalLetterIdx}`}
                             >
                               {group.text} {/* group.text contains both letter and niqqud */}
                             </span>
@@ -777,6 +781,7 @@ export function EditableSyllablesTextarea({
         tabIndex={0}
         style={{ outline: "none", fontSize: `${fontSize}px` }}
         contentEditable={false}
+        data-testid="text-display-area"
       >
         {textLines.map((lineText, lineIndex) => {
           const lineWords = wordsByLine[lineIndex] || [];
@@ -802,6 +807,7 @@ export function EditableSyllablesTextarea({
                             : undefined,
                         outline: "none",
                       }}
+                      data-testid={isCurrentWord ? "navigation-current-word" : `navigation-word-${wordIdx}`}
                     >
                       {wordText}
                     </span>
@@ -826,6 +832,7 @@ export function EditableSyllablesTextarea({
                               backgroundColor: isCurrentSyllable ? CURRENT_HIGHLIGHT_COLOR : undefined,
                               outline: "none",
                             }}
+                            data-testid={isCurrentSyllable ? "navigation-current-syllable" : `navigation-syllable-${wordIdx}-${syllableIndex}`}
                           >
                             {syllable}
                           </span>
@@ -882,6 +889,7 @@ export function EditableSyllablesTextarea({
                               backgroundColor: isCurrentLetter ? LETTER_HIGHLIGHT_COLOR : undefined,
                               outline: "none",
                             }}
+                            data-testid={isCurrentLetter ? "navigation-current-letter" : `navigation-letter-${wordIdx}-${letterPos.syllableIdx}-${letterPos.letterIdx}`}
                           >
                             {group.text} {/* group.text contains both letter and niqqud */}
                           </span>

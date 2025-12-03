@@ -152,6 +152,7 @@ export default function LoginPage() {
                 required
                 className="text-right"
                 dir="ltr"
+                data-testid="login-email-input"
               />
             </div>
 
@@ -168,6 +169,7 @@ export default function LoginPage() {
                 required
                 className="text-right"
                 dir="ltr"
+                data-testid="login-password-input"
               />
             </div>
 
@@ -177,6 +179,7 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full gap-2"
                 size="lg"
+                data-testid="login-submit-button"
               >
                 {isLoading ? (
                   <>
@@ -195,6 +198,7 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full"
                 size="lg"
+                data-testid="login-signup-button"
               >
                 הרשמה
               </Button>
@@ -219,6 +223,7 @@ export default function LoginPage() {
             disabled={isGoogleLoading}
             className="w-full gap-2"
             size="lg"
+            data-testid="login-google-button"
           >
             {isGoogleLoading ? (
               <>
@@ -245,7 +250,7 @@ export default function LoginPage() {
 
         {/* Back to home */}
         <div className="text-center">
-          <Link href="/">
+          <Link href="/" data-testid="login-back-home-link">
             <Button variant="ghost" className="gap-2">
               <ArrowRight className="h-4 w-4" />
               <span>חזרה לעמוד הבית</span>

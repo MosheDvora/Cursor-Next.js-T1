@@ -194,7 +194,7 @@ export default function SettingsPage() {
       <div className="w-full max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/">
+          <Link href="/" data-testid="settings-back-home-link">
             <Button variant="ghost" size="icon" className="h-10 w-10">
               <ArrowRight className="h-6 w-6" />
               <span className="sr-only">חזרה לעמוד הבית</span>
@@ -212,6 +212,7 @@ export default function SettingsPage() {
             className="w-full md:w-auto gap-2"
             size="lg"
             disabled={saved}
+            data-testid="settings-save-button"
           >
             <Save className="h-4 w-4" />
             {saved ? "נשמר!" : "שמור הגדרות"}
@@ -222,6 +223,7 @@ export default function SettingsPage() {
             className="w-full md:w-auto gap-2"
             size="lg"
             disabled={resetting}
+            data-testid="settings-reset-button"
           >
             <RotateCcw className="h-4 w-4" />
             {resetting ? "מאפס..." : "איפוס להגדרות ברירת מחדל"}
@@ -237,6 +239,7 @@ export default function SettingsPage() {
                 value="general"
                 className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 style={{ justifyContent: 'flex-start' }}
+                data-testid="settings-tab-general"
               >
                 כללי
               </TabsTrigger>
@@ -244,6 +247,7 @@ export default function SettingsPage() {
                 value="appearance"
                 className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 style={{ justifyContent: 'flex-start' }}
+                data-testid="settings-tab-appearance"
               >
                 מראה
               </TabsTrigger>
@@ -251,6 +255,7 @@ export default function SettingsPage() {
                 value="api"
                 className="w-full px-4 py-3 text-right data-[state=active]:bg-background data-[state=active]:shadow-sm"
                 style={{ justifyContent: 'flex-start' }}
+                data-testid="settings-tab-models"
               >
                 מודלים
               </TabsTrigger>
@@ -280,6 +285,7 @@ export default function SettingsPage() {
                         placeholder="הכנס את ה-API Key שלך"
                         className="text-right font-mono"
                         dir="rtl"
+                        data-testid="settings-niqqud-api-key-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         מפתח API למודל השפה (לדוגמה: OpenAI)
@@ -292,7 +298,7 @@ export default function SettingsPage() {
                         מודל שפה
                       </Label>
                       <Select value={niqqudModel} onValueChange={setNiqqudModel}>
-                        <SelectTrigger id="niqqud-model" className="text-right" dir="rtl">
+                        <SelectTrigger id="niqqud-model" className="text-right" dir="rtl" data-testid="settings-niqqud-model-select">
                           <SelectValue placeholder="בחר מודל" />
                         </SelectTrigger>
                         <SelectContent>
@@ -324,6 +330,7 @@ export default function SettingsPage() {
                         placeholder="הוראות כלליות למודל"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="settings-niqqud-system-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הוראות ברמת המערכת שמגדירות את תפקיד המודל
@@ -342,6 +349,7 @@ export default function SettingsPage() {
                         placeholder="הבקשה הספציפית למודל"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="settings-niqqud-user-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הבקשה למשתמש. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
@@ -364,6 +372,7 @@ export default function SettingsPage() {
                         placeholder="0.2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-niqqud-temperature-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות. ברירת מחדל: 0.2
@@ -394,6 +403,7 @@ export default function SettingsPage() {
                         placeholder="הוראות למודל להשלמת ניקוד חלקי"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="settings-niqqud-completion-system-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הוראות למודל לשמירה על ניקוד קיים והוספת ניקוד חסר בלבד
@@ -412,6 +422,7 @@ export default function SettingsPage() {
                         placeholder="בקשה למודל להשלמת הניקוד"
                         className="text-right min-h-[80px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="settings-niqqud-completion-user-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הבקשה למודל. השתמש ב-{"{text}"} כמקום לטקסט עם הניקוד החלקי.
@@ -440,6 +451,7 @@ export default function SettingsPage() {
                         placeholder="הכנס את ה-API Key שלך"
                         className="text-right font-mono"
                         dir="rtl"
+                        data-testid="settings-syllables-api-key-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         מפתח API למודל השפה (לדוגמה: OpenAI)
@@ -452,7 +464,7 @@ export default function SettingsPage() {
                         מודל שפה
                       </Label>
                       <Select value={syllablesModel} onValueChange={setSyllablesModel}>
-                        <SelectTrigger id="syllables-model" className="text-right" dir="rtl">
+                        <SelectTrigger id="syllables-model" className="text-right" dir="rtl" data-testid="settings-syllables-model-select">
                           <SelectValue placeholder="בחר מודל" />
                         </SelectTrigger>
                         <SelectContent>
@@ -484,6 +496,7 @@ export default function SettingsPage() {
                         placeholder="הכנס את הפרומפט שיישלח למודל"
                         className="text-right min-h-[120px] font-mono text-sm"
                         dir="rtl"
+                        data-testid="settings-syllables-prompt-textarea"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         הפרומפט שיישלח למודל לצורך ביצוע המשימה. השתמש ב-{"{text}"} כמקום לטקסט הקלט.
@@ -506,6 +519,7 @@ export default function SettingsPage() {
                         placeholder="0.2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-syllables-temperature-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות. ברירת מחדל: 0.2
@@ -519,7 +533,7 @@ export default function SettingsPage() {
                           תגובה גולמית מהמודל
                         </Label>
                         <div className="p-4 border rounded-lg bg-muted">
-                          <pre className="text-xs overflow-auto text-right bg-background p-3 rounded border whitespace-pre-wrap" dir="rtl">
+                          <pre className="text-xs overflow-auto text-right bg-background p-3 rounded border whitespace-pre-wrap" dir="rtl" data-testid="settings-syllables-raw-response-display">
                             {syllablesRawResponse}
                           </pre>
                         </div>
@@ -567,6 +581,7 @@ export default function SettingsPage() {
                         placeholder="2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-syllable-border-size-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל המסגרת שמקיפה כל הברה בפיקסלים (0-10)
@@ -585,6 +600,7 @@ export default function SettingsPage() {
                           value={syllableBackgroundColor}
                           onChange={(e) => setSyllableBackgroundColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="settings-syllable-background-color-picker"
                         />
                         <Input
                           type="text"
@@ -593,6 +609,7 @@ export default function SettingsPage() {
                           placeholder="#dbeafe"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="settings-syllable-background-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
@@ -615,6 +632,7 @@ export default function SettingsPage() {
                         placeholder="12"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-word-spacing-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         המרחק בין מילה למילה בתצוגת ההברות בפיקסלים (0-50)
@@ -636,6 +654,7 @@ export default function SettingsPage() {
                         placeholder="0"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-letter-spacing-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         המרחק בין אות לאות בכל מצבי הקפיצה בפיקסלים (0-20)
@@ -657,6 +676,7 @@ export default function SettingsPage() {
                         placeholder="4"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-word-highlight-padding-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל הרקע שמקיף מילה בעת הדגשה בפיקסלים (0-20)
@@ -675,6 +695,7 @@ export default function SettingsPage() {
                           value={wordHighlightColor}
                           onChange={(e) => setWordHighlightColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="settings-word-highlight-color-picker"
                         />
                         <Input
                           type="text"
@@ -683,6 +704,7 @@ export default function SettingsPage() {
                           placeholder="#fff176"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="settings-word-highlight-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
@@ -705,6 +727,7 @@ export default function SettingsPage() {
                         placeholder="3"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-syllable-highlight-padding-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל הרקע שמקיף הברה בעת הדגשה בפיקסלים (0-20)
@@ -723,6 +746,7 @@ export default function SettingsPage() {
                           value={syllableHighlightColor}
                           onChange={(e) => setSyllableHighlightColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="settings-syllable-highlight-color-picker"
                         />
                         <Input
                           type="text"
@@ -731,6 +755,7 @@ export default function SettingsPage() {
                           placeholder="#fff176"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="settings-syllable-highlight-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">
@@ -753,6 +778,7 @@ export default function SettingsPage() {
                         placeholder="2"
                         className="text-right"
                         dir="rtl"
+                        data-testid="settings-letter-highlight-padding-input"
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         גודל הרקע שמקיף אות בעת הדגשה בפיקסלים (0-20)
@@ -771,6 +797,7 @@ export default function SettingsPage() {
                           value={letterHighlightColor}
                           onChange={(e) => setLetterHighlightColor(e.target.value)}
                           className="w-20 h-10 cursor-pointer"
+                          data-testid="settings-letter-highlight-color-picker"
                         />
                         <Input
                           type="text"
@@ -779,6 +806,7 @@ export default function SettingsPage() {
                           placeholder="#fff176"
                           className="flex-1 text-right font-mono"
                           dir="rtl"
+                          data-testid="settings-letter-highlight-color-input"
                         />
                       </div>
                       <p className="text-sm text-muted-foreground text-right">

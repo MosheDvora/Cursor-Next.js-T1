@@ -114,21 +114,21 @@ export function Header() {
     <header className="w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-4">
-          <Link href="/">
+          <Link href="/" data-testid="header-logo-link">
             <h1 className="text-xl font-bold">לימוד קריאה</h1>
           </Link>
         </div>
 
         <div className="flex items-center gap-2">
           {isAdmin && (
-            <Link href="/admin/defaults">
+            <Link href="/admin/defaults" data-testid="header-admin-link">
               <Button variant="ghost" size="sm" className="gap-2">
                 <Shield className="h-4 w-4" />
                 <span className="hidden md:inline-block">ניהול</span>
               </Button>
             </Link>
           )}
-          <Link href="/settings">
+          <Link href="/settings" data-testid="header-settings-link">
             <Button variant="ghost" size="icon" className="h-10 w-10">
               <Settings className="h-5 w-5" />
               <span className="sr-only">הגדרות</span>
@@ -142,15 +142,16 @@ export function Header() {
                   src={profile.avatar_url}
                   alt={profile.full_name || "User"}
                   className="h-8 w-8 rounded-full"
+                  data-testid="header-user-avatar"
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10" data-testid="header-user-avatar">
                   <User className="h-4 w-4" />
                 </div>
               )}
               <div className="flex flex-col items-end">
                 {profile?.full_name && (
-                  <span className="text-sm font-medium hidden md:inline-block">
+                  <span className="text-sm font-medium hidden md:inline-block" data-testid="header-user-name">
                     {profile.full_name}
                   </span>
                 )}
@@ -167,13 +168,14 @@ export function Header() {
                 onClick={handleLogout}
                 className="h-10 w-10"
                 title="התנתק"
+                data-testid="header-logout-button"
               >
                 <LogOut className="h-5 w-5" />
                 <span className="sr-only">התנתק</span>
               </Button>
             </div>
           ) : (
-            <Link href="/login">
+            <Link href="/login" data-testid="header-login-link">
               <Button variant="default" size="sm">
                 התחבר
               </Button>

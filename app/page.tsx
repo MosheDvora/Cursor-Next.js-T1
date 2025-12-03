@@ -374,10 +374,11 @@ export default function Home() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
+                data-testid="font-size-decrease-button"
               >
                 <Minus className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium min-w-[2rem] text-center">
+              <span className="text-sm font-medium min-w-[2rem] text-center" data-testid="font-size-display">
                 {appearanceSettings.fontSize}px
               </span>
               <Button
@@ -386,6 +387,7 @@ export default function Home() {
                 variant="outline"
                 size="icon"
                 className="h-8 w-8"
+                data-testid="font-size-increase-button"
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -405,7 +407,7 @@ export default function Home() {
                 setNavigationMode(value);
               }}
             >
-              <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl">
+              <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl" data-testid="navigation-mode-select">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -425,6 +427,7 @@ export default function Home() {
               className="gap-2 min-w-[120px]"
               variant={isEditing ? "default" : "secondary"}
               size="lg"
+              data-testid="edit-toggle-button"
             >
               {isEditing ? (
                 <>
@@ -444,6 +447,7 @@ export default function Home() {
               className="gap-2 min-w-[180px]"
               variant={isSyllablesActive ? "secondary" : "default"}
               size="lg"
+              data-testid="syllables-toggle-button"
             >
               {isSyllablesLoading ? (
                 <>
@@ -463,6 +467,7 @@ export default function Home() {
               className="gap-2 min-w-[120px]"
               variant="destructive"
               size="lg"
+              data-testid="clear-button"
             >
               <Trash2 className="h-4 w-4" />
               <span>ניקוי</span>
@@ -476,6 +481,7 @@ export default function Home() {
                     size="sm"
                     onClick={() => switchToOriginal()}
                     className="h-8 px-3 text-xs"
+                    data-testid="niqqud-partial-button"
                   >
                     ניקוד חלקי
                   </Button>
@@ -484,6 +490,7 @@ export default function Home() {
                     size="sm"
                     onClick={() => completeNiqqud()}
                     className="h-8 px-3 text-xs"
+                    data-testid="niqqud-full-button"
                   >
                     ניקוד מלא
                   </Button>
@@ -495,6 +502,7 @@ export default function Home() {
                   className="gap-2 min-w-[140px]"
                   variant={hasNiqqud ? "secondary" : "default"}
                   size="lg"
+                  data-testid="niqqud-toggle-button"
                 >
                   {isLoading ? (
                     <>
@@ -516,6 +524,7 @@ export default function Home() {
                 className="gap-2 min-w-[160px]"
                 variant={hasNiqqud ? "secondary" : "default"}
                 size="lg"
+                data-testid="niqqud-toggle-button"
               >
                 {isLoading ? (
                   <>
@@ -533,7 +542,7 @@ export default function Home() {
           </div>
 
           {/* Main text input area - unified display */}
-          <div className="w-full">
+          <div className="w-full" data-testid="text-display-area">
             <EditableSyllablesTextarea
               text={localText}
               onChange={handleTextChange}
