@@ -542,7 +542,7 @@ export default function Home() {
           </div>
 
           {/* Main text input area - unified display */}
-          <div className="w-full" data-testid="text-display-area">
+          <div className="w-full">
             <EditableSyllablesTextarea
               text={localText}
               onChange={handleTextChange}
