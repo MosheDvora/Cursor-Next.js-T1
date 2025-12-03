@@ -15,7 +15,6 @@ import {
   detectNiqqud,
   hasNiqqud,
   isFullyNiqqud,
-  type NiqqudStatus,
 } from '../niqqud'
 
 describe('niqqud utilities', () => {

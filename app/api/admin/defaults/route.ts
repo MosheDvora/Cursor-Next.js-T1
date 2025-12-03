@@ -13,7 +13,7 @@ import { AppSettings } from "@/lib/settings";
  * - Admins: Get full defaults (for editing)
  * - Non-admins: Get defaults for use as fallback values (read-only)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check if user is admin
     const admin = await isAdmin();

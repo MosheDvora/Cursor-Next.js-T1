@@ -13,7 +13,6 @@
  */
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, Save, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -55,7 +54,6 @@ import {
 } from "@/lib/settings";
 
 export default function AdminDefaultsPage() {
-  const router = useRouter();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
