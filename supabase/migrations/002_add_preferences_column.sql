@@ -24,3 +24,4 @@ SET preferences = '{}'::jsonb
 WHERE preferences IS NULL;
 
 
+

@@ -13,3 +13,4 @@ SET is_admin = false
 WHERE is_admin IS NULL;
 
 
+
