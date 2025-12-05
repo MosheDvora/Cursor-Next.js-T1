@@ -167,5 +167,60 @@ test.describe('Text without niqqud roundtrip', () => {
     
     // Verify button text changed back to "Add Niqqud"
     await expect(niqqudButton).toContainText('הוספת ניקוד');
+
+    // Step 13: Add niqqud again and verify it comes from cache (not a new API call)
+    // Reset API call tracking for the second add operation
+    const apiCallCountBeforeSecondAdd = apiCallCount;
+    apiCallMade = false;
+
+    // Step 14: Click "Add Niqqud" button again and measure time
+    // This should use the cached full niqqud version, not call the API
+    await expect(niqqudButton).toContainText('הוספת ניקוד');
+    
+    // Start timing before clicking
+    const startTimeSecondAdd = Date.now();
+    await niqqudButton.click();
+
+    // Step 15: Wait for niqqud to be added (should be fast since it's from cache)
+    // Wait for button to change to "Remove Niqqud" - this indicates cache was used
+    await page.waitForFunction(() => {
+      const button = document.querySelector('[data-testid="niqqud-toggle-button"]');
+      if (!button) return false;
+      const text = button.textContent || '';
+      // Button should show "Remove Niqqud" (הסרת ניקוד) when niqqud is present
+      return text.includes('הסרת ניקוד');
+    }, { timeout: 5000 }); // Cache should be instant, but allow up to 5 seconds
+    
+    // Measure time after update
+    const endTimeSecondAdd = Date.now();
+    const secondAddTime = endTimeSecondAdd - startTimeSecondAdd;
+
+    // Step 16: Verify niqqud was added again
+    const textWithNiqqudAgain = await getTextContent();
+    
+    // Verify text contains niqqud marks again
+    const hasNiqqudMarksAgain = /[\u0591-\u05C7]/.test(textWithNiqqudAgain);
+    expect(hasNiqqudMarksAgain, 'Text should contain niqqud marks after adding niqqud again').toBe(true);
+    
+    // Verify text is not identical to the original plain text
+    expect(textWithNiqqudAgain, 'Text with niqqud should be different from original').not.toBe(originalText);
+
+    // Step 17: Verify that the niqqud came from memory (no new API call + fast execution)
+    // Wait a bit to ensure no additional API calls are made
+    await page.waitForTimeout(1000);
+    
+    expect(
+      apiCallCount,
+      'No new API call should be made when adding niqqud again (should use cache)'
+    ).toBe(apiCallCountBeforeSecondAdd);
+    
+    // Verify second add was fast (cache access should be < 2 seconds, API calls take 5-30+ seconds)
+    expect(
+      secondAddTime,
+      `Adding niqqud from cache should be fast (< 2000ms), but took ${secondAddTime}ms. If it took longer, it might have called the API instead of using cache.`
+    ).toBeLessThan(2000);
+    
+    // Verify button text changed to "Remove Niqqud"
+    await expect(niqqudButton).toContainText('הסרת ניקוד');
   });
 });
