@@ -115,12 +115,27 @@ test.describe('Text without niqqud roundtrip', () => {
     const apiCallCountBeforeRemove = apiCallCount;
     apiCallMade = false;
 
-    // Step 9: Click the "Remove Niqqud" button
+    // Step 9: Click the "Remove Niqqud" button and measure time
+    // This verifies that removal from cache is fast (milliseconds) vs API call (seconds)
     await expect(niqqudButton).toContainText('הסרת ניקוד');
+    
+    // Start timing before clicking
+    const startTime = Date.now();
     await niqqudButton.click();
 
     // Step 10: Wait for the text to be updated (should be fast since it's from cache)
-    await page.waitForTimeout(500); // Small delay for state update
+    // Wait for button to change back to "Add Niqqud" - this indicates cache was used
+    await page.waitForFunction(() => {
+      const button = document.querySelector('[data-testid="niqqud-toggle-button"]');
+      if (!button) return false;
+      const text = button.textContent || '';
+      // Button should show "Add Niqqud" (הוספת ניקוד) when niqqud is removed
+      return text.includes('הוספת ניקוד');
+    }, { timeout: 5000 }); // Cache should be instant, but allow up to 5 seconds
+    
+    // Measure time after update
+    const endTime = Date.now();
+    const removalTime = endTime - startTime;
 
     // Step 11: Verify the text is again without niqqud
     const textWithoutNiqqud = await getTextContent();
@@ -135,7 +150,7 @@ test.describe('Text without niqqud roundtrip', () => {
       'Text after removing niqqud should match original text'
     ).toBe(originalTextNormalized.trim());
 
-    // Step 12: Verify that the text came from memory (no new API call)
+    // Step 12: Verify that the text came from memory (no new API call + fast execution)
     // Wait a bit to ensure no additional API calls are made
     await page.waitForTimeout(1000);
     
@@ -143,6 +158,12 @@ test.describe('Text without niqqud roundtrip', () => {
       apiCallCount,
       'No new API call should be made when removing niqqud (should use cache)'
     ).toBe(apiCallCountBeforeRemove);
+    
+    // Verify removal was fast (cache access should be < 2 seconds, API calls take 5-30+ seconds)
+    expect(
+      removalTime,
+      `Removing niqqud from cache should be fast (< 2000ms), but took ${removalTime}ms. If it took longer, it might have called the API instead of using cache.`
+    ).toBeLessThan(2000);
     
     // Verify button text changed back to "Add Niqqud"
     await expect(niqqudButton).toContainText('הוספת ניקוד');
