@@ -10,6 +10,7 @@
  * - Text correctly displays with niqqud after API call
  * - Removing niqqud uses cached version (no new API call)
  * - Final text matches original plain text
+ * - Text is saved to localStorage at each step
  */
 
 import { test, expect } from '@playwright/test';
@@ -55,6 +56,16 @@ test.describe('Text without niqqud roundtrip', () => {
     
     // Verify the text was entered correctly
     await expect(textarea).toHaveValue(originalText);
+
+    // Verify text is saved to localStorage after typing
+    await page.waitForTimeout(100); // Small delay for localStorage save
+    const localStorageTextAfterTyping = await page.evaluate(() => {
+      return localStorage.getItem('main_text_field');
+    });
+    expect(
+      localStorageTextAfterTyping,
+      'Text should be saved to localStorage after typing'
+    ).toBe(originalText);
 
     // Step 4: Click the "Add Niqqud" button
     const niqqudButton = page.getByTestId('niqqud-toggle-button');
@@ -111,6 +122,16 @@ test.describe('Text without niqqud roundtrip', () => {
     const hasNiqqudMarks = /[\u0591-\u05C7]/.test(textWithNiqqud);
     expect(hasNiqqudMarks, 'Text should contain niqqud marks after adding niqqud').toBe(true);
 
+    // Verify text with niqqud is saved to localStorage
+    await page.waitForTimeout(100); // Small delay for localStorage save
+    const localStorageTextWithNiqqud = await page.evaluate(() => {
+      return localStorage.getItem('main_text_field');
+    });
+    expect(
+      localStorageTextWithNiqqud,
+      'Text with niqqud should be saved to localStorage after adding niqqud'
+    ).toBe(textWithNiqqud);
+
     // Step 8: Reset API call tracking for the remove operation
     const apiCallCountBeforeRemove = apiCallCount;
     apiCallMade = false;
@@ -149,6 +170,16 @@ test.describe('Text without niqqud roundtrip', () => {
       textWithoutNiqqudNormalized.trim(),
       'Text after removing niqqud should match original text'
     ).toBe(originalTextNormalized.trim());
+
+    // Verify text without niqqud is saved to localStorage
+    await page.waitForTimeout(100); // Small delay for localStorage save
+    const localStorageTextWithoutNiqqud = await page.evaluate(() => {
+      return localStorage.getItem('main_text_field');
+    });
+    expect(
+      localStorageTextWithoutNiqqud,
+      'Text without niqqud should be saved to localStorage after removing niqqud'
+    ).toBe(textWithoutNiqqud);
 
     // Step 12: Verify that the text came from memory (no new API call + fast execution)
     // Wait a bit to ensure no additional API calls are made
@@ -204,6 +235,16 @@ test.describe('Text without niqqud roundtrip', () => {
     
     // Verify text is not identical to the original plain text
     expect(textWithNiqqudAgain, 'Text with niqqud should be different from original').not.toBe(originalText);
+
+    // Verify text with niqqud is saved to localStorage again
+    await page.waitForTimeout(100); // Small delay for localStorage save
+    const localStorageTextWithNiqqudAgain = await page.evaluate(() => {
+      return localStorage.getItem('main_text_field');
+    });
+    expect(
+      localStorageTextWithNiqqudAgain,
+      'Text with niqqud should be saved to localStorage after adding niqqud again'
+    ).toBe(textWithNiqqudAgain);
 
     // Step 17: Verify that the niqqud came from memory (no new API call + fast execution)
     // Wait a bit to ensure no additional API calls are made
