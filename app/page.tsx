@@ -201,6 +201,7 @@ export default function Home() {
 
     // Clear localStorage
     localStorage.removeItem(MAIN_TEXT_STORAGE_KEY);
+    localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_RAW_RESPONSE);
 
     // Clear niqqud cache and state
     clearNiqqud();
