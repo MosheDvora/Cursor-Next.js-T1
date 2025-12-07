@@ -44,7 +44,7 @@ export function useSyllables(initialText: string = "") {
       const cached = loadSyllablesFromCache(initialText);
       if (cached) {
         setSyllablesData(cached);
-        // Don't auto-activate, let user toggle
+        // Don't auto-activate - user must click button to activate
       }
     } else {
       setSyllablesData(null);
@@ -141,21 +141,6 @@ export function useSyllables(initialText: string = "") {
     }
   }, [initialText]);
 
-  // Toggle syllables display
-  const toggleSyllables = useCallback(async () => {
-    if (isActive) {
-      // Deactivate
-      setIsActive(false);
-    } else {
-      // Activate - divide if needed
-      if (!syllablesData) {
-        await divideSyllables();
-      } else {
-        setIsActive(true);
-      }
-    }
-  }, [isActive, syllablesData, divideSyllables]);
-
   // Clear syllables data
   const clearSyllables = useCallback(() => {
     if (initialText) {
@@ -169,16 +154,13 @@ export function useSyllables(initialText: string = "") {
     setRawResponse(null);
   }, [initialText]);
 
-  // Get button text based on status
+  // Get button text - always returns action text (not toggle)
   const getButtonText = useCallback(() => {
     if (isLoading) {
       return "מעבד...";
     }
-    if (isActive) {
-      return "הסתר חלוקה להברות";
-    }
     return "חלוקה להברות";
-  }, [isActive, isLoading]);
+  }, [isLoading]);
 
   return {
     syllablesData,
@@ -187,7 +169,6 @@ export function useSyllables(initialText: string = "") {
     error,
     rawResponse,
     getButtonText,
-    toggleSyllables,
     divideSyllables,
     clearSyllables,
     clearError: () => setError(null),

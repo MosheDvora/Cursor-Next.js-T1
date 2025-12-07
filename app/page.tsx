@@ -66,13 +66,13 @@ export default function Home() {
     error: syllablesError,
     rawResponse: syllablesRawResponse,
     getButtonText: getSyllablesButtonText,
-    toggleSyllables,
+    divideSyllables,
     clearSyllables,
     clearError: clearSyllablesError,
   } = useSyllables(localText);
   const { toast } = useToast();
   const prevHasNiqqudRef = useRef(hasNiqqud);
-  const prevIsSyllablesActiveRef = useRef(isSyllablesActive);
+  const prevIsSyllablesLoadingRef = useRef(isSyllablesLoading);
 
   // Mark component as mounted (client-side only)
   useEffect(() => {
@@ -167,12 +167,16 @@ export default function Home() {
     }
   };
 
-  const handleToggleSyllables = async () => {
+  /**
+   * Handler for dividing text into syllables
+   * Calls the API to process the text and always shows the result after successful division
+   */
+  const handleDivideSyllables = async () => {
     clearSyllablesError();
 
     try {
-      await toggleSyllables();
-      // Don't show toast here - let the useEffect handle it based on actual state changes
+      await divideSyllables();
+      // Toast will be shown by useEffect when division completes successfully
     } catch (err) {
       toast({
         title: "שגיאה",
@@ -265,30 +269,27 @@ export default function Home() {
     }
   }, [hasNiqqud, isLoading, error, toast]);
 
-  // Show success toast for syllables when state changes
+  // Show success toast for syllables when division completes successfully
+  // Only show toast when loading transitions from true to false (division completed)
   useEffect(() => {
+    // Check if loading just finished (was loading, now not loading)
+    const justFinishedLoading = prevIsSyllablesLoadingRef.current && !isSyllablesLoading;
+    
     if (
-      prevIsSyllablesActiveRef.current !== isSyllablesActive &&
-      !isSyllablesLoading &&
-      !syllablesError
+      justFinishedLoading &&
+      isSyllablesActive &&
+      !syllablesError &&
+      syllablesData
     ) {
-      if (isSyllablesActive) {
-        toast({
-          title: "חלוקה להברות",
-          description: "הטקסט חולק להברות בהצלחה",
-        });
-      } else {
-        toast({
-          title: "חלוקה להברות הוסתרה",
-          description: "החלוקה להברות הוסתרה",
-        });
-      }
+      toast({
+        title: "חלוקה להברות",
+        description: "הטקסט חולק להברות בהצלחה",
+      });
     }
 
-    if (!isSyllablesLoading) {
-      prevIsSyllablesActiveRef.current = isSyllablesActive;
-    }
-  }, [isSyllablesActive, isSyllablesLoading, syllablesError, toast]);
+    // Update ref to current loading state
+    prevIsSyllablesLoadingRef.current = isSyllablesLoading;
+  }, [isSyllablesActive, isSyllablesLoading, syllablesError, syllablesData, toast]);
 
   // Show error toast when error occurs
   useEffect(() => {
@@ -443,12 +444,12 @@ export default function Home() {
               )}
             </Button>
             <Button
-              onClick={handleToggleSyllables}
+              onClick={handleDivideSyllables}
               disabled={isSyllablesLoading || !localText.trim()}
               className="gap-2 min-w-[180px]"
-              variant={isSyllablesActive ? "secondary" : "default"}
+              variant="default"
               size="lg"
-              data-testid="syllables-toggle-button"
+              data-testid="syllables-divide-button"
             >
               {isSyllablesLoading ? (
                 <>
