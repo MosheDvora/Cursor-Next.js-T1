@@ -425,11 +425,23 @@ export function useNiqqud(initialText: string = "") {
   }, [cache]);
 
   // Switch to original text
+  // Important: Only set targetState to 'original' if original has niqqud
+  // If original has no niqqud but cache.full exists, keep targetState as 'full'
+  // This ensures the toggle button remains functional after model operations
   const switchToOriginal = useCallback(() => {
     if (cache && cache.original) {
       setText(cache.original);
       setDisplayMode('original');
-      setTargetState('original');
+      // Only set targetState to 'original' if original has niqqud
+      // If original has no niqqud but we have full niqqud from model, keep targetState as 'full'
+      const originalHasNiqqud = detectNiqqud(cache.original) !== 'none';
+      if (originalHasNiqqud) {
+        setTargetState('original');
+      } else if (cache.full) {
+        // Original has no niqqud, but we have full niqqud from model
+        // Keep targetState as 'full' so the toggle button can work
+        setTargetState('full');
+      }
       // Save this as the last display state
       setLastDisplayState('original');
     }
