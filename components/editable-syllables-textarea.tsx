@@ -889,7 +889,7 @@ export function EditableSyllablesTextarea({
                               backgroundColor: isCurrentLetter ? LETTER_HIGHLIGHT_COLOR : undefined,
                               outline: "none",
                             }}
-                            data-testid={isCurrentLetter ? "navigation-current-letter" : `navigation-letter-${wordIdx}-${letterPos.syllableIdx}-${letterPos.letterIdx}`}
+                            data-testid={isCurrentLetter ? "navigation-current-letter" : `navigation-letter-${wordIdx}-${letterPos?.syllableIdx ?? groupIdx}-${letterPos?.letterIdx ?? 0}`}
                           >
                             {group.text} {/* group.text contains both letter and niqqud */}
                           </span>

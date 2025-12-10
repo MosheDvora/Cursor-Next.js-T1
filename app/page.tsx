@@ -17,6 +17,7 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
 import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
+import { detectNiqqud } from "@/lib/niqqud";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -45,9 +46,12 @@ export default function Home() {
     text: niqqudText,
     setText: setNiqqudText,
     hasNiqqud,
-    niqqudStatus,
+    niqqudStatus: _niqqudStatus, // Prefixed with underscore - available for future use
     originalStatus,
     targetState,
+    displayMode,
+    lastDisplayState,
+    setLastDisplayState,
     isLoading,
     error,
     getButtonText,
@@ -55,6 +59,9 @@ export default function Home() {
     addNiqqud,
     completeNiqqud,
     switchToOriginal,
+    switchToClean,
+    switchToFull,
+    restoreLastDisplayState: _restoreLastDisplayState, // Prefixed with underscore - available for future use
     clearNiqqud,
     clearError,
   } = useNiqqud(localText);
@@ -142,9 +149,26 @@ export default function Home() {
     }
   }, [syllablesRawResponse]);
 
+  /**
+   * Handler for text input changes (typing or pasting)
+   * Sets the lastDisplayState based on the niqqud status of the entered text
+   * This ensures the display mode is preserved correctly during model operations
+   */
   const handleTextChange = (newText: string) => {
     setLocalText(newText);
     setNiqqudText(newText);
+    
+    // Set lastDisplayState on first text entry (when it's null)
+    // This captures the initial state of the text as entered by the user
+    if (!lastDisplayState && newText.trim().length > 0) {
+      const textNiqqudStatus = detectNiqqud(newText);
+      // Map niqqud status to display mode:
+      // - 'full' text → 'full' display mode
+      // - 'partial' or 'none' → 'original' display mode (the text as entered)
+      const initialDisplayMode = textNiqqudStatus === 'full' ? 'full' : 'original';
+      setLastDisplayState(initialDisplayMode);
+      console.log("[handleTextChange] Set initial lastDisplayState:", initialDisplayMode, "based on niqqud status:", textNiqqudStatus);
+    }
   };
 
   const handleToggleNiqqud = async () => {
@@ -171,6 +195,7 @@ export default function Home() {
    * If text has no niqqud or partial niqqud, first adds complete niqqud, then divides into syllables
    * Calls the API to process the text and always shows the result after successful division
    * Checks for existing syllablesData and cache before calling the model to avoid duplicate API calls
+   * After completion, restores the text display to the state it was before clicking the button
    */
   const handleDivideSyllables = async () => {
     clearSyllablesError();
@@ -183,6 +208,11 @@ export default function Home() {
         console.log("[handleDivideSyllables] Syllables data already exists, skipping API call");
         return;
       }
+
+      // Save the current display mode before any model operations
+      // This will be restored after syllable division completes
+      const savedDisplayMode = displayMode;
+      console.log("[handleDivideSyllables] Saving current display mode:", savedDisplayMode);
 
       // Check if text needs niqqud first
       // If originalStatus is "none" or "partial", add complete niqqud before dividing
@@ -214,6 +244,21 @@ export default function Home() {
       // The useSyllables hook uses localText as initialText, which should now be updated with niqqud
       // The divideSyllables function will check cache before calling the API
       await divideSyllables();
+
+      // After syllable division completes, restore the text display to the saved state
+      // Wait a bit for the division to complete and state to update
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      
+      // Restore the display mode that was saved before the operation
+      console.log("[handleDivideSyllables] Restoring display mode to:", savedDisplayMode);
+      if (savedDisplayMode === 'original') {
+        switchToOriginal();
+      } else if (savedDisplayMode === 'clean') {
+        switchToClean();
+      } else if (savedDisplayMode === 'full') {
+        switchToFull();
+      }
+
       // Toast will be shown by useEffect when division completes successfully
     } catch (err) {
       toast({
@@ -440,8 +485,8 @@ export default function Home() {
             <Select
               value={navigationMode}
               onValueChange={(value: "words" | "syllables" | "letters") => {
-                // Prevent selecting "syllables" if syllables are not active
-                if (value === "syllables" && !isSyllablesActive) {
+                // Prevent selecting "syllables" if syllables data doesn't exist
+                if (value === "syllables" && !syllablesData) {
                   return;
                 }
                 setNavigationMode(value);
@@ -452,7 +497,7 @@ export default function Home() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="words" className="text-right">מילים</SelectItem>
-                {isSyllablesActive && (
+                {syllablesData && (
                   <SelectItem value="syllables" className="text-right">הברות</SelectItem>
                 )}
                 <SelectItem value="letters" className="text-right">אותיות</SelectItem>

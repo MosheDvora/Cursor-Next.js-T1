@@ -307,8 +307,16 @@ export function useNiqqud(initialText: string = "") {
         setLastDisplayState('full');
       }
 
-      // Update text to niqqud version and set display mode
-      setText(result.niqqudText);
+      // Set text based on the target display mode
+      // If original was clean text, keep showing clean; if full, show niqqud
+      // This preserves the user's display preference after model operations
+      if (newDisplayMode === 'original') {
+        setText(newCache.original);
+      } else if (newDisplayMode === 'clean') {
+        setText(newCache.clean);
+      } else {
+        setText(result.niqqudText);
+      }
       setDisplayMode(newDisplayMode);
       setTargetState('full');
       setIsLoading(false);
@@ -434,7 +442,16 @@ export function useNiqqud(initialText: string = "") {
         setLastDisplayState('full');
       }
 
-      setText(result.niqqudText);
+      // Set text based on the target display mode
+      // If original was clean or partial, keep showing that; if full, show niqqud
+      // This preserves the user's display preference after model operations
+      if (newDisplayMode === 'original') {
+        setText(newCache.original);
+      } else if (newDisplayMode === 'clean') {
+        setText(newCache.clean);
+      } else {
+        setText(result.niqqudText);
+      }
       setDisplayMode(newDisplayMode);
       setTargetState('full');
       setIsLoading(false);
@@ -556,6 +573,7 @@ export function useNiqqud(initialText: string = "") {
     displayMode,
     targetState,
     lastDisplayState,
+    setLastDisplayState, // Exposed to allow setting initial display state when text is first entered
     isLoading,
     error,
     getButtonText,

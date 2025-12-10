@@ -39,15 +39,24 @@ export function useSyllables(initialText: string = "") {
   }, []); // Only on mount
 
   // Update when initialText changes externally (user typing/pasting)
+  // Also handles niqqud mode changes - syllables should persist regardless of display mode
   useEffect(() => {
     if (initialText !== previousTextRef.current) {
       previousTextRef.current = initialText;
       // Clear syllables data if text changed significantly
+      // Check both the exact text AND the text without niqqud (since syllable division
+      // should be the same for the same word regardless of niqqud display mode)
       if (syllablesData) {
         const cached = loadSyllablesFromCache(initialText);
         if (!cached) {
-          setSyllablesData(null);
-          setIsActive(false);
+          // Also check cache without niqqud - syllables should persist when switching
+          // between niqqud/clean display modes
+          const textWithoutNiqqud = removeNiqqud(initialText);
+          const cachedClean = loadSyllablesFromCache(textWithoutNiqqud);
+          if (!cachedClean) {
+            setSyllablesData(null);
+            setIsActive(false);
+          }
         }
       }
     }
