@@ -225,20 +225,18 @@ export function useNiqqud(initialText: string = "") {
   // Get button text based on status
   // Logic:
   // - If current text has niqqud → "הסרת ניקוד" (remove niqqud)
-  // - If current text has no niqqud AND we have full niqqud in cache → "הוספת ניקוד" (show cached niqqud)
-  // - If current text has no niqqud AND no cache.full → based on targetState
+  // - If current text has no niqqud → respect targetState (toggle position):
+  //   - If toggle is on "ניקוד חלקי" (targetState === 'original') → "החזרת ניקוד" (restore original partial)
+  //   - If toggle is on "ניקוד מלא" (targetState === 'full') → "הוספת ניקוד" (add full niqqud)
   const getButtonText = useCallback(() => {
     if (hasNiqqud) {
       return "הסרת ניקוד";
     }
-    // If we have full niqqud in cache (from model), always show "הוספת ניקוד"
-    // This provides consistent UX - user sees "add niqqud" when text is without niqqud
-    if (cache && cache.full) {
-      return "הוספת ניקוד";
-    }
-    // Otherwise, show based on targetState (for partial niqqud scenarios)
+    // Respect the toggle state (ניקוד חלקי/ניקוד מלא)
+    // If toggle is on "ניקוד חלקי", show "החזרת ניקוד" (restore original partial)
+    // If toggle is on "ניקוד מלא", show "הוספת ניקוד" (add full niqqud)
     return targetState === 'full' ? "הוספת ניקוד" : "החזרת ניקוד";
-  }, [hasNiqqud, targetState, cache]);
+  }, [hasNiqqud, targetState]);
 
   // Add niqqud to text (for text with no niqqud)
   const addNiqqud = useCallback(async () => {
@@ -505,26 +503,30 @@ export function useNiqqud(initialText: string = "") {
         // Don't change targetState - preserve toggle state
       }
     } else {
-      // If text has no niqqud, check what we can restore
-      // If cache.full exists, show it regardless of targetState
-      // This fixes the bug where targetState is 'original' but cache.full exists
-      if (cache && cache.full) {
-        // Use cached full niqqud, but don't change targetState
-        // This preserves the toggle state (ניקוד חלקי/ניקוד מלא)
-        setText(cache.full);
-        setDisplayMode('full');
-        setLastDisplayState('full');
-        // Don't change targetState - preserve toggle state
-      } else if (targetState === 'original' && cache && cache.original) {
-        // Only switch to original if no cache.full exists and targetState is original
-        // This handles partial niqqud cases
+      // If text has no niqqud, check what we can restore based on targetState
+      // Respect the toggle state (ניקוד חלקי/ניקוד מלא) - show original if toggle is on "ניקוד חלקי"
+      if (targetState === 'original' && cache && cache.original) {
+        // If toggle is on "ניקוד חלקי", restore the original partial niqqud
         // Don't change targetState - preserve toggle state
         setText(cache.original);
         setDisplayMode('original');
         setLastDisplayState('original');
         // targetState remains 'original' - no change needed
+      } else if (targetState === 'full' && cache && cache.full) {
+        // If toggle is on "ניקוד מלא", restore the full niqqud
+        // Don't change targetState - preserve toggle state
+        setText(cache.full);
+        setDisplayMode('full');
+        setLastDisplayState('full');
+        // targetState remains 'full' - no change needed
+      } else if (cache && cache.full) {
+        // Fallback: if targetState is 'full' but we only check cache.full existence
+        // (for backward compatibility, but should be handled by above condition)
+        setText(cache.full);
+        setDisplayMode('full');
+        setLastDisplayState('full');
       }
-      // If no cache.full and targetState is not 'original', do nothing - button will be disabled
+      // If no matching cache exists, do nothing - button will be disabled
     }
   }, [hasNiqqud, targetState, cache, text]);
 

@@ -574,7 +574,14 @@ export default function Home() {
 
                 <Button
                   onClick={handleToggleNiqqud}
-                  disabled={isLoading || !localText.trim() || (!hasNiqqud && !(cache && cache.full) && !(targetState === 'original' && cache && cache.original && detectNiqqud(cache.original) !== 'none'))}
+                  disabled={
+                    isLoading || 
+                    !localText.trim() || 
+                    (!hasNiqqud && (
+                      (targetState === 'original' && !(cache && cache.original && detectNiqqud(cache.original) !== 'none')) ||
+                      (targetState === 'full' && !(cache && cache.full))
+                    ))
+                  }
                   className="gap-2 min-w-[140px]"
                   variant={hasNiqqud ? "secondary" : "default"}
                   size="lg"
@@ -596,7 +603,14 @@ export default function Home() {
             ) : (
               <Button
                 onClick={handleToggleNiqqud}
-                disabled={isLoading || !localText.trim() || (!hasNiqqud && !(cache && cache.full) && !(targetState === 'original' && cache && cache.original && detectNiqqud(cache.original) !== 'none'))}
+                disabled={
+                  isLoading || 
+                  !localText.trim() || 
+                  (!hasNiqqud && (
+                    (targetState === 'original' && !(cache && cache.original && detectNiqqud(cache.original) !== 'none')) ||
+                    (targetState === 'full' && !(cache && cache.full))
+                  ))
+                }
                 className="gap-2 min-w-[160px]"
                 variant={hasNiqqud ? "secondary" : "default"}
                 size="lg"
