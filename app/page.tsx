@@ -17,7 +17,6 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
 import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
-import { detectNiqqud } from "@/lib/niqqud";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -50,8 +49,8 @@ export default function Home() {
     originalStatus,
     targetState,
     displayMode,
-    lastDisplayState,
-    setLastDisplayState,
+    lastDisplayState: _lastDisplayState, // Prefixed with underscore - available for future use
+    setLastDisplayState: _setLastDisplayState, // Prefixed with underscore - available for future use
     isLoading,
     error,
     getButtonText,
@@ -151,24 +150,14 @@ export default function Home() {
 
   /**
    * Handler for text input changes (typing or pasting)
-   * Sets the lastDisplayState based on the niqqud status of the entered text
-   * This ensures the display mode is preserved correctly during model operations
+   * Updates both localText and niqqudText states
+   * The useNiqqud hook handles cache creation and lastDisplayState setting
    */
   const handleTextChange = (newText: string) => {
     setLocalText(newText);
     setNiqqudText(newText);
-    
-    // Set lastDisplayState on first text entry (when it's null)
-    // This captures the initial state of the text as entered by the user
-    if (!lastDisplayState && newText.trim().length > 0) {
-      const textNiqqudStatus = detectNiqqud(newText);
-      // Map niqqud status to display mode:
-      // - 'full' text → 'full' display mode
-      // - 'partial' or 'none' → 'original' display mode (the text as entered)
-      const initialDisplayMode = textNiqqudStatus === 'full' ? 'full' : 'original';
-      setLastDisplayState(initialDisplayMode);
-      console.log("[handleTextChange] Set initial lastDisplayState:", initialDisplayMode, "based on niqqud status:", textNiqqudStatus);
-    }
+    // Note: Cache and lastDisplayState are now handled by useNiqqud hook
+    // when initialText changes, ensuring consistent behavior
   };
 
   const handleToggleNiqqud = async () => {

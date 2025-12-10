@@ -91,6 +91,8 @@ export function useNiqqud(initialText: string = "") {
   }, []); // Only on mount
 
   // Update when initialText changes externally (user typing/pasting)
+  // Creates cache for ALL text types (with full niqqud, partial niqqud, or no niqqud)
+  // This ensures consistent behavior and localStorage persistence
   useEffect(() => {
     if (initialText !== previousTextRef.current) {
       setText(initialText);
@@ -99,7 +101,12 @@ export function useNiqqud(initialText: string = "") {
       const currentStatus = detectNiqqud(initialText);
       const normalizedInitial = initialText.trim();
 
-      // If input has full niqqud, cache it immediately
+      // Skip empty text
+      if (!normalizedInitial) {
+        return;
+      }
+
+      // If input has full niqqud, cache it immediately with full version
       if (currentStatus === 'full') {
         // If we already have this full text cached, don't overwrite original
         // This preserves 'partial' status when syncing back from completion
@@ -115,6 +122,10 @@ export function useNiqqud(initialText: string = "") {
           });
           setDisplayMode('full');
           setTargetState('full');
+          // Set lastDisplayState to 'full' for text with full niqqud
+          if (!lastDisplayState) {
+            setLastDisplayState('full');
+          }
         }
       }
       // If we have cache, check if we should clear it or keep it
@@ -123,25 +134,47 @@ export function useNiqqud(initialText: string = "") {
         const normalizedClean = cache.clean.trim();
         const normalizedFull = cache.full?.trim() || "";
 
-        // Only clear cache if the new text doesn't match any cached version
+        // Only create new cache if the new text doesn't match any cached version
         if (
           normalizedInitial !== normalizedOriginal &&
           normalizedInitial !== normalizedClean &&
           normalizedInitial !== normalizedFull
         ) {
-          setCache(null);
+          // Create new cache for text without full niqqud (partial or none)
+          // full is set to null - will be populated when user requests niqqud from model
+          const cleanText = removeNiqqud(initialText);
+          setCache({
+            original: initialText,
+            clean: cleanText,
+            full: null  // Will be set when model returns full niqqud
+          });
           setDisplayMode('original');
           // If text is clean, we want to add niqqud (full). If partial, restore original.
           setTargetState(currentStatus === 'none' ? 'full' : 'original');
+          // Set lastDisplayState to 'original' for text without full niqqud
+          if (!lastDisplayState) {
+            setLastDisplayState('original');
+          }
         }
       } else {
-        // No cache and not full niqqud - reset
+        // No cache - create cache for text without full niqqud (partial or none)
+        // full is set to null - will be populated when user requests niqqud from model
+        const cleanText = removeNiqqud(initialText);
+        setCache({
+          original: initialText,
+          clean: cleanText,
+          full: null  // Will be set when model returns full niqqud
+        });
         setDisplayMode('original');
         // If text is clean, we want to add niqqud (full). If partial, restore original.
         setTargetState(currentStatus === 'none' ? 'full' : 'original');
+        // Set lastDisplayState to 'original' for text without full niqqud
+        if (!lastDisplayState) {
+          setLastDisplayState('original');
+        }
       }
     }
-  }, [initialText, cache]);
+  }, [initialText, cache, lastDisplayState]);
 
   // Save cache to localStorage whenever it changes
   useEffect(() => {
@@ -190,13 +223,22 @@ export function useNiqqud(initialText: string = "") {
   const originalStatus = cache ? detectNiqqud(cache.original) : niqqudStatus;
 
   // Get button text based on status
+  // Logic:
+  // - If current text has niqqud → "הסרת ניקוד" (remove niqqud)
+  // - If current text has no niqqud AND we have full niqqud in cache → "הוספת ניקוד" (show cached niqqud)
+  // - If current text has no niqqud AND no cache.full → based on targetState
   const getButtonText = useCallback(() => {
     if (hasNiqqud) {
       return "הסרת ניקוד";
     }
-    // If clean, button should indicate restoring to target state
+    // If we have full niqqud in cache (from model), always show "הוספת ניקוד"
+    // This provides consistent UX - user sees "add niqqud" when text is without niqqud
+    if (cache && cache.full) {
+      return "הוספת ניקוד";
+    }
+    // Otherwise, show based on targetState (for partial niqqud scenarios)
     return targetState === 'full' ? "הוספת ניקוד" : "החזרת ניקוד";
-  }, [hasNiqqud, targetState]);
+  }, [hasNiqqud, targetState, cache]);
 
   // Add niqqud to text (for text with no niqqud)
   const addNiqqud = useCallback(async () => {
