@@ -17,6 +17,7 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
 import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
+import { detectNiqqud } from "@/lib/niqqud";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -51,6 +52,7 @@ export default function Home() {
     displayMode,
     lastDisplayState: _lastDisplayState, // Prefixed with underscore - available for future use
     setLastDisplayState: _setLastDisplayState, // Prefixed with underscore - available for future use
+    cache,
     isLoading,
     error,
     getButtonText,
@@ -205,13 +207,12 @@ export default function Home() {
 
       // Check if text needs niqqud first
       // If originalStatus is "none" or "partial", add complete niqqud before dividing
+      // For "ניקוד והברות" button, we always call addNiqqud() which calls the model
+      // This ensures cache.full is populated for both no-niqqud and partial-niqqud cases
       if (originalStatus === "none" || originalStatus === "partial") {
-        // First, add complete niqqud
-        if (originalStatus === "partial") {
-          await completeNiqqud();
-        } else {
-          await addNiqqud();
-        }
+        // Call addNiqqud() for both cases - it handles both no niqqud and partial niqqud
+        // The model will complete the niqqud in both cases
+        await addNiqqud();
 
         // Check if there was an error adding niqqud
         // Note: We need to wait a bit for the error state to update
@@ -354,7 +355,7 @@ export default function Home() {
       syllablesData
     ) {
       toast({
-        title: "חלוקה להברות",
+        title: "ניקוד והברות",
         description: "הטקסט חולק להברות בהצלחה",
       });
     }
@@ -563,6 +564,7 @@ export default function Home() {
                     variant={targetState === 'full' ? "default" : "ghost"}
                     size="sm"
                     onClick={() => completeNiqqud()}
+                    disabled={!cache || !cache.full}
                     className="h-8 px-3 text-xs"
                     data-testid="niqqud-full-button"
                   >
@@ -572,7 +574,7 @@ export default function Home() {
 
                 <Button
                   onClick={handleToggleNiqqud}
-                  disabled={isLoading || !localText.trim()}
+                  disabled={isLoading || !localText.trim() || (!hasNiqqud && !(cache && cache.full) && !(targetState === 'original' && cache && cache.original && detectNiqqud(cache.original) !== 'none'))}
                   className="gap-2 min-w-[140px]"
                   variant={hasNiqqud ? "secondary" : "default"}
                   size="lg"
@@ -594,7 +596,7 @@ export default function Home() {
             ) : (
               <Button
                 onClick={handleToggleNiqqud}
-                disabled={isLoading || !localText.trim()}
+                disabled={isLoading || !localText.trim() || (!hasNiqqud && !(cache && cache.full) && !(targetState === 'original' && cache && cache.original && detectNiqqud(cache.original) !== 'none'))}
                 className="gap-2 min-w-[160px]"
                 variant={hasNiqqud ? "secondary" : "default"}
                 size="lg"

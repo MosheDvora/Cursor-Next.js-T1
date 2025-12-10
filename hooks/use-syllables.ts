@@ -212,7 +212,7 @@ export function useSyllables(initialText: string = "") {
     if (isLoading) {
       return "מעבד...";
     }
-    return "חלוקה להברות";
+    return "ניקוד והברות";
   }, [isLoading]);
 
   return {

@@ -379,6 +379,11 @@ export function useNiqqud(initialText: string = "") {
     if (cache && cache.clean) {
       setText(cache.clean);
       setDisplayMode('clean');
+      // If original has niqqud (partial or full), we can restore it later
+      // Set targetState to 'original' if original has niqqud, so toggle button can restore it
+      if (cache.original && detectNiqqud(cache.original) !== 'none') {
+        setTargetState('original');
+      }
       // Save this as the last display state
       setLastDisplayState('clean');
       return;
@@ -386,6 +391,7 @@ export function useNiqqud(initialText: string = "") {
 
     // If no cache, create new cache with all three states
     const textWithoutNiqqud = removeNiqqud(currentText);
+    const originalHasNiqqud = detectNiqqud(currentText) !== 'none';
     const newCache: NiqqudCache = {
       original: currentText,
       clean: textWithoutNiqqud,
@@ -396,115 +402,29 @@ export function useNiqqud(initialText: string = "") {
     // Set text to version without niqqud
     setText(textWithoutNiqqud);
     setDisplayMode('clean');
+    // If original had niqqud, set targetState to 'original' so we can restore it
+    if (originalHasNiqqud) {
+      setTargetState('original');
+    }
     // Save this as the last display state
     setLastDisplayState('clean');
   }, [text, cache]);
 
   // Complete partial niqqud (for text that already has some niqqud)
+  // Changed: Only uses cache, never calls model. The model is only called by "ניקוד והברות" button.
+  // This function simply switches to cached full niqqud if available.
+  // It also updates targetState to 'full' to reflect the toggle state.
   const completeNiqqud = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    // Save current display mode as last display state before model operation
-    // This allows us to restore it after getting the result
-    if (!lastDisplayState) {
-      setLastDisplayState(displayMode);
+    // Only use cache - never call model
+    // Button will be disabled if no cache.full exists (handled in UI)
+    if (cache && cache.full) {
+      setText(cache.full);
+      setDisplayMode('full');
+      setTargetState('full'); // Update toggle state to reflect current view
+      setLastDisplayState('full');
     }
-
-    try {
-      const settings = getSettings();
-
-      const apiKey = settings.niqqudApiKey || settings.apiKey;
-      const model = settings.niqqudModel || settings.model;
-      const systemPrompt = settings.niqqudCompletionSystemPrompt;
-      const userPrompt = settings.niqqudCompletionUserPrompt;
-
-      if (!apiKey) {
-        setError("אנא הגדר API Key בהגדרות");
-        setIsLoading(false);
-        return;
-      }
-
-      if (!model) {
-        setError("אנא בחר מודל שפה בהגדרות");
-        setIsLoading(false);
-        return;
-      }
-
-      const currentText = text;
-
-      // Check if we already have full niqqud in cache
-      if (cache && cache.full) {
-        setText(cache.full);
-        setDisplayMode('full');
-        setTargetState('full');
-        setIsLoading(false);
-        return;
-      }
-
-      //Call API to complete niqqud (send text with partial niqqud)
-      const result = await addNiqqudService(currentText, {
-        apiKey,
-        model,
-        temperature: settings.niqqudTemperature,
-        systemPrompt,
-        userPrompt,
-      });
-
-      if (!result.success || !result.niqqudText) {
-        console.error("[useNiqqud] completeNiqqud API call failed", {
-          success: result.success,
-          error: result.error,
-        });
-        setError(result.error || "שגיאה בהשלמת ניקוד");
-        setIsLoading(false);
-        return;
-      }
-
-      // Validate returned text has niqqud
-      if (!checkHasNiqqud(result.niqqudText)) {
-        setError("המודל החזיר טקסט ללא ניקוד מלא");
-        setIsLoading(false);
-        return;
-      }
-
-      // Update cache with full niqqud version
-      const cleanText = removeNiqqud(currentText);
-      const newCache: NiqqudCache = {
-        original: cache?.original || currentText,
-        clean: cache?.clean || cleanText,
-        full: result.niqqudText,
-      };
-      setCache(newCache);
-
-      // After getting result from model, restore to the last display state
-      // If no lastDisplayState exists, default to 'full' since we just completed niqqud
-      const newDisplayMode = lastDisplayState || 'full';
-      if (!lastDisplayState) {
-        setLastDisplayState('full');
-      }
-
-      // Set text based on the target display mode
-      // If original was clean or partial, keep showing that; if full, show niqqud
-      // This preserves the user's display preference after model operations
-      if (newDisplayMode === 'original') {
-        setText(newCache.original);
-      } else if (newDisplayMode === 'clean') {
-        setText(newCache.clean);
-      } else {
-        setText(result.niqqudText);
-      }
-      setDisplayMode(newDisplayMode);
-      setTargetState('full');
-      setIsLoading(false);
-    } catch (err) {
-      console.error("[useNiqqud] Unexpected error in completeNiqqud", err);
-      setError(
-        err instanceof Error ? err.message : "שגיאה לא צפויה בהשלמת ניקוד"
-      );
-      setIsLoading(false);
-    }
-  }, [text, cache, displayMode, lastDisplayState]);
+    // If no cache.full, do nothing - button will be disabled
+  }, [cache]);
 
   // Switch to original text
   const switchToOriginal = useCallback(() => {
@@ -556,31 +476,57 @@ export function useNiqqud(initialText: string = "") {
     }
   }, [lastDisplayState, cache]);
 
-  // Toggle niqqud based on current state and target state
+  // Toggle niqqud based on current state - only uses cache, never calls model
+  // The model is only called by the "ניקוד והברות" button
+  // Fixed: Check cache.full directly instead of relying on targetState
+  // Important: Does NOT change targetState to preserve the toggle state (ניקוד חלקי/ניקוד מלא)
   const toggleNiqqud = useCallback(async () => {
     if (hasNiqqud) {
       // If has niqqud, remove it (go to clean)
-      removeNiqqudFromText();
-    } else {
-      // If clean, restore to target state
-      if (targetState === 'full') {
-        if (cache && cache.full) {
-          switchToFull();
-        } else {
-          // If target is full but no cache, add/complete niqqud
-          // If original was partial, complete it. Else add fresh.
-          if (originalStatus === 'partial') {
-            await completeNiqqud();
-          } else {
-            await addNiqqud();
-          }
-        }
+      // Don't change targetState - preserve toggle state (ניקוד חלקי/ניקוד מלא)
+      const currentText = text;
+      if (cache && cache.clean) {
+        setText(cache.clean);
+        setDisplayMode('clean');
+        setLastDisplayState('clean');
+        // Don't change targetState - preserve toggle state
       } else {
-        // Target is original (partial)
-        switchToOriginal();
+        // If no cache, create new cache
+        const textWithoutNiqqud = removeNiqqud(currentText);
+        const newCache: NiqqudCache = {
+          original: currentText,
+          clean: textWithoutNiqqud,
+          full: null,
+        };
+        setCache(newCache);
+        setText(textWithoutNiqqud);
+        setDisplayMode('clean');
+        setLastDisplayState('clean');
+        // Don't change targetState - preserve toggle state
       }
+    } else {
+      // If text has no niqqud, check what we can restore
+      // If cache.full exists, show it regardless of targetState
+      // This fixes the bug where targetState is 'original' but cache.full exists
+      if (cache && cache.full) {
+        // Use cached full niqqud, but don't change targetState
+        // This preserves the toggle state (ניקוד חלקי/ניקוד מלא)
+        setText(cache.full);
+        setDisplayMode('full');
+        setLastDisplayState('full');
+        // Don't change targetState - preserve toggle state
+      } else if (targetState === 'original' && cache && cache.original) {
+        // Only switch to original if no cache.full exists and targetState is original
+        // This handles partial niqqud cases
+        // Don't change targetState - preserve toggle state
+        setText(cache.original);
+        setDisplayMode('original');
+        setLastDisplayState('original');
+        // targetState remains 'original' - no change needed
+      }
+      // If no cache.full and targetState is not 'original', do nothing - button will be disabled
     }
-  }, [hasNiqqud, targetState, cache, originalStatus, removeNiqqudFromText, switchToFull, switchToOriginal, completeNiqqud, addNiqqud]);
+  }, [hasNiqqud, targetState, cache, text]);
 
   // Clear niqqud cache and reset state
   const clearNiqqud = useCallback(() => {
@@ -616,6 +562,7 @@ export function useNiqqud(initialText: string = "") {
     targetState,
     lastDisplayState,
     setLastDisplayState, // Exposed to allow setting initial display state when text is first entered
+    cache, // Exposed to allow component to check cache state for button disabled logic
     isLoading,
     error,
     getButtonText,
