@@ -289,3 +289,78 @@ export function clearAllSyllablesCache(): void {
   }
 }
 
+/**
+ * Save all syllables cache entries to a centralized location in localStorage
+ * This enables future sync with Supabase or other external storage
+ */
+export function saveSyllablesCacheToStorage(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const allCacheEntries: Record<string, { text: string; data: SyllablesData; timestamp: number }> = {};
+
+    // Collect all syllables cache entries
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("syllables_cache_")) {
+        const cached = localStorage.getItem(key);
+        if (cached) {
+          try {
+            const cacheData = JSON.parse(cached) as {
+              text: string;
+              data: SyllablesData;
+              timestamp: number;
+            };
+            allCacheEntries[key] = cacheData;
+          } catch (e) {
+            console.warn(`[Syllables] Failed to parse cache entry ${key}:`, e);
+          }
+        }
+      }
+    }
+
+    // Save all entries to a centralized key for future sync
+    localStorage.setItem("syllables_cache_all", JSON.stringify(allCacheEntries));
+    console.log(`[Syllables] Saved ${Object.keys(allCacheEntries).length} cache entries to centralized storage`);
+  } catch (error) {
+    console.error("[Syllables] Failed to save cache to storage:", error);
+  }
+}
+
+/**
+ * Load all syllables cache entries from centralized storage
+ * This is useful for syncing with Supabase or other external storage
+ */
+export function loadSyllablesCacheFromStorage(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    const allCacheEntriesStr = localStorage.getItem("syllables_cache_all");
+    if (!allCacheEntriesStr) {
+      return;
+    }
+
+    const allCacheEntries = JSON.parse(allCacheEntriesStr) as Record<
+      string,
+      { text: string; data: SyllablesData; timestamp: number }
+    >;
+
+    // Restore all cache entries
+    Object.entries(allCacheEntries).forEach(([key, cacheData]) => {
+      try {
+        localStorage.setItem(key, JSON.stringify(cacheData));
+      } catch (e) {
+        console.warn(`[Syllables] Failed to restore cache entry ${key}:`, e);
+      }
+    });
+
+    console.log(`[Syllables] Loaded ${Object.keys(allCacheEntries).length} cache entries from centralized storage`);
+  } catch (error) {
+    console.error("[Syllables] Failed to load cache from storage:", error);
+  }
+}
+

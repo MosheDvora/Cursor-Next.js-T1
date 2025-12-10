@@ -10,8 +10,11 @@ import {
   loadSyllablesFromCache,
   clearSyllablesCache,
   clearAllSyllablesCache,
+  loadSyllablesCacheFromStorage,
+  saveSyllablesCacheToStorage,
 } from "@/lib/syllables";
 import { getSettings } from "@/lib/settings";
+import { removeNiqqud } from "@/lib/niqqud";
 
 export function useSyllables(initialText: string = "") {
   const [syllablesData, setSyllablesData] = useState<SyllablesData | null>(
@@ -22,6 +25,18 @@ export function useSyllables(initialText: string = "") {
   const [error, setError] = useState<string | null>(null);
   const [rawResponse, setRawResponse] = useState<string | null>(null);
   const previousTextRef = useRef<string>(initialText);
+
+  // Load syllables cache from centralized storage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // Server-side check
+    
+    try {
+      loadSyllablesCacheFromStorage();
+    } catch (error) {
+      console.error("[useSyllables] Failed to load cache from storage:", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
   // Update when initialText changes externally (user typing/pasting)
   useEffect(() => {
@@ -86,8 +101,24 @@ export function useSyllables(initialText: string = "") {
         return;
       }
 
-      // Check cache first
-      const cached = loadSyllablesFromCache(currentText);
+      // Check cache first - try both current text (with niqqud if present) and original text (without niqqud)
+      // Since syllable division is based on niqqud text, the result should be the same for both
+      let cached = loadSyllablesFromCache(currentText);
+      if (!cached) {
+        // Try to find cache for the text without niqqud (original text)
+        // This handles the case where niqqud was added but cache exists for the original text
+        const textWithoutNiqqud = removeNiqqud(currentText);
+        if (textWithoutNiqqud !== currentText) {
+          console.log("[useSyllables] Checking cache for text without niqqud");
+          cached = loadSyllablesFromCache(textWithoutNiqqud);
+          if (cached) {
+            console.log("[useSyllables] Found cached syllables data for text without niqqud, using it");
+            // Save cache also for the current text (with niqqud) so future lookups are faster
+            saveSyllablesToCache(currentText, cached);
+          }
+        }
+      }
+      
       if (cached) {
         console.log("[useSyllables] Using cached syllables data");
         setSyllablesData(cached);
@@ -97,6 +128,7 @@ export function useSyllables(initialText: string = "") {
       }
 
       // Call API to divide into syllables
+      // Use the current text (with niqqud if present) for accurate division
       const result = await divideIntoSyllables(currentText, {
         apiKey: settings.syllablesApiKey,
         model: settings.syllablesModel,
@@ -125,8 +157,20 @@ export function useSyllables(initialText: string = "") {
         wordsCount: result.syllablesData.words.length,
       });
 
-      // Save to cache
+      // Save to cache for both the current text (with niqqud) and the original text (without niqqud)
+      // This ensures we can use the cache even if the text changes between with/without niqqud
       saveSyllablesToCache(currentText, result.syllablesData);
+      
+      // Also save for the text without niqqud (if different)
+      // Since syllable division is based on niqqud, the result is the same for both
+      const textWithoutNiqqud = removeNiqqud(currentText);
+      if (textWithoutNiqqud !== currentText) {
+        console.log("[useSyllables] Saving cache also for text without niqqud");
+        saveSyllablesToCache(textWithoutNiqqud, result.syllablesData);
+      }
+
+      // Save to centralized storage for future sync with Supabase
+      saveSyllablesCacheToStorage();
 
       // Update state
       setSyllablesData(result.syllablesData);

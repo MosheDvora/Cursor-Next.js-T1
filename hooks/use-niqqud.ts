@@ -5,7 +5,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { detectNiqqud, removeNiqqud, hasNiqqud as checkHasNiqqud } from "@/lib/niqqud";
 import { addNiqqud as addNiqqudService } from "@/services/niqqud-service";
-import { getSettings } from "@/lib/settings";
+import { getSettings, SETTINGS_KEYS } from "@/lib/settings";
 
 // Debug: Verify imports
 if (typeof checkHasNiqqud !== "function") {
@@ -32,6 +32,63 @@ export function useNiqqud(initialText: string = "") {
   const previousTextRef = useRef<string>(initialText);
 
   const [targetState, setTargetState] = useState<'original' | 'full'>('original');
+  
+  // Last display state to preserve the user's preferred view after model operations
+  const [lastDisplayState, setLastDisplayState] = useState<DisplayMode | null>(null);
+
+  // Load cache and last display state from localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // Server-side check
+
+    try {
+      // Load niqqud cache
+      const original = localStorage.getItem(SETTINGS_KEYS.NIQQUD_CACHE_ORIGINAL);
+      const clean = localStorage.getItem(SETTINGS_KEYS.NIQQUD_CACHE_CLEAN);
+      const full = localStorage.getItem(SETTINGS_KEYS.NIQQUD_CACHE_FULL);
+
+      // Need at least original and clean to have valid cache
+      if (original && clean) {
+        // Verify cache matches current text (if text exists)
+        // If initialText is empty or matches one of the cache versions, load it
+        if (!initialText ||
+            original === initialText ||
+            clean === initialText ||
+            full === initialText) {
+          setCache({
+            original,
+            clean,
+            full: full || null
+          });
+          
+          // Restore display mode based on which version matches
+          if (initialText) {
+            if (full === initialText) {
+              setDisplayMode('full');
+            } else if (clean === initialText) {
+              setDisplayMode('clean');
+            } else if (original === initialText) {
+              setDisplayMode('original');
+            }
+          }
+        }
+      }
+
+      // Load last display state
+      const savedLastDisplayState = localStorage.getItem(SETTINGS_KEYS.LAST_DISPLAY_STATE);
+      if (savedLastDisplayState && (savedLastDisplayState === 'original' || savedLastDisplayState === 'clean' || savedLastDisplayState === 'full')) {
+        const savedMode = savedLastDisplayState as DisplayMode;
+        setLastDisplayState(savedMode);
+        // Restore the last display state if we loaded cache
+        if (original && clean) {
+          // We already set display mode above based on text match, but if we have a saved preference, use it
+          setDisplayMode(savedMode);
+        }
+      }
+    } catch (error) {
+      console.error("[useNiqqud] Failed to load cache from localStorage:", error);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
   // Update when initialText changes externally (user typing/pasting)
   useEffect(() => {
@@ -86,6 +143,45 @@ export function useNiqqud(initialText: string = "") {
     }
   }, [initialText, cache]);
 
+  // Save cache to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // Server-side check
+
+    try {
+      if (cache) {
+        localStorage.setItem(SETTINGS_KEYS.NIQQUD_CACHE_ORIGINAL, cache.original);
+        localStorage.setItem(SETTINGS_KEYS.NIQQUD_CACHE_CLEAN, cache.clean);
+        if (cache.full) {
+          localStorage.setItem(SETTINGS_KEYS.NIQQUD_CACHE_FULL, cache.full);
+        } else {
+          localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_FULL);
+        }
+      } else {
+        // Clear all cache keys
+        localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_ORIGINAL);
+        localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_CLEAN);
+        localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_FULL);
+      }
+    } catch (error) {
+      console.error("[useNiqqud] Failed to save cache to localStorage:", error);
+    }
+  }, [cache]);
+
+  // Save last display state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return; // Server-side check
+
+    try {
+      if (lastDisplayState) {
+        localStorage.setItem(SETTINGS_KEYS.LAST_DISPLAY_STATE, lastDisplayState);
+      } else {
+        localStorage.removeItem(SETTINGS_KEYS.LAST_DISPLAY_STATE);
+      }
+    } catch (error) {
+      console.error("[useNiqqud] Failed to save last display state to localStorage:", error);
+    }
+  }, [lastDisplayState]);
+
   // Detect current niqqud status
   const niqqudStatus = detectNiqqud(text);
   const hasNiqqud = niqqudStatus !== "none";
@@ -106,6 +202,12 @@ export function useNiqqud(initialText: string = "") {
   const addNiqqud = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    
+    // Save current display mode as last display state before model operation
+    // This allows us to restore it after getting the result
+    if (!lastDisplayState) {
+      setLastDisplayState(displayMode);
+    }
 
     try {
       const settings = getSettings();
@@ -198,9 +300,16 @@ export function useNiqqud(initialText: string = "") {
       };
       setCache(newCache);
 
+      // After getting result from model, restore to the last display state
+      // If no lastDisplayState exists, default to 'full' since we just added niqqud
+      const newDisplayMode = lastDisplayState || 'full';
+      if (!lastDisplayState) {
+        setLastDisplayState('full');
+      }
+
       // Update text to niqqud version and set display mode
       setText(result.niqqudText);
-      setDisplayMode('full');
+      setDisplayMode(newDisplayMode);
       setTargetState('full');
       setIsLoading(false);
     } catch (err) {
@@ -210,7 +319,7 @@ export function useNiqqud(initialText: string = "") {
       );
       setIsLoading(false);
     }
-  }, [text, cache]);
+  }, [text, cache, displayMode, lastDisplayState]);
 
   // Remove niqqud from text
   const removeNiqqudFromText = useCallback(() => {
@@ -220,6 +329,8 @@ export function useNiqqud(initialText: string = "") {
     if (cache && cache.clean) {
       setText(cache.clean);
       setDisplayMode('clean');
+      // Save this as the last display state
+      setLastDisplayState('clean');
       return;
     }
 
@@ -235,12 +346,20 @@ export function useNiqqud(initialText: string = "") {
     // Set text to version without niqqud
     setText(textWithoutNiqqud);
     setDisplayMode('clean');
+    // Save this as the last display state
+    setLastDisplayState('clean');
   }, [text, cache]);
 
   // Complete partial niqqud (for text that already has some niqqud)
   const completeNiqqud = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    
+    // Save current display mode as last display state before model operation
+    // This allows us to restore it after getting the result
+    if (!lastDisplayState) {
+      setLastDisplayState(displayMode);
+    }
 
     try {
       const settings = getSettings();
@@ -308,8 +427,15 @@ export function useNiqqud(initialText: string = "") {
       };
       setCache(newCache);
 
+      // After getting result from model, restore to the last display state
+      // If no lastDisplayState exists, default to 'full' since we just completed niqqud
+      const newDisplayMode = lastDisplayState || 'full';
+      if (!lastDisplayState) {
+        setLastDisplayState('full');
+      }
+
       setText(result.niqqudText);
-      setDisplayMode('full');
+      setDisplayMode(newDisplayMode);
       setTargetState('full');
       setIsLoading(false);
     } catch (err) {
@@ -319,7 +445,7 @@ export function useNiqqud(initialText: string = "") {
       );
       setIsLoading(false);
     }
-  }, [text, cache]);
+  }, [text, cache, displayMode, lastDisplayState]);
 
   // Switch to original text
   const switchToOriginal = useCallback(() => {
@@ -327,6 +453,8 @@ export function useNiqqud(initialText: string = "") {
       setText(cache.original);
       setDisplayMode('original');
       setTargetState('original');
+      // Save this as the last display state
+      setLastDisplayState('original');
     }
   }, [cache]);
 
@@ -335,6 +463,8 @@ export function useNiqqud(initialText: string = "") {
     if (cache && cache.clean) {
       setText(cache.clean);
       setDisplayMode('clean');
+      // Save this as the last display state
+      setLastDisplayState('clean');
     }
   }, [cache]);
 
@@ -344,8 +474,28 @@ export function useNiqqud(initialText: string = "") {
       setText(cache.full);
       setDisplayMode('full');
       setTargetState('full');
+      // Save this as the last display state
+      setLastDisplayState('full');
     }
   }, [cache]);
+
+  // Restore last display state
+  const restoreLastDisplayState = useCallback(() => {
+    if (lastDisplayState && cache) {
+      if (lastDisplayState === 'original' && cache.original) {
+        setText(cache.original);
+        setDisplayMode('original');
+        setTargetState('original');
+      } else if (lastDisplayState === 'clean' && cache.clean) {
+        setText(cache.clean);
+        setDisplayMode('clean');
+      } else if (lastDisplayState === 'full' && cache.full) {
+        setText(cache.full);
+        setDisplayMode('full');
+        setTargetState('full');
+      }
+    }
+  }, [lastDisplayState, cache]);
 
   // Toggle niqqud based on current state and target state
   const toggleNiqqud = useCallback(async () => {
@@ -379,9 +529,22 @@ export function useNiqqud(initialText: string = "") {
     setError(null);
     setDisplayMode('original');
     setTargetState('original');
+    setLastDisplayState(null);
     // Reset text to empty string
     setText("");
     previousTextRef.current = "";
+    
+    // Clear all cache keys from localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_ORIGINAL);
+        localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_CLEAN);
+        localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_FULL);
+        localStorage.removeItem(SETTINGS_KEYS.LAST_DISPLAY_STATE);
+      } catch (error) {
+        console.error("[useNiqqud] Failed to clear cache from localStorage:", error);
+      }
+    }
   }, []);
 
   return {
@@ -392,6 +555,7 @@ export function useNiqqud(initialText: string = "") {
     originalStatus,
     displayMode,
     targetState,
+    lastDisplayState,
     isLoading,
     error,
     getButtonText,
@@ -402,6 +566,7 @@ export function useNiqqud(initialText: string = "") {
     switchToOriginal,
     switchToClean,
     switchToFull,
+    restoreLastDisplayState,
     clearNiqqud,
     clearError: () => setError(null),
   };

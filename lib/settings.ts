@@ -53,6 +53,11 @@ export const SETTINGS_KEYS = {
   // Navigation settings
   SYLLABLES_CURRENT_POSITION: "syllables_current_position",
   SYLLABLES_RAW_RESPONSE: "syllables_raw_response",
+  // Cache settings for localStorage persistence and future Supabase sync
+  NIQQUD_CACHE_ORIGINAL: "niqqud_cache_original",
+  NIQQUD_CACHE_CLEAN: "niqqud_cache_clean",
+  NIQQUD_CACHE_FULL: "niqqud_cache_full",
+  LAST_DISPLAY_STATE: "last_display_state",
 } as const;
 
 export interface AppSettings {

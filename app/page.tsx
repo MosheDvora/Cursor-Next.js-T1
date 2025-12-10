@@ -45,15 +45,14 @@ export default function Home() {
     text: niqqudText,
     setText: setNiqqudText,
     hasNiqqud,
-
+    niqqudStatus,
     originalStatus,
-
     targetState,
     isLoading,
     error,
     getButtonText,
     toggleNiqqud,
-
+    addNiqqud,
     completeNiqqud,
     switchToOriginal,
     clearNiqqud,
@@ -169,12 +168,51 @@ export default function Home() {
 
   /**
    * Handler for dividing text into syllables
+   * If text has no niqqud or partial niqqud, first adds complete niqqud, then divides into syllables
    * Calls the API to process the text and always shows the result after successful division
+   * Checks for existing syllablesData and cache before calling the model to avoid duplicate API calls
    */
   const handleDivideSyllables = async () => {
     clearSyllablesError();
+    clearError();
 
     try {
+      // Check if we already have syllables data active for the current text
+      // If syllables are already active and we have data, no need to call the API again
+      if (isSyllablesActive && syllablesData) {
+        console.log("[handleDivideSyllables] Syllables data already exists, skipping API call");
+        return;
+      }
+
+      // Check if text needs niqqud first
+      // If originalStatus is "none" or "partial", add complete niqqud before dividing
+      if (originalStatus === "none" || originalStatus === "partial") {
+        // First, add complete niqqud
+        if (originalStatus === "partial") {
+          await completeNiqqud();
+        } else {
+          await addNiqqud();
+        }
+
+        // Check if there was an error adding niqqud
+        // Note: We need to wait a bit for the error state to update
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        
+        // If there's an error after adding niqqud, don't proceed to syllable division
+        // The error will be shown by the useEffect that handles error toasts
+        if (error) {
+          return;
+        }
+
+        // Wait for the text to sync from niqqudText to localText
+        // The useEffect that syncs niqqudText to localText runs after state update
+        // We wait a short time for React to process the state updates and sync
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      }
+
+      // Now divide into syllables (will use the updated localText which should have full niqqud if it was added)
+      // The useSyllables hook uses localText as initialText, which should now be updated with niqqud
+      // The divideSyllables function will check cache before calling the API
       await divideSyllables();
       // Toast will be shown by useEffect when division completes successfully
     } catch (err) {
@@ -445,13 +483,13 @@ export default function Home() {
             </Button>
             <Button
               onClick={handleDivideSyllables}
-              disabled={isSyllablesLoading || !localText.trim()}
+              disabled={isSyllablesLoading || isLoading || !localText.trim()}
               className="gap-2 min-w-[180px]"
               variant="default"
               size="lg"
               data-testid="syllables-divide-button"
             >
-              {isSyllablesLoading ? (
+              {isSyllablesLoading || isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span>מעבד...</span>
