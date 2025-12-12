@@ -209,10 +209,12 @@ export default function Home() {
       // If originalStatus is "none" or "partial", add complete niqqud before dividing
       // For "ניקוד והברות" button, we always call addNiqqud() which calls the model
       // This ensures cache.full is populated for both no-niqqud and partial-niqqud cases
+      let fullNiqqudText: string | null = null;
       if (originalStatus === "none" || originalStatus === "partial") {
         // Call addNiqqud() for both cases - it handles both no niqqud and partial niqqud
         // The model will complete the niqqud in both cases
-        await addNiqqud();
+        // addNiqqud now returns the full niqqud text directly, avoiding React state closure issues
+        fullNiqqudText = await addNiqqud();
 
         // Check if there was an error adding niqqud
         // Note: We need to wait a bit for the error state to update
@@ -220,23 +222,23 @@ export default function Home() {
         
         // If there's an error after adding niqqud, don't proceed to syllable division
         // The error will be shown by the useEffect that handles error toasts
-        if (error) {
+        if (error || !fullNiqqudText) {
           return;
         }
-
-      // Wait for the cache to be updated after addNiqqud completes
-      // The cache should now contain cache.full with the complete niqqud text
-      await new Promise((resolve) => setTimeout(resolve, 150));
       }
 
       // Now divide into syllables
       // IMPORTANT: Always use the full niqqud text for accurate syllable division
       // Priority order:
-      // 1. cache.full - if available (the complete niqqud version from model)
-      // 2. cache.original - if originalStatus is "full" (user entered text with full niqqud)
-      // 3. localText - fallback (should have full niqqud after addNiqqud, but may not be ideal)
+      // 1. fullNiqqudText - if we just got it from addNiqqud() (avoids React state closure issue)
+      // 2. cache.full - if available (the complete niqqud version from model)
+      // 3. cache.original - if originalStatus is "full" (user entered text with full niqqud)
+      // 4. localText - fallback (should have full niqqud after addNiqqud, but may not be ideal)
       let textForSyllables: string;
-      if (cache?.full) {
+      if (fullNiqqudText) {
+        // Use the text we just got from addNiqqud() - this avoids the React state closure issue
+        textForSyllables = fullNiqqudText;
+      } else if (cache?.full) {
         textForSyllables = cache.full;
       } else if (originalStatus === "full" && cache?.original) {
         // If original text has full niqqud but cache.full doesn't exist (edge case),
@@ -248,8 +250,10 @@ export default function Home() {
       }
       
       console.log("[handleDivideSyllables] Using text for syllables:", {
+        hasFullNiqqudText: !!fullNiqqudText,
         hasCacheFull: !!cache?.full,
         originalStatus: originalStatus,
+        usingFullNiqqudText: fullNiqqudText === textForSyllables,
         usingCacheFull: cache?.full === textForSyllables,
         usingCacheOriginal: cache?.original === textForSyllables,
         usingLocalText: localText === textForSyllables,

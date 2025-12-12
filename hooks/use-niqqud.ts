@@ -239,7 +239,8 @@ export function useNiqqud(initialText: string = "") {
   }, [hasNiqqud, targetState]);
 
   // Add niqqud to text (for text with no niqqud)
-  const addNiqqud = useCallback(async () => {
+  // Returns the full niqqud text if successful, null if failed or already cached
+  const addNiqqud = useCallback(async (): Promise<string | null> => {
     setIsLoading(true);
     setError(null);
     
@@ -260,13 +261,13 @@ export function useNiqqud(initialText: string = "") {
       if (!apiKey) {
         setError("אנא הגדר API Key בהגדרות");
         setIsLoading(false);
-        return;
+        return null;
       }
 
       if (!model) {
         setError("אנא בחר מודל שפה בהגדרות");
         setIsLoading(false);
-        return;
+        return null;
       }
 
       const currentText = text;
@@ -278,7 +279,7 @@ export function useNiqqud(initialText: string = "") {
         setDisplayMode('full');
         setTargetState('full');
         setIsLoading(false);
-        return;
+        return cache.full; // Return the cached full niqqud text
       }
 
       // Call API to add niqqud
@@ -297,7 +298,7 @@ export function useNiqqud(initialText: string = "") {
         });
         setError(result.error || "שגיאה בהוספת ניקוד");
         setIsLoading(false);
-        return;
+        return null;
       }
 
       console.log("[useNiqqud] API call successful", {
@@ -320,7 +321,7 @@ export function useNiqqud(initialText: string = "") {
             "המודל החזיר טקסט ללא ניקוד. נסה שוב או בחר מודל אחר"
           );
           setIsLoading(false);
-          return;
+          return null;
         }
       } catch (validationError) {
         console.error("[useNiqqud] Validation error", validationError);
@@ -328,7 +329,7 @@ export function useNiqqud(initialText: string = "") {
           `שגיאה בוולידציה: ${validationError instanceof Error ? validationError.message : "שגיאה לא צפויה"}`
         );
         setIsLoading(false);
-        return;
+        return null;
       }
 
       // Cache the three states
@@ -360,12 +361,17 @@ export function useNiqqud(initialText: string = "") {
       setDisplayMode(newDisplayMode);
       setTargetState('full');
       setIsLoading(false);
+      
+      // Return the full niqqud text so caller can use it immediately
+      // This avoids the React state closure issue where cache might not be updated yet
+      return result.niqqudText;
     } catch (err) {
       console.error("[useNiqqud] Unexpected error in addNiqqud", err);
       setError(
         err instanceof Error ? err.message : "שגיאה לא צפויה בהוספת ניקוד"
       );
       setIsLoading(false);
+      return null;
     }
   }, [text, cache, displayMode, lastDisplayState]);
 
