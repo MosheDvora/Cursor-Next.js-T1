@@ -171,17 +171,11 @@ export function useSyllables(initialText: string = "") {
         wordsCount: result.syllablesData.words.length,
       });
 
-      // Save to cache for both the current text (with niqqud) and the original text (without niqqud)
-      // This ensures we can use the cache even if the text changes between with/without niqqud
+      // Save to cache only for the current text (with niqqud)
+      // This is the text that was sent to the model, so this is the canonical cache entry
+      // The cache lookup logic (lines 118-134) already handles finding cache for text without niqqud
+      // by checking both the current text and the text without niqqud, so no need for duplicate storage
       saveSyllablesToCache(currentText, result.syllablesData);
-      
-      // Also save for the text without niqqud (if different)
-      // Since syllable division is based on niqqud, the result is the same for both
-      const textWithoutNiqqud = removeNiqqud(currentText);
-      if (textWithoutNiqqud !== currentText) {
-        console.log("[useSyllables] Saving cache also for text without niqqud");
-        saveSyllablesToCache(textWithoutNiqqud, result.syllablesData);
-      }
 
       // Save to centralized storage for future sync with Supabase
       saveSyllablesCacheToStorage();
