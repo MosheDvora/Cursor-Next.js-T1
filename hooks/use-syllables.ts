@@ -77,7 +77,10 @@ export function useSyllables(initialText: string = "") {
   }, [initialText]);
 
   // Divide text into syllables
-  const divideSyllables = useCallback(async () => {
+  // textToUse: Optional parameter to override initialText. 
+  // This is used to ensure we always use cache.full (full niqqud text) when available,
+  // even if the current display mode shows a different version (original/clean).
+  const divideSyllables = useCallback(async (textToUse?: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -102,7 +105,9 @@ export function useSyllables(initialText: string = "") {
         return;
       }
 
-      const currentText = initialText.trim();
+      // Use textToUse if provided (typically cache.full), otherwise fall back to initialText
+      // This ensures we always use the full niqqud version for accurate syllable division
+      const currentText = (textToUse || initialText).trim();
 
       if (!currentText || currentText.length === 0) {
         setError("טקסט ריק");

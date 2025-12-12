@@ -224,16 +224,39 @@ export default function Home() {
           return;
         }
 
-        // Wait for the text to sync from niqqudText to localText
-        // The useEffect that syncs niqqudText to localText runs after state update
-        // We wait a short time for React to process the state updates and sync
-        await new Promise((resolve) => setTimeout(resolve, 150));
+      // Wait for the cache to be updated after addNiqqud completes
+      // The cache should now contain cache.full with the complete niqqud text
+      await new Promise((resolve) => setTimeout(resolve, 150));
       }
 
-      // Now divide into syllables (will use the updated localText which should have full niqqud if it was added)
-      // The useSyllables hook uses localText as initialText, which should now be updated with niqqud
-      // The divideSyllables function will check cache before calling the API
-      await divideSyllables();
+      // Now divide into syllables
+      // IMPORTANT: Always use the full niqqud text for accurate syllable division
+      // Priority order:
+      // 1. cache.full - if available (the complete niqqud version from model)
+      // 2. cache.original - if originalStatus is "full" (user entered text with full niqqud)
+      // 3. localText - fallback (should have full niqqud after addNiqqud, but may not be ideal)
+      let textForSyllables: string;
+      if (cache?.full) {
+        textForSyllables = cache.full;
+      } else if (originalStatus === "full" && cache?.original) {
+        // If original text has full niqqud but cache.full doesn't exist (edge case),
+        // use cache.original which is the full niqqud text
+        textForSyllables = cache.original;
+      } else {
+        // Fallback to localText (should have full niqqud after addNiqqud if it was called)
+        textForSyllables = localText;
+      }
+      
+      console.log("[handleDivideSyllables] Using text for syllables:", {
+        hasCacheFull: !!cache?.full,
+        originalStatus: originalStatus,
+        usingCacheFull: cache?.full === textForSyllables,
+        usingCacheOriginal: cache?.original === textForSyllables,
+        usingLocalText: localText === textForSyllables,
+        textLength: textForSyllables.length,
+        displayMode: displayMode,
+      });
+      await divideSyllables(textForSyllables);
 
       // After syllable division completes, restore the text display to the saved state
       // Wait a bit for the division to complete and state to update
