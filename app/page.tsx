@@ -215,14 +215,11 @@ export default function Home() {
         // The model will complete the niqqud in both cases
         // addNiqqud now returns the full niqqud text directly, avoiding React state closure issues
         fullNiqqudText = await addNiqqud();
-
-        // Check if there was an error adding niqqud
-        // Note: We need to wait a bit for the error state to update
-        await new Promise((resolve) => setTimeout(resolve, 100));
         
-        // If there's an error after adding niqqud, don't proceed to syllable division
-        // The error will be shown by the useEffect that handles error toasts
-        if (error || !fullNiqqudText) {
+        // If addNiqqud failed (returned null), don't proceed to syllable division
+        // The error state will be set by addNiqqud and shown by the useEffect that handles error toasts
+        // We rely on the return value (null) instead of the error state to avoid stale state issues
+        if (!fullNiqqudText) {
           return;
         }
       }
