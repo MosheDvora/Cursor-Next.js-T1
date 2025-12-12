@@ -17,7 +17,7 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
 import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
-import { detectNiqqud } from "@/lib/niqqud";
+import { detectNiqqud, removeNiqqud } from "@/lib/niqqud";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -228,19 +228,47 @@ export default function Home() {
       // IMPORTANT: Always use the full niqqud text for accurate syllable division
       // Priority order:
       // 1. fullNiqqudText - if we just got it from addNiqqud() (avoids React state closure issue)
-      // 2. cache.full - if available (the complete niqqud version from model)
-      // 3. cache.original - if originalStatus is "full" (user entered text with full niqqud)
+      // 2. cache.full - if available AND cache corresponds to current text (validate cache is not stale)
+      // 3. cache.original - if originalStatus is "full" AND cache corresponds to current text
       // 4. localText - fallback (should have full niqqud after addNiqqud, but may not be ideal)
       let textForSyllables: string;
       if (fullNiqqudText) {
         // Use the text we just got from addNiqqud() - this avoids the React state closure issue
         textForSyllables = fullNiqqudText;
       } else if (cache?.full) {
-        textForSyllables = cache.full;
+        // Validate that cache corresponds to current text before using it
+        // The cache is valid if:
+        // 1. cache.original matches localText (user is viewing original text)
+        // 2. cache.clean matches localText (user is viewing clean text)
+        // 3. cache.clean matches removeNiqqud(localText) (user is viewing text with niqqud, but cache.clean matches)
+        // This prevents using stale cache from a previous text operation
+        const localTextClean = removeNiqqud(localText);
+        const cacheMatchesCurrentText = 
+          cache.original === localText || 
+          cache.clean === localText ||
+          cache.clean === localTextClean;
+        
+        if (cacheMatchesCurrentText) {
+          textForSyllables = cache.full;
+        } else {
+          // Cache is stale - don't use it, fall back to localText
+          console.warn("[handleDivideSyllables] Cache is stale, not using cache.full. Current text:", localText.substring(0, 50), "Cache original:", cache.original?.substring(0, 50));
+          textForSyllables = localText;
+        }
       } else if (originalStatus === "full" && cache?.original) {
-        // If original text has full niqqud but cache.full doesn't exist (edge case),
-        // use cache.original which is the full niqqud text
-        textForSyllables = cache.original;
+        // Validate that cache corresponds to current text before using it
+        // The cache.original should match localText if user entered text with full niqqud
+        const cacheMatchesCurrentText = cache.original === localText;
+        
+        if (cacheMatchesCurrentText) {
+          // If original text has full niqqud but cache.full doesn't exist (edge case),
+          // use cache.original which is the full niqqud text
+          textForSyllables = cache.original;
+        } else {
+          // Cache is stale - don't use it, fall back to localText
+          console.warn("[handleDivideSyllables] Cache is stale, not using cache.original. Current text:", localText.substring(0, 50), "Cache original:", cache.original?.substring(0, 50));
+          textForSyllables = localText;
+        }
       } else {
         // Fallback to localText (should have full niqqud after addNiqqud if it was called)
         textForSyllables = localText;
