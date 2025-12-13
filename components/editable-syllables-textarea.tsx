@@ -4,7 +4,13 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { SyllablesData } from "@/lib/syllables";
 import { CurrentPosition, saveCurrentPosition } from "@/lib/settings";
 import { Textarea } from "@/components/ui/textarea";
-import { isNiqqudMark } from "@/lib/niqqud";
+import { isNiqqudMark, removeNiqqud } from "@/lib/niqqud";
+
+interface NiqqudCache {
+  original: string;
+  clean: string;
+  full: string | null;
+}
 
 interface EditableSyllablesTextareaProps {
   text: string;
@@ -14,6 +20,8 @@ interface EditableSyllablesTextareaProps {
   currentPosition: CurrentPosition | null;
   onPositionChange: (position: CurrentPosition | null) => void;
   navigationMode: "words" | "syllables" | "letters";
+  displayMode?: 'original' | 'clean' | 'full';
+  niqqudCache?: NiqqudCache | null;
   borderSize: number;
   backgroundColor: string;
   wordSpacing: number;
@@ -83,6 +91,44 @@ const groupLettersWithNiqqud = (text: string): Array<{ text: string; index: numb
 };
 
 /**
+ * Apply display mode to syllables data by removing niqqud when needed
+ * This ensures the displayed text matches the displayMode (original/clean/full)
+ * while preserving the syllable structure for navigation
+ * 
+ * @param syllablesData - The original syllables data (with full niqqud)
+ * @param displayMode - The current display mode ('original', 'clean', or 'full')
+ * @param cache - The niqqud cache containing original, clean, and full versions
+ * @returns Processed syllables data with niqqud removed if needed
+ */
+function applyDisplayModeToSyllables(
+  syllablesData: SyllablesData,
+  displayMode: 'original' | 'clean' | 'full' | undefined,
+  cache: NiqqudCache | null | undefined
+): SyllablesData {
+  // If no displayMode or cache, return original data (default behavior)
+  if (!displayMode || !cache) {
+    return syllablesData;
+  }
+
+  // If displayMode is 'full', return original data (with niqqud)
+  if (displayMode === 'full') {
+    return syllablesData;
+  }
+
+  // For 'original' or 'clean' modes, we need to remove niqqud from syllables
+  // We'll process each syllable by removing niqqud marks
+  return {
+    words: syllablesData.words.map((word) => ({
+      word: word.word, // Keep the base word structure
+      syllables: word.syllables.map((syllable) => {
+        // Remove niqqud from each syllable
+        return removeNiqqud(syllable);
+      }),
+    })),
+  };
+}
+
+/**
  * Component that displays text with syllables when active, or regular textarea when inactive
  * Supports navigation with arrow keys and dual-level highlighting (word + syllable/letter)
  */
@@ -94,7 +140,8 @@ export function EditableSyllablesTextarea({
   currentPosition,
   onPositionChange,
   navigationMode,
-
+  displayMode,
+  niqqudCache,
   wordSpacing,
   letterSpacing,
   fontSize = 30,
@@ -738,7 +785,12 @@ export function EditableSyllablesTextarea({
     }
 
     // With syllables data - render text without visual syllable division
-    const { words } = syllablesData;
+    // Apply display mode to syllables data (remove niqqud if needed)
+    // Navigation still uses original syllablesData to preserve structure
+    const processedSyllablesData = syllablesData
+      ? applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache)
+      : null;
+    const { words } = processedSyllablesData || syllablesData || { words: [] };
     const currentWordIdx = currentPosition?.wordIndex ?? 0;
     const currentSyllableIdx = currentPosition?.syllableIndex ?? 0;
     const currentLetterIdx = currentPosition?.letterIndex ?? 0;

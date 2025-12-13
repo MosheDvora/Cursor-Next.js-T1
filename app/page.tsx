@@ -694,6 +694,8 @@ export default function Home() {
               currentPosition={currentPosition}
               onPositionChange={handlePositionChange}
               navigationMode={navigationMode}
+              displayMode={displayMode}
+              niqqudCache={cache}
               borderSize={appearanceSettings.syllableBorderSize}
               backgroundColor={appearanceSettings.syllableBackgroundColor}
               wordSpacing={appearanceSettings.wordSpacing}
