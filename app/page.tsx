@@ -520,14 +520,25 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* Navigation Mode Selector - always visible */}
+            {/* 
+              Navigation Mode Selector - "סוג קפיצה"
+              
+              Behavior:
+              - "מילים" (words) and "אותיות" (letters) are ALWAYS available
+              - "הברות" (syllables) is shown ONLY when syllablesData exists in memory
+              
+              The useSyllables hook now persists syllablesData when niqqud is toggled
+              by storing cache for both niqqud and clean text versions.
+              This ensures syllables option remains available after adding/removing niqqud.
+            */}
             <Label htmlFor="navigation-mode" className="text-right text-base">
               סוג קפיצה:
             </Label>
             <Select
               value={navigationMode}
               onValueChange={(value: "words" | "syllables" | "letters") => {
-                // Prevent selecting "syllables" if syllables data doesn't exist
+                // Guard: Prevent selecting "syllables" if no syllables data exists
+                // This prevents navigation errors when syllables haven't been divided yet
                 if (value === "syllables" && !syllablesData) {
                   return;
                 }
@@ -538,10 +549,13 @@ export default function Home() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                {/* Words option - always available */}
                 <SelectItem value="words" className="text-right">מילים</SelectItem>
+                {/* Syllables option - only shown when syllables data exists in memory from model */}
                 {syllablesData && (
                   <SelectItem value="syllables" className="text-right">הברות</SelectItem>
                 )}
+                {/* Letters option - always available */}
                 <SelectItem value="letters" className="text-right">אותיות</SelectItem>
               </SelectContent>
             </Select>
