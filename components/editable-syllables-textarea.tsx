@@ -604,8 +604,19 @@ export function EditableSyllablesTextarea({
   // Auto-focus and listen to document keydown events when text exists
   useEffect(() => {
     if (text && text.trim().length > 0 && displayRef.current && !isEditing) {
+      // Save current scroll position before focusing to prevent page scroll
+      // This ensures the text area stays in place when switching to view mode
+      const savedScrollY = window.scrollY;
+      const savedScrollX = window.scrollX;
+      
       // Auto-focus the display element
       displayRef.current.focus();
+      
+      // Restore scroll position immediately after focus to prevent page from scrolling down
+      // Use requestAnimationFrame to ensure this happens after the browser's default scroll behavior
+      requestAnimationFrame(() => {
+        window.scrollTo(savedScrollX, savedScrollY);
+      });
 
       // Listen to document-level keydown events
       const handleDocumentKeyDown = (e: KeyboardEvent) => {
