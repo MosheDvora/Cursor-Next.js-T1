@@ -490,79 +490,86 @@ export default function Home() {
             </h1>
           </div>
 
-          {/* Navigation Mode Selector and Font Size Controls */}
-          <div className="mb-4 flex justify-end items-center gap-3">
-            {/* Font Size Controls */}
-            <div className="flex items-center gap-2">
-              <Label className="text-right text-base">גודל פונט:</Label>
-              <Button
-                onClick={() => handleFontSizeChange(-1)}
-                disabled={appearanceSettings.fontSize <= MIN_FONT_SIZE}
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                data-testid="font-size-decrease-button"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium min-w-[2rem] text-center" data-testid="font-size-display">
-                {appearanceSettings.fontSize}px
-              </span>
-              <Button
-                onClick={() => handleFontSizeChange(1)}
-                disabled={appearanceSettings.fontSize >= MAX_FONT_SIZE}
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                data-testid="font-size-increase-button"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+          {/* Sticky Controls Bar - Always visible at top when scrolling */}
+          <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4 py-4 -mx-6 md:-mx-12 px-6 md:px-12 border-b">
+            {/* Navigation Mode Selector and Font Size Controls */}
+            <div className="mb-4 flex justify-end items-center gap-3">
+              {/* Font Size Controls */}
+              <div className="flex items-center gap-2">
+                <Label className="text-right text-base">גודל פונט:</Label>
+                <Button
+                  onClick={() => handleFontSizeChange(-1)}
+                  disabled={appearanceSettings.fontSize <= MIN_FONT_SIZE}
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  data-testid="font-size-decrease-button"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium min-w-[2rem] text-center" data-testid="font-size-display">
+                  {appearanceSettings.fontSize}px
+                </span>
+                <Button
+                  onClick={() => handleFontSizeChange(1)}
+                  disabled={appearanceSettings.fontSize >= MAX_FONT_SIZE}
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  data-testid="font-size-increase-button"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* 
+                Navigation Mode Selector - "סוג קפיצה"
+                
+                Behavior:
+                - Only shown in VIEW mode (!isEditing) - hidden during editing
+                - "מילים" (words) and "אותיות" (letters) are ALWAYS available
+                - "הברות" (syllables) is shown ONLY when syllablesData exists in memory
+                
+                The useSyllables hook now persists syllablesData when niqqud is toggled
+                by storing cache for both niqqud and clean text versions.
+                This ensures syllables option remains available after adding/removing niqqud.
+              */}
+              {!isEditing && (
+                <>
+                  <Label htmlFor="navigation-mode" className="text-right text-base">
+                    סוג קפיצה:
+                  </Label>
+                  <Select
+                    value={navigationMode}
+                    onValueChange={(value: "words" | "syllables" | "letters") => {
+                      // Guard: Prevent selecting "syllables" if no syllables data exists
+                      // This prevents navigation errors when syllables haven't been divided yet
+                      if (value === "syllables" && !syllablesData) {
+                        return;
+                      }
+                      setNavigationMode(value);
+                    }}
+                  >
+                    <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl" data-testid="navigation-mode-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Words option - always available */}
+                      <SelectItem value="words" className="text-right">מילים</SelectItem>
+                      {/* Syllables option - only shown when syllables data exists in memory from model */}
+                      {syllablesData && (
+                        <SelectItem value="syllables" className="text-right">הברות</SelectItem>
+                      )}
+                      {/* Letters option - always available */}
+                      <SelectItem value="letters" className="text-right">אותיות</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </div>
 
-            {/* 
-              Navigation Mode Selector - "סוג קפיצה"
-              
-              Behavior:
-              - "מילים" (words) and "אותיות" (letters) are ALWAYS available
-              - "הברות" (syllables) is shown ONLY when syllablesData exists in memory
-              
-              The useSyllables hook now persists syllablesData when niqqud is toggled
-              by storing cache for both niqqud and clean text versions.
-              This ensures syllables option remains available after adding/removing niqqud.
-            */}
-            <Label htmlFor="navigation-mode" className="text-right text-base">
-              סוג קפיצה:
-            </Label>
-            <Select
-              value={navigationMode}
-              onValueChange={(value: "words" | "syllables" | "letters") => {
-                // Guard: Prevent selecting "syllables" if no syllables data exists
-                // This prevents navigation errors when syllables haven't been divided yet
-                if (value === "syllables" && !syllablesData) {
-                  return;
-                }
-                setNavigationMode(value);
-              }}
-            >
-              <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl" data-testid="navigation-mode-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {/* Words option - always available */}
-                <SelectItem value="words" className="text-right">מילים</SelectItem>
-                {/* Syllables option - only shown when syllables data exists in memory from model */}
-                {syllablesData && (
-                  <SelectItem value="syllables" className="text-right">הברות</SelectItem>
-                )}
-                {/* Letters option - always available */}
-                <SelectItem value="letters" className="text-right">אותיות</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mb-4 flex justify-end gap-3">
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3">
             <Button
               onClick={() => setIsEditing(!isEditing)}
               className="gap-2 min-w-[120px]"
@@ -695,6 +702,7 @@ export default function Home() {
                 )}
               </Button>
             )}
+            </div>
           </div>
 
           {/* Main text input area - unified display */}
