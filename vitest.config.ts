@@ -22,6 +22,8 @@ export default defineConfig({
     setupFiles: ['./vitest.setup.ts'],
     // Match test files (either __tests__ folder or .test.ts/.spec.ts files)
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    // Exclude Playwright tests directory (those run separately via playwright)
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/**'],
     // Coverage configuration (optional, enable with --coverage flag)
     coverage: {
       provider: 'v8',

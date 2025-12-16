@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
-import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
-import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
+import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from "@/components/editable-syllables-textarea";
+import { getSettings, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
 import { detectNiqqud, removeNiqqud } from "@/lib/niqqud";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
@@ -41,7 +41,13 @@ export default function Home() {
   });
   const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("words");
   const [isEditing, setIsEditing] = useState(true);
-  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
+  
+  /**
+   * Ref to the EditableSyllablesTextarea component for imperative navigation control.
+   * This allows us to manage highlighting without causing React re-renders.
+   * The component handles its own position state internally via refs.
+   */
+  const textareaRef = useRef<EditableSyllablesTextareaRef>(null);
   const {
     text: niqqudText,
     setText: setNiqqudText,
@@ -86,7 +92,7 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Load appearance settings and navigation mode
+  // Load appearance settings
   useEffect(() => {
     if (mounted) {
       const settings = getSettings();
@@ -103,13 +109,8 @@ export default function Home() {
         syllableHighlightColor: settings.syllableHighlightColor || "#fff176",
         letterHighlightColor: settings.letterHighlightColor || "#fff176",
       });
-
-      // Load saved position
-      const savedPosition = loadCurrentPosition();
-      if (savedPosition) {
-        setCurrentPosition(savedPosition);
-        setNavigationMode(savedPosition.mode);
-      }
+      // Note: Position is now managed internally by EditableSyllablesTextarea via refs
+      // It loads from localStorage on mount and persists changes automatically
     }
   }, [mounted]);
 
@@ -314,15 +315,18 @@ export default function Home() {
     }
   };
 
-  // Clear position when syllables are deactivated
+  // Clear highlight when syllables are deactivated
+  // The textarea component handles this via its ref API
   useEffect(() => {
-    if (!isSyllablesActive && currentPosition) {
-      setCurrentPosition(null);
-      saveCurrentPosition(null);
+    if (!isSyllablesActive && textareaRef.current) {
+      textareaRef.current.resetPosition();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSyllablesActive]);
 
+  /**
+   * Clear all text and reset the application state
+   * Uses the ref API to clear highlights without causing re-renders
+   */
   const handleClear = () => {
     // Clear text field
     setLocalText("");
@@ -338,9 +342,10 @@ export default function Home() {
     // Clear syllables cache and state
     clearSyllables();
 
-    // Clear current position
-    setCurrentPosition(null);
-    saveCurrentPosition(null);
+    // Clear current position via ref API (no re-render)
+    if (textareaRef.current) {
+      textareaRef.current.clearHighlight();
+    }
 
     // Reset to edit mode
     setIsEditing(true);
@@ -350,11 +355,6 @@ export default function Home() {
       title: "ניקוי הושלם",
       description: "הטקסט והזיכרון נוקו בהצלחה",
     });
-  };
-
-  const handlePositionChange = (position: CurrentPosition | null) => {
-    setCurrentPosition(position);
-    saveCurrentPosition(position);
   };
 
   const handleFontSizeChange = (delta: number) => {
@@ -706,15 +706,19 @@ export default function Home() {
           </div>
 
           {/* Main text input area - unified display */}
+          {/* 
+            EditableSyllablesTextarea now uses refs internally for position management.
+            This eliminates re-renders on every navigation change, improving performance.
+            The ref API (textareaRef) allows external control when needed.
+          */}
           <div className="w-full">
             <EditableSyllablesTextarea
+              ref={textareaRef}
               text={localText}
               onChange={handleTextChange}
               isEditing={isEditing}
               isSyllablesActive={isSyllablesActive}
               syllablesData={syllablesData}
-              currentPosition={currentPosition}
-              onPositionChange={handlePositionChange}
               navigationMode={navigationMode}
               displayMode={displayMode}
               niqqudCache={cache}
