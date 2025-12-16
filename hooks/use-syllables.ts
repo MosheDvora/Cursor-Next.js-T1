@@ -134,7 +134,8 @@ export function useSyllables(initialText: string = "") {
   // textToUse: Optional parameter to override initialText. 
   // This is used to ensure we always use cache.full (full niqqud text) when available,
   // even if the current display mode shows a different version (original/clean).
-  const divideSyllables = useCallback(async (textToUse?: string) => {
+  // additionalCacheKeys: Optional array of additional text versions to map to the same syllables data (e.g. partial niqqud)
+  const divideSyllables = useCallback(async (textToUse?: string, additionalCacheKeys?: string[]) => {
     setIsLoading(true);
     setError(null);
 
@@ -237,6 +238,23 @@ export function useSyllables(initialText: string = "") {
       if (cleanText !== currentText) {
         console.log("[useSyllables] Also saving cache for clean text version");
         saveSyllablesToCache(cleanText, result.syllablesData);
+      }
+
+      // Save additional cache keys if provided (e.g. for partial niqqud text)
+      // This ensures that when user switches back to partial niqqud, the syllables data is found
+      if (additionalCacheKeys && additionalCacheKeys.length > 0) {
+        additionalCacheKeys.forEach(key => {
+          if (key && key !== currentText && key !== cleanText) {
+            console.log("[useSyllables] Saving additional cache key:", key.substring(0, 20) + "...");
+            saveSyllablesToCache(key, result.syllablesData);
+            
+            // Also save clean version of the key if different
+            const cleanKey = removeNiqqud(key);
+            if (cleanKey !== key && cleanKey !== cleanText) {
+              saveSyllablesToCache(cleanKey, result.syllablesData);
+            }
+          }
+        });
       }
 
       // Save to centralized storage for future sync with Supabase

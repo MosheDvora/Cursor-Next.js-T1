@@ -193,6 +193,10 @@ export default function Home() {
     clearSyllablesError();
     clearError();
 
+    // Capture the current text (potentially with partial niqqud) before any processing
+    // We'll use this to ensure syllables are cached for this specific text version too
+    const currentPartialText = localText;
+
     try {
       // Check if we already have syllables data active for the current text
       // If syllables are already active and we have data, no need to call the API again
@@ -286,7 +290,16 @@ export default function Home() {
         textLength: textForSyllables.length,
         displayMode: displayMode,
       });
-      await divideSyllables(textForSyllables);
+      
+      // Pass the current partial text as an additional cache key
+      // This ensures that if we have partial niqqud, the result is cached for it too
+      // so when we switch back to partial view, the syllables are found
+      const additionalKeys: string[] = [];
+      if (currentPartialText && currentPartialText !== textForSyllables) {
+        additionalKeys.push(currentPartialText);
+      }
+      
+      await divideSyllables(textForSyllables, additionalKeys);
 
       // After syllable division completes, restore the text display to the saved state
       // Wait a bit for the division to complete and state to update
