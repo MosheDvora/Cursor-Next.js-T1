@@ -174,23 +174,23 @@ function applyDisplayModeToSyllables(
  */
 export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef, EditableSyllablesTextareaProps>(
   function EditableSyllablesTextarea({
-    text,
-    onChange,
-    isSyllablesActive,
-    syllablesData,
-    navigationMode,
-    displayMode,
-    niqqudCache,
-    wordSpacing,
-    letterSpacing,
-    fontSize = 30,
-    disabled = false,
-    placeholder = "הדבק כאן את הטקסט הראשי לצורך מניפולציות...",
-    className = "",
-    isEditing = true,
+  text,
+  onChange,
+  isSyllablesActive,
+  syllablesData,
+  navigationMode,
+  displayMode,
+  niqqudCache,
+  wordSpacing,
+  letterSpacing,
+  fontSize = 30,
+  disabled = false,
+  placeholder = "הדבק כאן את הטקסט הראשי לצורך מניפולציות...",
+  className = "",
+  isEditing = true,
   }, ref) {
     // Ref to the display container element
-    const displayRef = useRef<HTMLDivElement>(null);
+  const displayRef = useRef<HTMLDivElement>(null);
     
     // Current position stored in ref (not state) to avoid re-renders
     const currentPositionRef = useRef<CurrentPosition | null>(null);
@@ -199,10 +199,10 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
     const highlightedElementRef = useRef<HTMLElement | null>(null);
     
     // Previous navigation mode to detect mode changes
-    const prevModeRef = useRef<string | null>(null);
+  const prevModeRef = useRef<string | null>(null);
     
     // Track if we've initialized position for current text
-    const initializedTextRef = useRef<string>("");
+  const initializedTextRef = useRef<string>("");
 
     /**
      * Get the CSS class name for the active highlight based on navigation mode
@@ -287,42 +287,46 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       }
     }, [applyHighlight, clearCurrentHighlight]);
 
-    /**
-     * Helper function to get line index and word index within line for a given word index
-     * Used for vertical navigation (up/down arrows)
-     */
+  /**
+   * Helper function to get line index and word index within line for a given word index
+   * Used for vertical navigation (up/down arrows)
+   */
     const getLineAndWordPosition = useCallback((wordIndex: number, textLines: string[]): { lineIndex: number; wordIndexInLine: number } | null => {
-      let currentWordCount = 0;
-      for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
-        const lineWords = getWordsFromText(textLines[lineIdx]);
-        if (currentWordCount + lineWords.length > wordIndex) {
-          return {
-            lineIndex: lineIdx,
-            wordIndexInLine: wordIndex - currentWordCount,
-          };
-        }
-        currentWordCount += lineWords.length;
+    let currentWordCount = 0;
+    for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+      const lineWords = getWordsFromText(textLines[lineIdx]);
+      if (currentWordCount + lineWords.length > wordIndex) {
+        return {
+          lineIndex: lineIdx,
+          wordIndexInLine: wordIndex - currentWordCount,
+        };
       }
-      return null;
+      currentWordCount += lineWords.length;
+    }
+    return null;
     }, []);
 
-    /**
-     * Helper function to get line index for a word when syllables data is available
-     */
+  /**
+   * Helper function to get line index for a word when syllables data is available
+   */
     const getLineIndexForWord = useCallback((wordIndex: number, textLines: string[]): number => {
-      let wordCount = 0;
-      for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
-        const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
-        if (wordCount + lineWords.length > wordIndex) {
-          return lineIdx;
-        }
-        wordCount += lineWords.length;
+    let wordCount = 0;
+    for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+      const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
+      if (wordCount + lineWords.length > wordIndex) {
+        return lineIdx;
       }
-      return 0;
+      wordCount += lineWords.length;
+    }
+    return 0;
     }, []);
 
     /**
      * Navigate to next element based on current mode
+     * 
+     * IMPORTANT: For letter navigation with syllablesData, we must use processedSyllablesData
+     * (with displayMode applied) to match the indices in the DOM. When niqqud is removed,
+     * the character indices change, so navigation must use the same data structure as rendering.
      */
     const focusNext = useCallback(() => {
       if (!text || text.trim().length === 0) return;
@@ -355,7 +359,10 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         // Navigate with syllables data
         if (!currentPosition) return;
 
-        const { words } = syllablesData;
+        // Apply display mode to get the same data structure used in DOM rendering
+        // This ensures letter indices match between navigation and DOM elements
+        const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        const { words } = processedData;
         const { mode, wordIndex, syllableIndex, letterIndex } = currentPosition;
 
         if (mode === "words") {
@@ -376,6 +383,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
           }
         } else if (mode === "letters") {
           // Navigate between letters - only Hebrew letters
+          // Use processed syllables data to match DOM indices
           const allLetters: Array<{ wordIdx: number; syllableIdx: number; letterIdx: number }> = [];
 
           words.forEach((word, wIdx) => {
@@ -418,10 +426,14 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       if (newPosition) {
         updatePosition(newPosition);
       }
-    }, [text, isSyllablesActive, syllablesData, navigationMode, updatePosition]);
+    }, [text, isSyllablesActive, syllablesData, navigationMode, updatePosition, displayMode, niqqudCache]);
 
     /**
      * Navigate to previous element based on current mode
+     * 
+     * IMPORTANT: For letter navigation with syllablesData, we must use processedSyllablesData
+     * (with displayMode applied) to match the indices in the DOM. When niqqud is removed,
+     * the character indices change, so navigation must use the same data structure as rendering.
      */
     const focusPrev = useCallback(() => {
       if (!text || text.trim().length === 0) return;
@@ -444,7 +456,10 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       } else {
         if (!currentPosition) return;
 
-        const { words } = syllablesData;
+        // Apply display mode to get the same data structure used in DOM rendering
+        // This ensures letter indices match between navigation and DOM elements
+        const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        const { words } = processedData;
         const { mode, wordIndex, syllableIndex, letterIndex } = currentPosition;
 
         if (mode === "words") {
@@ -465,6 +480,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
             };
           }
         } else if (mode === "letters") {
+          // Use processed syllables data to match DOM indices
           const allLetters: Array<{ wordIdx: number; syllableIdx: number; letterIdx: number }> = [];
 
           words.forEach((word, wIdx) => {
@@ -498,140 +514,149 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       if (newPosition) {
         updatePosition(newPosition);
       }
-    }, [text, isSyllablesActive, syllablesData, navigationMode, updatePosition]);
+    }, [text, isSyllablesActive, syllablesData, navigationMode, updatePosition, displayMode, niqqudCache]);
 
     /**
      * Navigate up (to previous line)
+     * 
+     * IMPORTANT: For letter navigation with syllablesData, we must use processedSyllablesData
+     * (with displayMode applied) to match the indices in the DOM.
      */
     const focusUp = useCallback(() => {
       if (!text || text.trim().length === 0) return;
       
       const currentPosition = currentPositionRef.current;
-      if (!currentPosition) return;
+        if (!currentPosition) return;
 
-      const textLines = text.split('\n');
-      let newPosition: CurrentPosition | null = null;
+        const textLines = text.split('\n');
+        let newPosition: CurrentPosition | null = null;
 
-      if (!syllablesData || !isSyllablesActive) {
-        if (navigationMode === "words") {
-          const currentWordIdx = currentPosition.wordIndex ?? 0;
-          const pos = getLineAndWordPosition(currentWordIdx, textLines);
+        if (!syllablesData || !isSyllablesActive) {
+          if (navigationMode === "words") {
+            const currentWordIdx = currentPosition.wordIndex ?? 0;
+            const pos = getLineAndWordPosition(currentWordIdx, textLines);
           if (!pos || pos.lineIndex === 0) return;
 
           const targetLineIndex = pos.lineIndex - 1;
-          const targetLineWords = getWordsFromText(textLines[targetLineIndex]);
-          if (targetLineWords.length === 0) return;
+            const targetLineWords = getWordsFromText(textLines[targetLineIndex]);
+            if (targetLineWords.length === 0) return;
 
           const targetWordIndexInLine = Math.min(pos.wordIndexInLine, targetLineWords.length - 1);
-          let globalWordIndex = 0;
-          for (let i = 0; i < targetLineIndex; i++) {
-            globalWordIndex += getWordsFromText(textLines[i]).length;
-          }
-          globalWordIndex += targetWordIndexInLine;
-
-          newPosition = { mode: "words", wordIndex: globalWordIndex };
-        } else if (navigationMode === "letters") {
-          const letters = getHebrewLetters(text);
-          const currentLetterIdx = currentPosition.letterIndex ?? 0;
-          if (currentLetterIdx >= letters.length) return;
-
-          let charCount = 0;
-          let currentLineIndex = 0;
-          for (let i = 0; i < textLines.length; i++) {
-            const lineLength = textLines[i].length;
-            if (charCount + lineLength > letters[currentLetterIdx].index) {
-              currentLineIndex = i;
-              break;
+            let globalWordIndex = 0;
+            for (let i = 0; i < targetLineIndex; i++) {
+              globalWordIndex += getWordsFromText(textLines[i]).length;
             }
+            globalWordIndex += targetWordIndexInLine;
+
+            newPosition = { mode: "words", wordIndex: globalWordIndex };
+          } else if (navigationMode === "letters") {
+            const letters = getHebrewLetters(text);
+            const currentLetterIdx = currentPosition.letterIndex ?? 0;
+            if (currentLetterIdx >= letters.length) return;
+
+            let charCount = 0;
+            let currentLineIndex = 0;
+            for (let i = 0; i < textLines.length; i++) {
+              const lineLength = textLines[i].length;
+              if (charCount + lineLength > letters[currentLetterIdx].index) {
+                currentLineIndex = i;
+                break;
+              }
             charCount += lineLength + 1;
           }
 
           const targetLineIndex = currentLineIndex - 1;
           if (targetLineIndex < 0) return;
 
-          const targetLineLetters = getHebrewLetters(textLines[targetLineIndex]);
-          if (targetLineLetters.length === 0) return;
+            const targetLineLetters = getHebrewLetters(textLines[targetLineIndex]);
+            if (targetLineLetters.length === 0) return;
 
-          let globalLetterIndex = 0;
-          for (let i = 0; i < targetLineIndex; i++) {
-            globalLetterIndex += getHebrewLetters(textLines[i]).length;
+            let globalLetterIndex = 0;
+            for (let i = 0; i < targetLineIndex; i++) {
+              globalLetterIndex += getHebrewLetters(textLines[i]).length;
+            }
+
+            if (globalLetterIndex < letters.length) {
+              newPosition = { mode: "letters", wordIndex: 0, letterIndex: globalLetterIndex };
+            }
+          }
+        } else {
+        // Apply display mode to get the same data structure used in DOM rendering
+        const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        const { words } = processedData;
+          const { mode, wordIndex } = currentPosition;
+
+          const wordToLineMap: number[] = [];
+          let wordCount = 0;
+          for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+            const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
+            for (let i = 0; i < lineWords.length && wordCount < words.length; i++) {
+              wordToLineMap[wordCount] = lineIdx;
+              wordCount++;
+            }
           }
 
-          if (globalLetterIndex < letters.length) {
-            newPosition = { mode: "letters", wordIndex: 0, letterIndex: globalLetterIndex };
-          }
-        }
-      } else {
-        const { words } = syllablesData;
-        const { mode, wordIndex } = currentPosition;
-
-        const wordToLineMap: number[] = [];
-        let wordCount = 0;
-        for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
-          const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
-          for (let i = 0; i < lineWords.length && wordCount < words.length; i++) {
-            wordToLineMap[wordCount] = lineIdx;
-            wordCount++;
-          }
-        }
-
-        const currentLineIndex = getLineIndexForWord(wordIndex, textLines);
+          const currentLineIndex = getLineIndexForWord(wordIndex, textLines);
         const targetLineIndex = currentLineIndex - 1;
         if (targetLineIndex < 0) return;
 
-        const wordsByLine: Array<Array<{ wordIdx: number }>> = [];
+          const wordsByLine: Array<Array<{ wordIdx: number }>> = [];
         textLines.forEach((_, lineIdx) => { wordsByLine[lineIdx] = []; });
-        words.forEach((_, wordIdx) => {
-          const lineIdx = wordToLineMap[wordIdx] ?? 0;
+          words.forEach((_, wordIdx) => {
+            const lineIdx = wordToLineMap[wordIdx] ?? 0;
           if (!wordsByLine[lineIdx]) wordsByLine[lineIdx] = [];
-          wordsByLine[lineIdx].push({ wordIdx });
-        });
+            wordsByLine[lineIdx].push({ wordIdx });
+          });
 
-        const targetLineWords = wordsByLine[targetLineIndex] || [];
-        if (targetLineWords.length === 0) return;
+          const targetLineWords = wordsByLine[targetLineIndex] || [];
+          if (targetLineWords.length === 0) return;
 
-        const currentLineWords = wordsByLine[currentLineIndex] || [];
-        const currentWordIndexInLine = currentLineWords.findIndex(w => w.wordIdx === wordIndex);
-        const targetWordIndexInLine = Math.min(
-          currentWordIndexInLine >= 0 ? currentWordIndexInLine : 0,
-          targetLineWords.length - 1
-        );
+          const currentLineWords = wordsByLine[currentLineIndex] || [];
+          const currentWordIndexInLine = currentLineWords.findIndex(w => w.wordIdx === wordIndex);
+          const targetWordIndexInLine = Math.min(
+            currentWordIndexInLine >= 0 ? currentWordIndexInLine : 0,
+            targetLineWords.length - 1
+          );
 
-        const targetWordIdx = targetLineWords[targetWordIndexInLine].wordIdx;
+          const targetWordIdx = targetLineWords[targetWordIndexInLine].wordIdx;
 
-        if (mode === "words") {
-          newPosition = { mode: "words", wordIndex: targetWordIdx };
-        } else if (mode === "syllables") {
+          if (mode === "words") {
+            newPosition = { mode: "words", wordIndex: targetWordIdx };
+          } else if (mode === "syllables") {
           newPosition = { mode: "syllables", wordIndex: targetWordIdx, syllableIndex: 0 };
-        } else if (mode === "letters") {
-          const targetWord = words[targetWordIdx];
-          if (targetWord) {
-            for (let sIdx = 0; sIdx < targetWord.syllables.length; sIdx++) {
-              const syllable = targetWord.syllables[sIdx];
-              for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
-                if (isHebrewLetter(syllable[lIdx])) {
-                  newPosition = {
-                    mode: "letters",
-                    wordIndex: targetWordIdx,
-                    syllableIndex: sIdx,
-                    letterIndex: lIdx,
-                  };
-                  break;
+          } else if (mode === "letters") {
+          // Use processed syllables data to match DOM indices
+            const targetWord = words[targetWordIdx];
+            if (targetWord) {
+              for (let sIdx = 0; sIdx < targetWord.syllables.length; sIdx++) {
+                const syllable = targetWord.syllables[sIdx];
+                for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
+                  if (isHebrewLetter(syllable[lIdx])) {
+                    newPosition = {
+                      mode: "letters",
+                      wordIndex: targetWordIdx,
+                      syllableIndex: sIdx,
+                      letterIndex: lIdx,
+                    };
+                    break;
+                  }
                 }
+                if (newPosition) break;
               }
-              if (newPosition) break;
             }
           }
         }
-      }
 
-      if (newPosition) {
+        if (newPosition) {
         updatePosition(newPosition);
       }
-    }, [text, isSyllablesActive, syllablesData, navigationMode, getLineAndWordPosition, getLineIndexForWord, updatePosition]);
+    }, [text, isSyllablesActive, syllablesData, navigationMode, getLineAndWordPosition, getLineIndexForWord, updatePosition, displayMode, niqqudCache]);
 
     /**
      * Navigate down (to next line)
+     * 
+     * IMPORTANT: For letter navigation with syllablesData, we must use processedSyllablesData
+     * (with displayMode applied) to match the indices in the DOM.
      */
     const focusDown = useCallback(() => {
       if (!text || text.trim().length === 0) return;
@@ -692,7 +717,9 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
           }
         }
       } else {
-        const { words } = syllablesData;
+        // Apply display mode to get the same data structure used in DOM rendering
+        const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        const { words } = processedData;
         const { mode, wordIndex } = currentPosition;
 
         const wordToLineMap: number[] = [];
@@ -734,14 +761,15 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         } else if (mode === "syllables") {
           newPosition = { mode: "syllables", wordIndex: targetWordIdx, syllableIndex: 0 };
         } else if (mode === "letters") {
+          // Use processed syllables data to match DOM indices
           const targetWord = words[targetWordIdx];
           if (targetWord) {
             for (let sIdx = 0; sIdx < targetWord.syllables.length; sIdx++) {
               const syllable = targetWord.syllables[sIdx];
               for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
                 if (isHebrewLetter(syllable[lIdx])) {
-                  newPosition = {
-                    mode: "letters",
+            newPosition = {
+              mode: "letters",
                     wordIndex: targetWordIdx,
                     syllableIndex: sIdx,
                     letterIndex: lIdx,
@@ -758,16 +786,16 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       if (newPosition) {
         updatePosition(newPosition);
       }
-    }, [text, isSyllablesActive, syllablesData, navigationMode, getLineAndWordPosition, getLineIndexForWord, updatePosition]);
+    }, [text, isSyllablesActive, syllablesData, navigationMode, getLineAndWordPosition, getLineIndexForWord, updatePosition, displayMode, niqqudCache]);
 
     /**
      * Reset position to the beginning based on current navigation mode
      */
     const resetPosition = useCallback(() => {
-      if (!text || text.trim().length === 0) {
+    if (!text || text.trim().length === 0) {
         updatePosition(null);
-        return;
-      }
+      return;
+    }
 
       let initialPosition: CurrentPosition;
 
@@ -875,17 +903,17 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       }
     }, [text, navigationMode, updatePosition, resetPosition]);
 
-    // Update position mode when navigationMode changes
-    useEffect(() => {
+  // Update position mode when navigationMode changes
+  useEffect(() => {
       const currentPosition = currentPositionRef.current;
-      if (currentPosition && currentPosition.mode !== navigationMode && prevModeRef.current !== navigationMode) {
-        prevModeRef.current = navigationMode;
-        const updatedPosition: CurrentPosition = {
-          mode: navigationMode,
-          wordIndex: currentPosition.wordIndex,
-          syllableIndex: navigationMode === "syllables" ? (currentPosition.syllableIndex ?? 0) : undefined,
-          letterIndex: navigationMode === "letters" ? (currentPosition.letterIndex ?? 0) : undefined,
-        };
+    if (currentPosition && currentPosition.mode !== navigationMode && prevModeRef.current !== navigationMode) {
+      prevModeRef.current = navigationMode;
+      const updatedPosition: CurrentPosition = {
+        mode: navigationMode,
+        wordIndex: currentPosition.wordIndex,
+        syllableIndex: navigationMode === "syllables" ? (currentPosition.syllableIndex ?? 0) : undefined,
+        letterIndex: navigationMode === "letters" ? (currentPosition.letterIndex ?? 0) : undefined,
+      };
         updatePosition(updatedPosition);
       }
     }, [navigationMode, updatePosition]);
@@ -903,26 +931,26 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
     }, [syllablesData, isSyllablesActive, displayMode, applyHighlight, isEditing]);
 
     // Auto-focus and listen to document keydown events when not editing
-    useEffect(() => {
-      if (text && text.trim().length > 0 && displayRef.current && !isEditing) {
+  useEffect(() => {
+    if (text && text.trim().length > 0 && displayRef.current && !isEditing) {
         // Save current scroll position before focusing
-        const savedScrollY = window.scrollY;
-        const savedScrollX = window.scrollX;
-        
-        displayRef.current.focus();
-        
+      const savedScrollY = window.scrollY;
+      const savedScrollX = window.scrollX;
+      
+      displayRef.current.focus();
+      
         // Restore scroll position
-        requestAnimationFrame(() => {
-          window.scrollTo(savedScrollX, savedScrollY);
-        });
+      requestAnimationFrame(() => {
+        window.scrollTo(savedScrollX, savedScrollY);
+      });
 
-        // Listen to document-level keydown events
+      // Listen to document-level keydown events
         document.addEventListener("keydown", handleKeyDown);
-        return () => {
+      return () => {
           document.removeEventListener("keydown", handleKeyDown);
-        };
-      }
-    }, [text, handleKeyDown, isEditing]);
+      };
+    }
+  }, [text, handleKeyDown, isEditing]);
 
     // Clear highlight when switching to edit mode
     useEffect(() => {
@@ -934,150 +962,32 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
     /**
      * Render the text display with data attributes for DOM-based highlighting
      */
-    const renderTextDisplay = () => {
-      if (isEditing || !text || text.trim().length === 0) {
-        return (
-          <Textarea
-            value={text}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className={`min-h-[500px] text-right resize-y ${className}`}
-            style={{
-              fontSize: `${fontSize}px`,
-              lineHeight: '1.6',
-              whiteSpace: 'pre-wrap',
-              letterSpacing: `${letterSpacing}px`,
-              padding: '5px 15px',
-              fontFamily: 'inherit',
-            }}
-            dir="rtl"
-            disabled={disabled}
-            data-testid="editable-textarea"
-          />
-        );
-      }
+  const renderTextDisplay = () => {
+    if (isEditing || !text || text.trim().length === 0) {
+      return (
+        <Textarea
+          value={text}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className={`min-h-[500px] text-right resize-y ${className}`}
+          style={{
+            fontSize: `${fontSize}px`,
+            lineHeight: '1.6',
+            whiteSpace: 'pre-wrap',
+            letterSpacing: `${letterSpacing}px`,
+            padding: '5px 15px',
+            fontFamily: 'inherit',
+          }}
+          dir="rtl"
+          disabled={disabled}
+          data-testid="editable-textarea"
+        />
+      );
+    }
 
-      // If no syllables data, render simple text with word/letter navigation
-      if (!syllablesData || !isSyllablesActive) {
-        const textLines = text.split('\n');
-
-        return (
-          <div
-            ref={displayRef}
-            className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
-            dir="rtl"
-            tabIndex={0}
-            style={{ outline: "none", fontSize: `${fontSize}px` }}
-            contentEditable={false}
-            data-testid="text-display-area"
-          >
-            {textLines.map((_lineText, lineIndex) => {
-              const lineWords = getWordsFromText(textLines[lineIndex]);
-
-              return (
-                <div 
-                  key={lineIndex} 
-                  className="pyramid-line-base mb-2" 
-                  dir="rtl" 
-                  style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}
-                >
-                  {navigationMode === "words" ? (
-                    lineWords.map((word, wordIndex) => {
-                      // Find global word index
-                      let globalWordIndex = 0;
-                      for (let i = 0; i < lineIndex; i++) {
-                        globalWordIndex += getWordsFromText(textLines[i]).length;
-                      }
-                      globalWordIndex += wordIndex;
-
-                      return (
-                        <span
-                          key={wordIndex}
-                          className="pyramid-word-base"
-                          data-word-index={globalWordIndex}
-                          data-element-type="word"
-                          style={{ outline: "none" }}
-                          data-testid={`navigation-word-${globalWordIndex}`}
-                        >
-                          {word}
-                        </span>
-                      );
-                    })
-                  ) : (
-                    // Letters mode - show text with letter highlighting
-                    lineWords.map((word, wordIndex) => {
-                      const wordLetters = getHebrewLetters(word);
-                      let globalLetterOffset = 0;
-                      for (let i = 0; i < lineIndex; i++) {
-                        globalLetterOffset += getHebrewLetters(textLines[i]).length;
-                      }
-                      for (let i = 0; i < wordIndex; i++) {
-                        globalLetterOffset += getHebrewLetters(lineWords[i]).length;
-                      }
-
-                      const charGroups = groupLettersWithNiqqud(word);
-
-                      return (
-                        <span key={wordIndex} className="pyramid-word-wrapper">
-                          {charGroups.map((group, groupIdx) => {
-                            const letterInfo = wordLetters.find(l => l.index === group.index);
-                            const letterIdx = letterInfo ? wordLetters.indexOf(letterInfo) : -1;
-                            const globalLetterIdx = letterIdx !== -1 ? globalLetterOffset + letterIdx : -1;
-
-                            if (!group.isHebrew) {
-                              return <span key={groupIdx}>{group.text}</span>;
-                            }
-
-                            return (
-                              <span
-                                key={groupIdx}
-                                className="pyramid-letter-base"
-                                data-word-index={0}
-                                data-syllable-index={0}
-                                data-letter-index={globalLetterIdx}
-                                data-element-type="letter"
-                                style={{ outline: "none" }}
-                                data-testid={`navigation-letter-0-0-${globalLetterIdx}`}
-                              >
-                                {group.text}
-                              </span>
-                            );
-                          })}
-                        </span>
-                      );
-                    })
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        );
-      }
-
-      // With syllables data - render text without visual syllable division
-      const processedSyllablesData = syllablesData
-        ? applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache)
-        : null;
-      const { words } = processedSyllablesData || syllablesData || { words: [] };
-
+    // If no syllables data, render simple text with word/letter navigation
+    if (!syllablesData || !isSyllablesActive) {
       const textLines = text.split('\n');
-      const wordToLineMap: number[] = [];
-      let wordCount = 0;
-      for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
-        const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
-        for (let i = 0; i < lineWords.length && wordCount < words.length; i++) {
-          wordToLineMap[wordCount] = lineIdx;
-          wordCount++;
-        }
-      }
-
-      const wordsByLine: Array<Array<{ wordIdx: number; wordEntry: typeof words[0] }>> = [];
-      textLines.forEach((_, lineIdx) => { wordsByLine[lineIdx] = []; });
-      words.forEach((wordEntry, wordIdx) => {
-        const lineIdx = wordToLineMap[wordIdx] ?? 0;
-        if (!wordsByLine[lineIdx]) wordsByLine[lineIdx] = [];
-        wordsByLine[lineIdx].push({ wordIdx, wordEntry });
-      });
 
       return (
         <div
@@ -1089,38 +999,156 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
           contentEditable={false}
           data-testid="text-display-area"
         >
-          {textLines.map((lineText, lineIndex) => {
-            const lineWords = wordsByLine[lineIndex] || [];
+            {textLines.map((_lineText, lineIndex) => {
+              const lineWords = getWordsFromText(textLines[lineIndex]);
 
             return (
+                <div 
+                  key={lineIndex} 
+                  className="pyramid-line-base mb-2" 
+                  dir="rtl" 
+                  style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}
+                >
+                {navigationMode === "words" ? (
+                  lineWords.map((word, wordIndex) => {
+                    // Find global word index
+                    let globalWordIndex = 0;
+                    for (let i = 0; i < lineIndex; i++) {
+                      globalWordIndex += getWordsFromText(textLines[i]).length;
+                    }
+                    globalWordIndex += wordIndex;
+
+                    return (
+                      <span
+                        key={wordIndex}
+                          className="pyramid-word-base"
+                          data-word-index={globalWordIndex}
+                          data-element-type="word"
+                          style={{ outline: "none" }}
+                          data-testid={`navigation-word-${globalWordIndex}`}
+                      >
+                        {word}
+                      </span>
+                    );
+                  })
+                ) : (
+                  // Letters mode - show text with letter highlighting
+                  lineWords.map((word, wordIndex) => {
+                    const wordLetters = getHebrewLetters(word);
+                    let globalLetterOffset = 0;
+                    for (let i = 0; i < lineIndex; i++) {
+                      globalLetterOffset += getHebrewLetters(textLines[i]).length;
+                    }
+                    for (let i = 0; i < wordIndex; i++) {
+                      globalLetterOffset += getHebrewLetters(lineWords[i]).length;
+                    }
+
+                    const charGroups = groupLettersWithNiqqud(word);
+
+                    return (
+                      <span key={wordIndex} className="pyramid-word-wrapper">
+                        {charGroups.map((group, groupIdx) => {
+                          const letterInfo = wordLetters.find(l => l.index === group.index);
+                          const letterIdx = letterInfo ? wordLetters.indexOf(letterInfo) : -1;
+                          const globalLetterIdx = letterIdx !== -1 ? globalLetterOffset + letterIdx : -1;
+
+                          if (!group.isHebrew) {
+                            return <span key={groupIdx}>{group.text}</span>;
+                          }
+
+                          return (
+                            <span
+                              key={groupIdx}
+                                className="pyramid-letter-base"
+                                data-word-index={0}
+                                data-syllable-index={0}
+                                data-letter-index={globalLetterIdx}
+                                data-element-type="letter"
+                                style={{ outline: "none" }}
+                                data-testid={`navigation-letter-0-0-${globalLetterIdx}`}
+                              >
+                                {group.text}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    );
+                  })
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
+    // With syllables data - render text without visual syllable division
+    const processedSyllablesData = syllablesData
+      ? applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache)
+      : null;
+    const { words } = processedSyllablesData || syllablesData || { words: [] };
+
+    const textLines = text.split('\n');
+    const wordToLineMap: number[] = [];
+    let wordCount = 0;
+    for (let lineIdx = 0; lineIdx < textLines.length; lineIdx++) {
+      const lineWords = textLines[lineIdx].split(/\s+/).filter(w => w.trim().length > 0);
+      for (let i = 0; i < lineWords.length && wordCount < words.length; i++) {
+        wordToLineMap[wordCount] = lineIdx;
+        wordCount++;
+      }
+    }
+
+    const wordsByLine: Array<Array<{ wordIdx: number; wordEntry: typeof words[0] }>> = [];
+      textLines.forEach((_, lineIdx) => { wordsByLine[lineIdx] = []; });
+    words.forEach((wordEntry, wordIdx) => {
+      const lineIdx = wordToLineMap[wordIdx] ?? 0;
+        if (!wordsByLine[lineIdx]) wordsByLine[lineIdx] = [];
+      wordsByLine[lineIdx].push({ wordIdx, wordEntry });
+    });
+
+    return (
+      <div
+        ref={displayRef}
+        className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
+        dir="rtl"
+        tabIndex={0}
+        style={{ outline: "none", fontSize: `${fontSize}px` }}
+        contentEditable={false}
+        data-testid="text-display-area"
+      >
+        {textLines.map((lineText, lineIndex) => {
+          const lineWords = wordsByLine[lineIndex] || [];
+
+          return (
               <div 
                 key={lineIndex} 
                 className="pyramid-line-base mb-2" 
                 dir="rtl" 
                 style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}
               >
-                {navigationMode === "words" ? (
-                  lineWords.map(({ wordIdx, wordEntry }) => {
-                    const wordText = wordEntry.syllables.join("");
-                    return (
-                      <span
-                        key={wordIdx}
+              {navigationMode === "words" ? (
+                lineWords.map(({ wordIdx, wordEntry }) => {
+                  const wordText = wordEntry.syllables.join("");
+                  return (
+                    <span
+                      key={wordIdx}
                         className="pyramid-word-base"
                         data-word-index={wordIdx}
                         data-element-type="word"
                         style={{ outline: "none" }}
                         data-testid={`navigation-word-${wordIdx}`}
-                      >
-                        {wordText}
-                      </span>
-                    );
-                  })
-                ) : navigationMode === "syllables" ? (
+                    >
+                      {wordText}
+                    </span>
+                  );
+                })
+              ) : navigationMode === "syllables" ? (
                   // Syllables mode
-                  lineWords.map(({ wordIdx, wordEntry }) => {
-                    const syllables = wordEntry.syllables;
-                    return (
-                      <span key={wordIdx} className="pyramid-word-wrapper">
+                lineWords.map(({ wordIdx, wordEntry }) => {
+                  const syllables = wordEntry.syllables;
+                  return (
+                    <span key={wordIdx} className="pyramid-word-wrapper">
                         {syllables.map((syllable, syllableIndex) => (
                           <span
                             key={`${wordIdx}-${syllableIndex}`}
@@ -1134,41 +1162,41 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                             {syllable}
                           </span>
                         ))}
-                      </span>
-                    );
-                  })
-                ) : (
+                    </span>
+                  );
+                })
+              ) : (
                   // Letters mode
-                  lineWords.map(({ wordIdx, wordEntry }) => {
-                    const syllables = wordEntry.syllables;
-                    const wordText = syllables.join("");
+                lineWords.map(({ wordIdx, wordEntry }) => {
+                  const syllables = wordEntry.syllables;
+                  const wordText = syllables.join("");
 
-                    const letterPositions: Array<{ syllableIdx: number; letterIdx: number; charIndex: number }> = [];
-                    let charCount = 0;
-                    for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
-                      const syllable = syllables[sIdx];
-                      for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
-                        if (isHebrewLetter(syllable[lIdx])) {
-                          letterPositions.push({ syllableIdx: sIdx, letterIdx: lIdx, charIndex: charCount });
-                        }
-                        charCount++;
+                  const letterPositions: Array<{ syllableIdx: number; letterIdx: number; charIndex: number }> = [];
+                  let charCount = 0;
+                  for (let sIdx = 0; sIdx < syllables.length; sIdx++) {
+                    const syllable = syllables[sIdx];
+                    for (let lIdx = 0; lIdx < syllable.length; lIdx++) {
+                      if (isHebrewLetter(syllable[lIdx])) {
+                        letterPositions.push({ syllableIdx: sIdx, letterIdx: lIdx, charIndex: charCount });
                       }
+                      charCount++;
                     }
+                  }
 
-                    const charGroups = groupLettersWithNiqqud(wordText);
+                  const charGroups = groupLettersWithNiqqud(wordText);
 
-                    return (
-                      <span key={wordIdx} className="pyramid-word-wrapper">
-                        {charGroups.map((group, groupIdx) => {
-                          const letterPos = letterPositions.find(lp => lp.charIndex === group.index);
+                  return (
+                    <span key={wordIdx} className="pyramid-word-wrapper">
+                      {charGroups.map((group, groupIdx) => {
+                        const letterPos = letterPositions.find(lp => lp.charIndex === group.index);
 
-                          if (!group.isHebrew) {
-                            return <span key={`${wordIdx}-${groupIdx}`}>{group.text}</span>;
-                          }
+                        if (!group.isHebrew) {
+                          return <span key={`${wordIdx}-${groupIdx}`}>{group.text}</span>;
+                        }
 
-                          return (
-                            <span
-                              key={`${wordIdx}-${groupIdx}`}
+                        return (
+                          <span
+                            key={`${wordIdx}-${groupIdx}`}
                               className="pyramid-letter-base"
                               data-word-index={wordIdx}
                               data-syllable-index={letterPos?.syllableIdx ?? 0}
@@ -1178,20 +1206,20 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                               data-testid={`navigation-letter-${wordIdx}-${letterPos?.syllableIdx ?? groupIdx}-${letterPos?.letterIdx ?? 0}`}
                             >
                               {group.text}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    );
-                  })
-                )}
-              </div>
-            );
-          })}
-        </div>
-      );
-    };
+                          </span>
+                        );
+                      })}
+                    </span>
+                  );
+                })
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
-    return renderTextDisplay();
-  }
+  return renderTextDisplay();
+}
 );
