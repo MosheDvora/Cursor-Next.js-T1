@@ -119,21 +119,23 @@ const groupLettersWithNiqqud = (text: string): Array<{ text: string; index: numb
 };
 
 /**
- * Apply display mode to syllables data by removing niqqud when needed
+ * Apply display mode to syllables data by transforming niqqud as needed
  * This ensures the displayed text matches the displayMode (original/clean/full)
  * while preserving the syllable structure for navigation
  * 
- * IMPORTANT: For 'original' mode with partial niqqud, syllables cannot be used
- * because syllablesData was generated from full niqqud text and cannot accurately
- * represent the original partial niqqud. In such cases, return null to indicate
- * that syllable navigation should be disabled.
+ * For 'original' mode with partial niqqud, syllables are transformed on a per-word basis:
+ * - Words that have niqqud in original → keep syllables with niqqud
+ * - Words that have NO niqqud in original → strip niqqud from syllables
+ * 
+ * This allows syllable navigation to work correctly even when the original text
+ * has partial niqqud (e.g., "שָׁלוֹם רַב לכל האורחים" where only some words have niqqud).
  * 
  * @param syllablesData - The original syllables data (with full niqqud from model)
  * @param displayMode - The current display mode ('original', 'clean', or 'full')
  * @param cache - The niqqud cache containing original, clean, and full versions
- * @returns Processed syllables data with niqqud removed, or null if syllables cannot be used
+ * @returns Processed syllables data with niqqud transformed, or null if syllables cannot be used
  */
-function applyDisplayModeToSyllables(
+export function applyDisplayModeToSyllables(
   syllablesData: SyllablesData,
   displayMode: 'original' | 'clean' | 'full' | undefined,
   cache: NiqqudCache | null | undefined
@@ -148,9 +150,8 @@ function applyDisplayModeToSyllables(
     return syllablesData;
   }
 
-  // For 'original' mode: Check if original text differs from full text (partial niqqud case)
-  // If they differ (partial niqqud), syllablesData cannot accurately represent the original
-  // because it was generated from full niqqud text. Return null to disable syllable navigation.
+  // For 'original' mode: Transform syllables to match the original text's niqqud pattern
+  // This handles partial niqqud cases where some words have niqqud and some don't
   if (displayMode === 'original') {
     const originalClean = removeNiqqud(cache.original);
     const fullClean = cache.full ? removeNiqqud(cache.full) : originalClean;
@@ -161,14 +162,58 @@ function applyDisplayModeToSyllables(
       return null; // Cannot use syllables with mismatched text
     }
     
-    // If original and full have same base text, but original has partial niqqud,
-    // we still can't accurately represent it in syllables. Check if they're identical.
-    if (cache.original !== cache.full) {
-      return null; // Original has partial niqqud, can't use syllables generated from full
+    // If original === full, no transformation needed - return syllablesData as-is
+    if (cache.original === cache.full) {
+      return syllablesData;
     }
     
-    // If we reach here, original === full, so just return syllablesData as-is
-    return syllablesData;
+    // Partial niqqud case: transform syllables per-word based on original's niqqud status
+    // Split both texts into words for comparison
+    const originalWords = cache.original.split(/\s+/).filter(w => w.length > 0);
+    const fullWords = cache.full ? cache.full.split(/\s+/).filter(w => w.length > 0) : originalWords;
+    
+    // Safety check: word count should match between syllablesData and original text
+    // If they don't match, something is wrong and we can't safely transform
+    if (syllablesData.words.length !== originalWords.length) {
+      // Word count mismatch - try to proceed if counts are close, otherwise return null
+      // This can happen if the model slightly reformatted the text
+      if (Math.abs(syllablesData.words.length - originalWords.length) > 1) {
+        return null; // Too much difference, can't reliably map words
+      }
+    }
+    
+    // Transform each word's syllables based on whether the original word has niqqud
+    return {
+      words: syllablesData.words.map((wordEntry, idx) => {
+        // Get the corresponding words from original and full text
+        // Use empty string as fallback if index is out of bounds
+        const originalWord = originalWords[idx] || '';
+        const fullWord = fullWords[idx] || '';
+        
+        // If the original word exactly matches the full word (has full niqqud),
+        // keep syllables as-is with their niqqud
+        if (originalWord === fullWord) {
+          return wordEntry;
+        }
+        
+        // Check if the original word has NO niqqud at all
+        // If so, strip all niqqud from the syllables for this word
+        const originalWordWithoutNiqqud = removeNiqqud(originalWord);
+        if (originalWord === originalWordWithoutNiqqud) {
+          // Original word has no niqqud - strip niqqud from syllables
+          return {
+            word: wordEntry.word,
+            syllables: wordEntry.syllables.map(syllable => removeNiqqud(syllable)),
+          };
+        }
+        
+        // Original word has PARTIAL niqqud (some characters have niqqud, some don't)
+        // This is a complex case - for now, keep the full niqqud syllables
+        // since partial niqqud within a single word is rare and harder to handle
+        // The display will show whatever niqqud the original has
+        return wordEntry;
+      }),
+    };
   }
 
   // For 'clean' mode: Remove all niqqud from syllables

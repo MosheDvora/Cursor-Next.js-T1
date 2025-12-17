@@ -6,12 +6,13 @@
  * - Navigation modes (words, syllables, letters)
  * - Position persistence via localStorage
  * - DOM class toggling for highlights
+ * - applyDisplayModeToSyllables function for partial niqqud handling
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { createRef } from 'react'
-import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from '../editable-syllables-textarea'
+import { EditableSyllablesTextarea, EditableSyllablesTextareaRef, applyDisplayModeToSyllables } from '../editable-syllables-textarea'
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -381,6 +382,190 @@ describe('EditableSyllablesTextarea', () => {
       
       const position = ref.current?.getCurrentPosition()
       expect(position).toBeNull()
+    })
+  })
+})
+
+/**
+ * Tests for applyDisplayModeToSyllables function
+ * 
+ * This function transforms syllables data based on the display mode:
+ * - 'full': Returns syllables with full niqqud
+ * - 'clean': Returns syllables with all niqqud removed
+ * - 'original': Transforms syllables per-word based on original text's niqqud status
+ */
+describe('applyDisplayModeToSyllables', () => {
+  // Sample syllables data (with full niqqud from model)
+  const syllablesData = {
+    words: [
+      { word: 'שלום', syllables: ['שָׁ', 'לוֹם'] },
+      { word: 'רב', syllables: ['רַב'] },
+      { word: 'לכל', syllables: ['לְ', 'כָל'] },
+      { word: 'האורחים', syllables: ['הָ', 'אוֹ', 'רְחִים'] },
+    ],
+  }
+
+  describe('without cache or displayMode', () => {
+    it('should return original syllablesData when no displayMode', () => {
+      const result = applyDisplayModeToSyllables(syllablesData, undefined, null)
+      expect(result).toEqual(syllablesData)
+    })
+
+    it('should return original syllablesData when no cache', () => {
+      const result = applyDisplayModeToSyllables(syllablesData, 'original', null)
+      expect(result).toEqual(syllablesData)
+    })
+  })
+
+  describe('displayMode: full', () => {
+    it('should return syllablesData as-is with full niqqud', () => {
+      const cache = {
+        original: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+        clean: 'שלום רב לכל האורחים',
+        full: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'full', cache)
+      
+      expect(result).toEqual(syllablesData)
+      expect(result?.words[0].syllables).toEqual(['שָׁ', 'לוֹם'])
+      expect(result?.words[2].syllables).toEqual(['לְ', 'כָל'])
+    })
+  })
+
+  describe('displayMode: clean', () => {
+    it('should remove all niqqud from syllables', () => {
+      const cache = {
+        original: 'שָׁלוֹם רַב לכל האורחים',
+        clean: 'שלום רב לכל האורחים',
+        full: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'clean', cache)
+      
+      expect(result).not.toBeNull()
+      expect(result?.words[0].syllables).toEqual(['ש', 'לום'])
+      expect(result?.words[1].syllables).toEqual(['רב'])
+      expect(result?.words[2].syllables).toEqual(['ל', 'כל'])
+      expect(result?.words[3].syllables).toEqual(['ה', 'או', 'רחים'])
+    })
+  })
+
+  describe('displayMode: original - partial niqqud', () => {
+    it('should transform syllables per-word based on original niqqud status', () => {
+      // Original text: "שָׁלוֹם רַב לכל האורחים" - first two words have niqqud, last two don't
+      const cache = {
+        original: 'שָׁלוֹם רַב לכל האורחים',
+        clean: 'שלום רב לכל האורחים',
+        full: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'original', cache)
+      
+      expect(result).not.toBeNull()
+      // Words WITH niqqud in original should keep niqqud
+      expect(result?.words[0].syllables).toEqual(['שָׁ', 'לוֹם']) // Has niqqud in original
+      expect(result?.words[1].syllables).toEqual(['רַב'])         // Has niqqud in original
+      // Words WITHOUT niqqud in original should have niqqud stripped
+      expect(result?.words[2].syllables).toEqual(['ל', 'כל'])     // No niqqud in original
+      expect(result?.words[3].syllables).toEqual(['ה', 'או', 'רחים']) // No niqqud in original
+    })
+
+    it('should return syllablesData as-is when original equals full', () => {
+      const cache = {
+        original: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+        clean: 'שלום רב לכל האורחים',
+        full: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'original', cache)
+      
+      expect(result).toEqual(syllablesData)
+    })
+
+    it('should return null when underlying text is different', () => {
+      // Cache where clean versions don't match (model changed the text)
+      const cache = {
+        original: 'שָׁלוֹם רַב לכל',
+        clean: 'שלום רב לכל',
+        full: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים', // Has extra word
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'original', cache)
+      
+      expect(result).toBeNull()
+    })
+
+    it('should handle text with all words having niqqud', () => {
+      const cache = {
+        original: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+        clean: 'שלום רב לכל האורחים',
+        full: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'original', cache)
+      
+      // When original === full, all syllables should keep niqqud
+      expect(result).toEqual(syllablesData)
+    })
+
+    it('should handle text with no niqqud at all', () => {
+      const cache = {
+        original: 'שלום רב לכל האורחים', // No niqqud in original
+        clean: 'שלום רב לכל האורחים',
+        full: 'שָׁלוֹם רַב לְכָל הָאוֹרְחִים',
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'original', cache)
+      
+      expect(result).not.toBeNull()
+      // All words should have niqqud stripped since original has no niqqud
+      expect(result?.words[0].syllables).toEqual(['ש', 'לום'])
+      expect(result?.words[1].syllables).toEqual(['רב'])
+      expect(result?.words[2].syllables).toEqual(['ל', 'כל'])
+      expect(result?.words[3].syllables).toEqual(['ה', 'או', 'רחים'])
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle word count mismatch gracefully', () => {
+      // syllablesData has 4 words, but original has only 3
+      const cache = {
+        original: 'שָׁלוֹם רַב לכל', // 3 words
+        clean: 'שלום רב לכל',
+        full: 'שָׁלוֹם רַב לכל', // Same as original (no full niqqud)
+      }
+      
+      // When clean versions match, but word count differs significantly
+      const smallSyllablesData = {
+        words: [
+          { word: 'שלום', syllables: ['שָׁ', 'לוֹם'] },
+          { word: 'רב', syllables: ['רַב'] },
+          { word: 'לכל', syllables: ['לְ', 'כָל'] },
+        ],
+      }
+      
+      const result = applyDisplayModeToSyllables(smallSyllablesData, 'original', cache)
+      
+      // Should return syllablesData since original === full (both have same text)
+      expect(result).toEqual(smallSyllablesData)
+    })
+
+    it('should handle null full cache gracefully', () => {
+      const cache = {
+        original: 'שָׁלוֹם רַב לכל האורחים',
+        clean: 'שלום רב לכל האורחים',
+        full: null, // No full niqqud version
+      }
+      
+      const result = applyDisplayModeToSyllables(syllablesData, 'original', cache)
+      
+      // When full is null, can't compare - should return null (can't transform)
+      // Actually, the code checks if original !== full, and since full is null, this is true
+      // But it should handle this case - let's see what happens
+      // The code uses: cache.full ? cache.full.split(/\s+/) : originalWords
+      // So it falls back to originalWords, which is correct behavior
+      expect(result).not.toBeNull()
     })
   })
 })

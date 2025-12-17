@@ -242,16 +242,17 @@ export function useSyllables(initialText: string = "") {
 
       // Save additional cache keys if provided (e.g. for partial niqqud text)
       // This ensures that when user switches back to partial niqqud, the syllables data is found
-      if (additionalCacheKeys && additionalCacheKeys.length > 0) {
+      if (additionalCacheKeys && additionalCacheKeys.length > 0 && result.syllablesData) {
+        const syllablesDataToSave = result.syllablesData;
         additionalCacheKeys.forEach(key => {
           if (key && key !== currentText && key !== cleanText) {
             console.log("[useSyllables] Saving additional cache key:", key.substring(0, 20) + "...");
-            saveSyllablesToCache(key, result.syllablesData);
+            saveSyllablesToCache(key, syllablesDataToSave);
             
             // Also save clean version of the key if different
             const cleanKey = removeNiqqud(key);
             if (cleanKey !== key && cleanKey !== cleanText) {
-              saveSyllablesToCache(cleanKey, result.syllablesData);
+              saveSyllablesToCache(cleanKey, syllablesDataToSave);
             }
           }
         });
