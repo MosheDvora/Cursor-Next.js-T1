@@ -638,6 +638,9 @@ export default function Home() {
                 onValueChange={(value: string) => {
                   if (!value) return; // Prevent deselection
                   
+                  // Store current scroll position before state changes
+                  const scrollY = window.scrollY;
+                  
                   if (value === 'clean') {
                     switchToClean();
                   } else if (value === 'original') {
@@ -645,6 +648,18 @@ export default function Home() {
                   } else if (value === 'full') {
                     switchToFull();
                   }
+                  
+                  // Prevent scroll by restoring position after focus change
+                  // Use multiple attempts to catch scroll at different stages
+                  requestAnimationFrame(() => {
+                    window.scrollTo({ top: scrollY, behavior: 'instant' });
+                    setTimeout(() => {
+                      window.scrollTo({ top: scrollY, behavior: 'instant' });
+                    }, 0);
+                    setTimeout(() => {
+                      window.scrollTo({ top: scrollY, behavior: 'instant' });
+                    }, 10);
+                  });
                 }}
                 className="border border-input rounded-md"
                 dir="rtl"

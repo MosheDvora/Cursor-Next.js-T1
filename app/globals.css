@@ -204,6 +204,32 @@
 }
 
 /* Word wrapper for syllables and letters - preserves word spacing */
+/* Prevent scroll when clicking toggle buttons in sticky header */
+/**
+ * Fix for toggle group scroll issue in sticky header
+ * When clicking toggle buttons, the browser tries to scroll to focus the element.
+ * Since the toggle group is in a sticky header at top:0, this causes unwanted scrolling.
+ * These styles prevent the scroll behavior by:
+ * 1. Removing scroll-margin that could cause scroll jumps
+ * 2. Ensuring focus doesn't trigger scroll in sticky contexts
+ */
+[data-testid="niqqud-toggle-group"] button {
+  scroll-margin-top: 0 !important;
+  scroll-margin-bottom: 0 !important;
+}
+
+/* Prevent scroll when focusing toggle buttons in sticky header */
+[data-testid="niqqud-toggle-group"] button:focus {
+  scroll-margin-top: 0 !important;
+  scroll-margin-bottom: 0 !important;
+}
+
+/* Prevent scroll when focusing toggle buttons in sticky header with keyboard navigation */
+[data-testid="niqqud-toggle-group"] button:focus-visible {
+  scroll-margin-top: 0 !important;
+  scroll-margin-bottom: 0 !important;
+}
+
 .pyramid-word-wrapper {
   display: inline-block;
   /* משתמשים באותו משתנה בדיוק! */
