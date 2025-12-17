@@ -113,18 +113,23 @@ export const DEFAULT_MODELS = [
 /**
  * Default prompts for regular niqqud addition (no niqqud at all)
  */
-export const DEFAULT_NIQQUD_SYSTEM_PROMPT = `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.`;
+export const DEFAULT_NIQQUD_SYSTEM_PROMPT = `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי.
+חשוב: שמור על הטקסט המקורי בדיוק כפי שהוא - אל תשנה איות, אל תוסיף או תסיר פיסוק, אל תתקן "שגיאות".
+החזר רק את הטקסט המנוקד ללא הסברים נוספים.`;
 
-export const DEFAULT_NIQQUD_USER_PROMPT = `הוסף ניקוד מלא לטקסט הבא:
+export const DEFAULT_NIQQUD_USER_PROMPT = `הוסף ניקוד מלא לטקסט הבא. שמור על הטקסט המדויק ללא שינויים:
 
 {text}`;
 
 /**
  * Default prompts for niqqud completion (partial niqqud exists)
  */
-export const DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT = `אתה מומחה בעברית ובניקוד. המשימה שלך היא להשלים את הניקוד בטקסט עברי שכבר מכיל ניקוד חלקי. שמור על הניקוד הקיים והוסף ניקוד רק למקומות שחסר.`;
+export const DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT = `אתה מומחה בעברית ובניקוד. המשימה שלך היא להשלים את הניקוד בטקסט עברי שכבר מכיל ניקוד חלקי.
+חשוב: שמור על הניקוד הקיים והוסף ניקוד רק למקומות שחסר. אל תשנה את הטקסט המקורי - אל תתקן איות, אל תוסיף או תסיר פיסוק.`;
 
-export const DEFAULT_NIQQUD_COMPLETION_USER_PROMPT = `הטקסט הבא מכיל ניקוד חלקי. אנא השלם את הניקוד החסר בלבד. אל תסיר או תשנה את הניקוד הקיים. החזר רק את הטקסט המנוקד במלואו ללא הסברים נוספים.
+export const DEFAULT_NIQQUD_COMPLETION_USER_PROMPT = `הטקסט הבא מכיל ניקוד חלקי. אנא השלם את הניקוד החסר בלבד. 
+אל תסיר או תשנה את הניקוד הקיים. שמור על הטקסט המדויק ללא שינויים באיות או פיסוק.
+החזר רק את הטקסט המנוקד במלואו ללא הסברים נוספים.
 
 {text}`;
 
@@ -132,13 +137,17 @@ export const DEFAULT_NIQQUD_COMPLETION_USER_PROMPT = `הטקסט הבא מכיל
  * Legacy default niqqud prompt (for backward compatibility)
  * Will be replaced by system/user prompts above
  */
-export const DEFAULT_NIQQUD_PROMPT = `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי. החזר רק את הטקסט המנוקד ללא הסברים נוספים.
+export const DEFAULT_NIQQUD_PROMPT = `אתה מומחה בעברית. המשימה שלך היא להוסיף ניקוד מלא לטקסט עברי.
+חשוב: שמור על הטקסט המקורי בדיוק כפי שהוא - אל תשנה איות, אל תוסיף או תסיר פיסוק.
+החזר רק את הטקסט המנוקד ללא הסברים נוספים.
 
 הוסף ניקוד מלא לטקסט הבא:
 
 {text}`;
 
 export const DEFAULT_SYLLABLES_PROMPT = `אתה מומחה בעברית. המשימה שלך היא לחלק טקסט עברי להברות לפי כללי העברית.
+
+חשוב: שמור על הטקסט המקורי בדיוק כפי שהוא - אל תשנה איות, אל תוסיף או תסיר פיסוק, שמור על הניקוד המקורי במדויק.
 
 חלק את הטקסט הבא להברות והחזר את התוצאה בפורמט הבא:
 
