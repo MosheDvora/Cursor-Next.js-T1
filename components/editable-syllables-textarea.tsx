@@ -123,28 +123,55 @@ const groupLettersWithNiqqud = (text: string): Array<{ text: string; index: numb
  * This ensures the displayed text matches the displayMode (original/clean/full)
  * while preserving the syllable structure for navigation
  * 
- * @param syllablesData - The original syllables data (with full niqqud)
+ * IMPORTANT: For 'original' mode with partial niqqud, syllables cannot be used
+ * because syllablesData was generated from full niqqud text and cannot accurately
+ * represent the original partial niqqud. In such cases, return null to indicate
+ * that syllable navigation should be disabled.
+ * 
+ * @param syllablesData - The original syllables data (with full niqqud from model)
  * @param displayMode - The current display mode ('original', 'clean', or 'full')
  * @param cache - The niqqud cache containing original, clean, and full versions
- * @returns Processed syllables data with niqqud removed if needed
+ * @returns Processed syllables data with niqqud removed, or null if syllables cannot be used
  */
 function applyDisplayModeToSyllables(
   syllablesData: SyllablesData,
   displayMode: 'original' | 'clean' | 'full' | undefined,
   cache: NiqqudCache | null | undefined
-): SyllablesData {
+): SyllablesData | null {
   // If no displayMode or cache, return original data (default behavior)
   if (!displayMode || !cache) {
     return syllablesData;
   }
 
-  // If displayMode is 'full', return original data (with niqqud)
+  // If displayMode is 'full', return original data (with full niqqud from model)
   if (displayMode === 'full') {
     return syllablesData;
   }
 
-  // For 'original' or 'clean' modes, we need to remove niqqud from syllables
-  // We'll process each syllable by removing niqqud marks
+  // For 'original' mode: Check if original text differs from full text (partial niqqud case)
+  // If they differ (partial niqqud), syllablesData cannot accurately represent the original
+  // because it was generated from full niqqud text. Return null to disable syllable navigation.
+  if (displayMode === 'original') {
+    const originalClean = removeNiqqud(cache.original);
+    const fullClean = cache.full ? removeNiqqud(cache.full) : originalClean;
+    
+    // If the underlying text (without niqqud) is different, the model may have changed text
+    // In this case, we can't use syllables for original mode
+    if (originalClean !== fullClean) {
+      return null; // Cannot use syllables with mismatched text
+    }
+    
+    // If original and full have same base text, but original has partial niqqud,
+    // we still can't accurately represent it in syllables. Check if they're identical.
+    if (cache.original !== cache.full) {
+      return null; // Original has partial niqqud, can't use syllables generated from full
+    }
+    
+    // If we reach here, original === full, so just return syllablesData as-is
+    return syllablesData;
+  }
+
+  // For 'clean' mode: Remove all niqqud from syllables
   return {
     words: syllablesData.words.map((word) => ({
       word: word.word, // Keep the base word structure
@@ -1083,10 +1110,134 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
     }
 
     // With syllables data - render text without visual syllable division
+    // applyDisplayModeToSyllables may return null if syllables cannot be used
+    // (e.g., displayMode='original' with partial niqqud that doesn't match the full text)
     const processedSyllablesData = syllablesData
       ? applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache)
       : null;
-    const { words } = processedSyllablesData || syllablesData || { words: [] };
+    
+    // If processedSyllablesData is null, it means syllables cannot be accurately represented
+    // for the current displayMode. In this case, fall back to simple word-based rendering.
+    if (!processedSyllablesData && syllablesData) {
+      // Syllables are not compatible with current displayMode - render without syllable structure
+      const textLines = text.split('\n');
+      
+      return (
+        <div
+          ref={displayRef}
+          className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
+          dir="rtl"
+          tabIndex={0}
+          style={{ outline: "none", fontSize: `${fontSize}px` }}
+          contentEditable={false}
+          data-testid="text-display-area"
+        >
+          {textLines.map((lineText, lineIndex) => {
+            const lineWords = getWordsFromText(lineText);
+            
+            return (
+              <div 
+                key={lineIndex} 
+                className="pyramid-line-base mb-2" 
+                dir="rtl" 
+                style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}
+              >
+                {navigationMode === "words" ? (
+                  lineWords.map((word, wordIndex) => {
+                    // Calculate global word index across all lines
+                    let globalWordIndex = 0;
+                    for (let i = 0; i < lineIndex; i++) {
+                      globalWordIndex += getWordsFromText(textLines[i]).length;
+                    }
+                    globalWordIndex += wordIndex;
+
+                    return (
+                      <span
+                        key={wordIndex}
+                        className="pyramid-word-base"
+                        data-word-index={globalWordIndex}
+                        data-element-type="word"
+                        style={{ outline: "none" }}
+                        data-testid={`navigation-word-${globalWordIndex}`}
+                      >
+                        {word}
+                      </span>
+                    );
+                  })
+                ) : navigationMode === "letters" ? (
+                  // Letters mode - show text with letter highlighting
+                  lineWords.map((word, wordIndex) => {
+                    const wordLetters = getHebrewLetters(word);
+                    let globalLetterOffset = 0;
+                    for (let i = 0; i < lineIndex; i++) {
+                      globalLetterOffset += getHebrewLetters(textLines[i]).length;
+                    }
+                    for (let i = 0; i < wordIndex; i++) {
+                      globalLetterOffset += getHebrewLetters(lineWords[i]).length;
+                    }
+
+                    const charGroups = groupLettersWithNiqqud(word);
+
+                    return (
+                      <span key={wordIndex} className="pyramid-word-wrapper">
+                        {charGroups.map((group, groupIdx) => {
+                          const letterInfo = wordLetters.find(l => l.index === group.index);
+                          const letterIdx = letterInfo ? wordLetters.indexOf(letterInfo) : -1;
+                          const globalLetterIdx = letterIdx !== -1 ? globalLetterOffset + letterIdx : -1;
+
+                          if (!group.isHebrew) {
+                            return <span key={groupIdx}>{group.text}</span>;
+                          }
+
+                          return (
+                            <span
+                              key={groupIdx}
+                              className="pyramid-letter-base"
+                              data-word-index={0}
+                              data-syllable-index={0}
+                              data-letter-index={globalLetterIdx}
+                              data-element-type="letter"
+                              style={{ outline: "none" }}
+                              data-testid={`navigation-letter-0-0-${globalLetterIdx}`}
+                            >
+                              {group.text}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    );
+                  })
+                ) : (
+                  // Syllables mode not available without processedSyllablesData - show as words
+                  lineWords.map((word, wordIndex) => {
+                    let globalWordIndex = 0;
+                    for (let i = 0; i < lineIndex; i++) {
+                      globalWordIndex += getWordsFromText(textLines[i]).length;
+                    }
+                    globalWordIndex += wordIndex;
+
+                    return (
+                      <span
+                        key={wordIndex}
+                        className="pyramid-word-base"
+                        data-word-index={globalWordIndex}
+                        data-element-type="word"
+                        style={{ outline: "none" }}
+                        data-testid={`navigation-word-${globalWordIndex}`}
+                      >
+                        {word}
+                      </span>
+                    );
+                  })
+                )}
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    
+    const { words } = processedSyllablesData || { words: [] };
 
     const textLines = text.split('\n');
     const wordToLineMap: number[] = [];
