@@ -38,39 +38,93 @@ export function useSyllables(initialText: string = "") {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount
 
-  // Update when initialText changes externally (user typing/pasting)
-  // Also handles niqqud mode changes - syllables should persist regardless of display mode
+  /**
+   * Handle text changes (user typing/pasting or niqqud mode changes)
+   * 
+   * When text changes, we need to:
+   * 1. Check if cache exists for the new text (exact match or clean version)
+   * 2. If found → LOAD it into syllablesData (not just keep existing)
+   * 3. If not found → clear syllablesData only if it was for a completely different text
+   * 
+   * This ensures syllables persist when user toggles niqqud on/off,
+   * but are cleared when user types completely new text.
+   */
   useEffect(() => {
     if (initialText !== previousTextRef.current) {
       previousTextRef.current = initialText;
-      // Clear syllables data if text changed significantly
-      // Check both the exact text AND the text without niqqud (since syllable division
-      // should be the same for the same word regardless of niqqud display mode)
-      if (syllablesData) {
-        const cached = loadSyllablesFromCache(initialText);
-        if (!cached) {
-          // Also check cache without niqqud - syllables should persist when switching
-          // between niqqud/clean display modes
-          const textWithoutNiqqud = removeNiqqud(initialText);
-          const cachedClean = loadSyllablesFromCache(textWithoutNiqqud);
-          if (!cachedClean) {
-            setSyllablesData(null);
-            setIsActive(false);
+      
+      // Try to find cached syllables data for the new text
+      let cached = loadSyllablesFromCache(initialText);
+      
+      // If not found for exact text, try the clean (no niqqud) version
+      // This handles cases where:
+      // - User added niqqud: cache exists for clean text, need to find it
+      // - User removed niqqud: cache exists for niqqud text, need to find clean version
+      if (!cached) {
+        const textWithoutNiqqud = removeNiqqud(initialText);
+        if (textWithoutNiqqud !== initialText) {
+          cached = loadSyllablesFromCache(textWithoutNiqqud);
+          if (cached) {
+            console.log("[useSyllables] Found cache for clean text version, loading it");
+            // Also save for current text to speed up future lookups
+            saveSyllablesToCache(initialText, cached);
           }
         }
+      }
+      
+      if (cached) {
+        // Cache found - load the syllables data
+        // This keeps the "הברות" option available in the dropdown
+        setSyllablesData(cached);
+        // Note: Don't auto-activate isActive - user must click button to activate
+      } else if (syllablesData) {
+        // No cache found and we had syllables data - text changed significantly
+        // Clear syllables data since it's for a different text
+        console.log("[useSyllables] No cache found for new text, clearing syllables data");
+        setSyllablesData(null);
+        setIsActive(false);
       }
     }
   }, [initialText, syllablesData]);
 
-  // Load from cache on mount or text change
+  /**
+   * Load syllables from cache on mount or text change
+   * 
+   * This effect runs on initial mount and whenever initialText changes.
+   * It tries to load cached syllables data to ensure the "הברות" option
+   * remains available in the dropdown when user navigates back or toggles niqqud.
+   * 
+   * Priority:
+   * 1. Try exact text match
+   * 2. Try clean (no niqqud) version of text
+   */
   useEffect(() => {
     if (initialText && initialText.trim().length > 0) {
-      const cached = loadSyllablesFromCache(initialText);
+      // Try to load cache for exact text first
+      let cached = loadSyllablesFromCache(initialText);
+      
+      // If not found, try the clean (no niqqud) version
+      // This ensures syllables stay available when user toggles niqqud
+      if (!cached) {
+        const textWithoutNiqqud = removeNiqqud(initialText);
+        if (textWithoutNiqqud !== initialText) {
+          cached = loadSyllablesFromCache(textWithoutNiqqud);
+          if (cached) {
+            console.log("[useSyllables] Mount: Found cache for clean text version");
+            // Save also for current text to speed up future lookups
+            saveSyllablesToCache(initialText, cached);
+          }
+        }
+      }
+      
       if (cached) {
         setSyllablesData(cached);
         // Don't auto-activate - user must click button to activate
       }
+      // Note: If no cache found, don't clear syllablesData here
+      // The first useEffect handles clearing when text changes significantly
     } else {
+      // Empty text - clear everything
       setSyllablesData(null);
       setIsActive(false);
     }
@@ -80,7 +134,8 @@ export function useSyllables(initialText: string = "") {
   // textToUse: Optional parameter to override initialText. 
   // This is used to ensure we always use cache.full (full niqqud text) when available,
   // even if the current display mode shows a different version (original/clean).
-  const divideSyllables = useCallback(async (textToUse?: string) => {
+  // additionalCacheKeys: Optional array of additional text versions to map to the same syllables data (e.g. partial niqqud)
+  const divideSyllables = useCallback(async (textToUse?: string, additionalCacheKeys?: string[]) => {
     setIsLoading(true);
     setError(null);
 
@@ -171,11 +226,36 @@ export function useSyllables(initialText: string = "") {
         wordsCount: result.syllablesData.words.length,
       });
 
-      // Save to cache only for the current text (with niqqud)
+      // Save to cache for the current text (with niqqud if present)
       // This is the text that was sent to the model, so this is the canonical cache entry
-      // The cache lookup logic (lines 118-134) already handles finding cache for text without niqqud
-      // by checking both the current text and the text without niqqud, so no need for duplicate storage
       saveSyllablesToCache(currentText, result.syllablesData);
+      
+      // IMPORTANT: Also save to cache for the clean text version (without niqqud)
+      // This ensures syllables data remains accessible when user toggles niqqud on/off
+      // Without this, removing niqqud would cause syllablesData to be cleared
+      // because the cache lookup wouldn't find the clean text version
+      const cleanText = removeNiqqud(currentText);
+      if (cleanText !== currentText) {
+        console.log("[useSyllables] Also saving cache for clean text version");
+        saveSyllablesToCache(cleanText, result.syllablesData);
+      }
+
+      // Save additional cache keys if provided (e.g. for partial niqqud text)
+      // This ensures that when user switches back to partial niqqud, the syllables data is found
+      if (additionalCacheKeys && additionalCacheKeys.length > 0) {
+        additionalCacheKeys.forEach(key => {
+          if (key && key !== currentText && key !== cleanText) {
+            console.log("[useSyllables] Saving additional cache key:", key.substring(0, 20) + "...");
+            saveSyllablesToCache(key, result.syllablesData);
+            
+            // Also save clean version of the key if different
+            const cleanKey = removeNiqqud(key);
+            if (cleanKey !== key && cleanKey !== cleanText) {
+              saveSyllablesToCache(cleanKey, result.syllablesData);
+            }
+          }
+        });
+      }
 
       // Save to centralized storage for future sync with Supabase
       saveSyllablesCacheToStorage();

@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
-import { EditableSyllablesTextarea } from "@/components/editable-syllables-textarea";
-import { getSettings, CurrentPosition, loadCurrentPosition, saveCurrentPosition, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
+import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from "@/components/editable-syllables-textarea";
+import { getSettings, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
 import { detectNiqqud, removeNiqqud } from "@/lib/niqqud";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
@@ -41,7 +41,13 @@ export default function Home() {
   });
   const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("words");
   const [isEditing, setIsEditing] = useState(true);
-  const [currentPosition, setCurrentPosition] = useState<CurrentPosition | null>(null);
+  
+  /**
+   * Ref to the EditableSyllablesTextarea component for imperative navigation control.
+   * This allows us to manage highlighting without causing React re-renders.
+   * The component handles its own position state internally via refs.
+   */
+  const textareaRef = useRef<EditableSyllablesTextareaRef>(null);
   const {
     text: niqqudText,
     setText: setNiqqudText,
@@ -86,7 +92,7 @@ export default function Home() {
     setMounted(true);
   }, []);
 
-  // Load appearance settings and navigation mode
+  // Load appearance settings
   useEffect(() => {
     if (mounted) {
       const settings = getSettings();
@@ -103,13 +109,8 @@ export default function Home() {
         syllableHighlightColor: settings.syllableHighlightColor || "#fff176",
         letterHighlightColor: settings.letterHighlightColor || "#fff176",
       });
-
-      // Load saved position
-      const savedPosition = loadCurrentPosition();
-      if (savedPosition) {
-        setCurrentPosition(savedPosition);
-        setNavigationMode(savedPosition.mode);
-      }
+      // Note: Position is now managed internally by EditableSyllablesTextarea via refs
+      // It loads from localStorage on mount and persists changes automatically
     }
   }, [mounted]);
 
@@ -191,6 +192,10 @@ export default function Home() {
   const handleDivideSyllables = async () => {
     clearSyllablesError();
     clearError();
+
+    // Capture the current text (potentially with partial niqqud) before any processing
+    // We'll use this to ensure syllables are cached for this specific text version too
+    const currentPartialText = localText;
 
     try {
       // Check if we already have syllables data active for the current text
@@ -285,7 +290,16 @@ export default function Home() {
         textLength: textForSyllables.length,
         displayMode: displayMode,
       });
-      await divideSyllables(textForSyllables);
+      
+      // Pass the current partial text as an additional cache key
+      // This ensures that if we have partial niqqud, the result is cached for it too
+      // so when we switch back to partial view, the syllables are found
+      const additionalKeys: string[] = [];
+      if (currentPartialText && currentPartialText !== textForSyllables) {
+        additionalKeys.push(currentPartialText);
+      }
+      
+      await divideSyllables(textForSyllables, additionalKeys);
 
       // After syllable division completes, restore the text display to the saved state
       // Wait a bit for the division to complete and state to update
@@ -314,15 +328,18 @@ export default function Home() {
     }
   };
 
-  // Clear position when syllables are deactivated
+  // Clear highlight when syllables are deactivated
+  // The textarea component handles this via its ref API
   useEffect(() => {
-    if (!isSyllablesActive && currentPosition) {
-      setCurrentPosition(null);
-      saveCurrentPosition(null);
+    if (!isSyllablesActive && textareaRef.current) {
+      textareaRef.current.resetPosition();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSyllablesActive]);
 
+  /**
+   * Clear all text and reset the application state
+   * Uses the ref API to clear highlights without causing re-renders
+   */
   const handleClear = () => {
     // Clear text field
     setLocalText("");
@@ -338,9 +355,10 @@ export default function Home() {
     // Clear syllables cache and state
     clearSyllables();
 
-    // Clear current position
-    setCurrentPosition(null);
-    saveCurrentPosition(null);
+    // Clear current position via ref API (no re-render)
+    if (textareaRef.current) {
+      textareaRef.current.clearHighlight();
+    }
 
     // Reset to edit mode
     setIsEditing(true);
@@ -350,11 +368,6 @@ export default function Home() {
       title: "ניקוי הושלם",
       description: "הטקסט והזיכרון נוקו בהצלחה",
     });
-  };
-
-  const handlePositionChange = (position: CurrentPosition | null) => {
-    setCurrentPosition(position);
-    saveCurrentPosition(position);
   };
 
   const handleFontSizeChange = (delta: number) => {
@@ -490,65 +503,86 @@ export default function Home() {
             </h1>
           </div>
 
-          {/* Navigation Mode Selector and Font Size Controls */}
-          <div className="mb-4 flex justify-end items-center gap-3">
-            {/* Font Size Controls */}
-            <div className="flex items-center gap-2">
-              <Label className="text-right text-base">גודל פונט:</Label>
-              <Button
-                onClick={() => handleFontSizeChange(-1)}
-                disabled={appearanceSettings.fontSize <= MIN_FONT_SIZE}
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                data-testid="font-size-decrease-button"
-              >
-                <Minus className="h-4 w-4" />
-              </Button>
-              <span className="text-sm font-medium min-w-[2rem] text-center" data-testid="font-size-display">
-                {appearanceSettings.fontSize}px
-              </span>
-              <Button
-                onClick={() => handleFontSizeChange(1)}
-                disabled={appearanceSettings.fontSize >= MAX_FONT_SIZE}
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                data-testid="font-size-increase-button"
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
+          {/* Sticky Controls Bar - Always visible at top when scrolling */}
+          <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4 py-4 -mx-6 md:-mx-12 px-6 md:px-12 border-b">
+            {/* Navigation Mode Selector and Font Size Controls */}
+            <div className="mb-4 flex justify-end items-center gap-3">
+              {/* Font Size Controls */}
+              <div className="flex items-center gap-2">
+                <Label className="text-right text-base">גודל פונט:</Label>
+                <Button
+                  onClick={() => handleFontSizeChange(-1)}
+                  disabled={appearanceSettings.fontSize <= MIN_FONT_SIZE}
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  data-testid="font-size-decrease-button"
+                >
+                  <Minus className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium min-w-[2rem] text-center" data-testid="font-size-display">
+                  {appearanceSettings.fontSize}px
+                </span>
+                <Button
+                  onClick={() => handleFontSizeChange(1)}
+                  disabled={appearanceSettings.fontSize >= MAX_FONT_SIZE}
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  data-testid="font-size-increase-button"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* 
+                Navigation Mode Selector - "סוג קפיצה"
+                
+                Behavior:
+                - Only shown in VIEW mode (!isEditing) - hidden during editing
+                - "מילים" (words) and "אותיות" (letters) are ALWAYS available
+                - "הברות" (syllables) is shown ONLY when syllablesData exists in memory
+                
+                The useSyllables hook now persists syllablesData when niqqud is toggled
+                by storing cache for both niqqud and clean text versions.
+                This ensures syllables option remains available after adding/removing niqqud.
+              */}
+              {!isEditing && (
+                <>
+                  <Label htmlFor="navigation-mode" className="text-right text-base">
+                    סוג קפיצה:
+                  </Label>
+                  <Select
+                    value={navigationMode}
+                    onValueChange={(value: "words" | "syllables" | "letters") => {
+                      // Guard: Prevent selecting "syllables" if no syllables data exists
+                      // This prevents navigation errors when syllables haven't been divided yet
+                      if (value === "syllables" && !syllablesData) {
+                        return;
+                      }
+                      setNavigationMode(value);
+                    }}
+                  >
+                    <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl" data-testid="navigation-mode-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Words option - always available */}
+                      <SelectItem value="words" className="text-right">מילים</SelectItem>
+                      {/* Syllables option - only shown when syllables data exists in memory from model */}
+                      {syllablesData && (
+                        <SelectItem value="syllables" className="text-right">הברות</SelectItem>
+                      )}
+                      {/* Letters option - always available */}
+                      <SelectItem value="letters" className="text-right">אותיות</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </div>
 
-            {/* Navigation Mode Selector - always visible */}
-            <Label htmlFor="navigation-mode" className="text-right text-base">
-              סוג קפיצה:
-            </Label>
-            <Select
-              value={navigationMode}
-              onValueChange={(value: "words" | "syllables" | "letters") => {
-                // Prevent selecting "syllables" if syllables data doesn't exist
-                if (value === "syllables" && !syllablesData) {
-                  return;
-                }
-                setNavigationMode(value);
-              }}
-            >
-              <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl" data-testid="navigation-mode-select">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="words" className="text-right">מילים</SelectItem>
-                {syllablesData && (
-                  <SelectItem value="syllables" className="text-right">הברות</SelectItem>
-                )}
-                <SelectItem value="letters" className="text-right">אותיות</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="mb-4 flex justify-end gap-3">
+            {/* Action Buttons */}
+            <div className="flex justify-end gap-3">
             <Button
               onClick={() => setIsEditing(!isEditing)}
               className="gap-2 min-w-[120px]"
@@ -681,19 +715,26 @@ export default function Home() {
                 )}
               </Button>
             )}
+            </div>
           </div>
 
           {/* Main text input area - unified display */}
+          {/* 
+            EditableSyllablesTextarea now uses refs internally for position management.
+            This eliminates re-renders on every navigation change, improving performance.
+            The ref API (textareaRef) allows external control when needed.
+          */}
           <div className="w-full">
             <EditableSyllablesTextarea
+              ref={textareaRef}
               text={localText}
               onChange={handleTextChange}
               isEditing={isEditing}
               isSyllablesActive={isSyllablesActive}
               syllablesData={syllablesData}
-              currentPosition={currentPosition}
-              onPositionChange={handlePositionChange}
               navigationMode={navigationMode}
+              displayMode={displayMode}
+              niqqudCache={cache}
               borderSize={appearanceSettings.syllableBorderSize}
               backgroundColor={appearanceSettings.syllableBackgroundColor}
               wordSpacing={appearanceSettings.wordSpacing}

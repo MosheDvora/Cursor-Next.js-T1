@@ -78,18 +78,28 @@
 }
 
 /* Pyramid visual effects - matching hebrew_reading_pyramid.html */
+/**
+ * Pyramid visual effects - Base styles for navigation highlighting
+ * 
+ * Performance optimization: These classes are toggled via direct DOM manipulation
+ * (classList.add/remove) instead of React state, avoiding re-renders on every
+ * navigation change. The CSS transitions handle smooth animations.
+ */
 .pyramid-word-base {
   display: inline-block;
   padding: 2px 6px;
   /* חישוב: המרווח הכולל חלקי 2, כי לכל מילה יש מרווח משני הצדדים */
   margin: 0 calc(var(--dynamic-word-gap, 6px) / 2);
   border-radius: 6px;
-  transition: all 0.2s ease-in-out;
+  /* Smooth transition for background, transform, and box-shadow */
+  transition: background-color 0.15s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease-out;
   position: relative;
   z-index: 1;
   background: white;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transform-origin: center;
+  /* GPU acceleration hint for smoother animations */
+  will-change: transform, background-color;
 }
 
 .pyramid-word-base:hover {
@@ -115,7 +125,8 @@
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease-in-out;
+  /* Slightly longer transition for line-level effects */
+  transition: background-color 0.2s ease-out, transform 0.2s ease-out, box-shadow 0.2s ease-out;
   position: relative; /* חשוב ל-z-index */
 }
 
@@ -137,10 +148,12 @@
   display: inline-block; /* חשוב כדי שהאפקטים יעבדו */
   padding: 0 2px;
   border-radius: 4px;
-  transition: all 0.2s ease-in-out;
+  /* Optimized transition for fast highlight changes */
+  transition: background-color 0.15s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease-out;
   cursor: pointer;
   transform-origin: center;
   position: relative; /* מאפשר שימוש ב z-index */
+  will-change: transform, background-color;
 }
 
 .pyramid-syllable-base:hover {
@@ -165,10 +178,12 @@
   display: inline-block; /* חשוב כדי שהאפקטים יעבדו */
   padding: 0 1px;
   border-radius: 4px;
-  transition: all 0.2s ease-in-out;
+  /* Optimized transition for fast highlight changes */
+  transition: background-color 0.15s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease-out;
   cursor: pointer;
   transform-origin: center;
   position: relative;
+  will-change: transform, background-color;
 }
 
 .pyramid-letter-base:hover {
