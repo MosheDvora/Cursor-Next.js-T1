@@ -614,12 +614,13 @@ export default function Home() {
             {/* 
               Niqqud Mode Toggle Group
               
-              Shows 3 options: "ללא ניקוד", "ניקוד חלקי", "ניקוד מלא"
+              Shows available options: "ללא ניקוד", "ניקוד חלקי", "ניקוד מלא"
               - Only visible in view mode (!isEditing)
-              - "ללא ניקוד" (clean): Always enabled
-              - "ניקוד חלקי" (original): Enabled only if originalStatus === 'partial'
-              - "ניקוד מלא" (full): Enabled only if cache?.full exists
+              - "ללא ניקוד" (clean): Always visible
+              - "ניקוד חלקי" (original): Only visible if originalStatus === 'partial'
+              - "ניקוד מלא" (full): Only visible if cache?.full exists
               
+              Disabled options are hidden instead of shown grayed out.
               The toggle value is determined by getToggleValue() which maps
               displayMode + originalStatus to the correct toggle option.
             */}
@@ -667,30 +668,33 @@ export default function Home() {
               >
                 <ToggleGroupItem 
                   value="clean" 
-                  disabled={false}
                   className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
                   data-testid="niqqud-clean-option"
                 >
                   ללא ניקוד
                 </ToggleGroupItem>
                 
-                <ToggleGroupItem 
-                  value="original" 
-                  disabled={originalStatus !== 'partial'}
-                  className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                  data-testid="niqqud-partial-option"
-                >
-                  ניקוד חלקי
-                </ToggleGroupItem>
+                {/* Only show "ניקוד חלקי" when it's available (originalStatus === 'partial') */}
+                {originalStatus === 'partial' && (
+                  <ToggleGroupItem 
+                    value="original" 
+                    className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                    data-testid="niqqud-partial-option"
+                  >
+                    ניקוד חלקי
+                  </ToggleGroupItem>
+                )}
                 
-                <ToggleGroupItem 
-                  value="full" 
-                  disabled={!cache?.full}
-                  className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                  data-testid="niqqud-full-option"
-                >
-                  ניקוד מלא
-                </ToggleGroupItem>
+                {/* Only show "ניקוד מלא" when it's available (cache?.full exists) */}
+                {cache?.full && (
+                  <ToggleGroupItem 
+                    value="full" 
+                    className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                    data-testid="niqqud-full-option"
+                  >
+                    ניקוד מלא
+                  </ToggleGroupItem>
+                )}
               </ToggleGroup>
             )}
             </div>
