@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Sparkles, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
+import { Loader2, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -12,12 +12,13 @@ import {
 } from "@/components/ui/select";
 
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from "@/components/editable-syllables-textarea";
 import { getSettings, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
-import { detectNiqqud, removeNiqqud } from "@/lib/niqqud";
+import { removeNiqqud } from "@/lib/niqqud";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -54,17 +55,13 @@ export default function Home() {
     hasNiqqud,
     niqqudStatus: _niqqudStatus, // Prefixed with underscore - available for future use
     originalStatus,
-    targetState,
     displayMode,
     lastDisplayState: _lastDisplayState, // Prefixed with underscore - available for future use
     setLastDisplayState: _setLastDisplayState, // Prefixed with underscore - available for future use
     cache,
     isLoading,
     error,
-    getButtonText,
-    toggleNiqqud,
     addNiqqud,
-    completeNiqqud,
     switchToOriginal,
     switchToClean,
     switchToFull,
@@ -161,25 +158,6 @@ export default function Home() {
     setNiqqudText(newText);
     // Note: Cache and lastDisplayState are now handled by useNiqqud hook
     // when initialText changes, ensuring consistent behavior
-  };
-
-  const handleToggleNiqqud = async () => {
-    clearError();
-
-
-    try {
-      await toggleNiqqud();
-      // Don't show toast here - let the useEffect handle it based on actual state changes
-    } catch (err) {
-      toast({
-        title: "שגיאה",
-        description:
-          err instanceof Error
-            ? err.message
-            : "אירעה שגיאה בעת עיבוד הניקוד",
-        variant: "destructive",
-      });
-    }
   };
 
   /**
@@ -633,87 +611,72 @@ export default function Home() {
               <Trash2 className="h-4 w-4" />
               <span>ניקוי</span>
             </Button>
-            {originalStatus === 'partial' ? (
-              <div className="flex items-center gap-2" dir="ltr">
-                {/* Toggle for Partial/Full Niqqud */}
-                <div className="flex items-center bg-secondary rounded-md p-1 border border-input">
-                  <Button
-                    variant={targetState === 'original' ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => switchToOriginal()}
-                    className="h-8 px-3 text-xs"
-                    data-testid="niqqud-partial-button"
-                  >
-                    ניקוד חלקי
-                  </Button>
-                  <Button
-                    variant={targetState === 'full' ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => completeNiqqud()}
-                    disabled={!cache || !cache.full}
-                    className="h-8 px-3 text-xs"
-                    data-testid="niqqud-full-button"
-                  >
-                    ניקוד מלא
-                  </Button>
-                </div>
-
-                <Button
-                  onClick={handleToggleNiqqud}
-                  disabled={
-                    isLoading || 
-                    !localText.trim() || 
-                    (!hasNiqqud && (
-                      (targetState === 'original' && !(cache && cache.original && detectNiqqud(cache.original) !== 'none')) ||
-                      (targetState === 'full' && !(cache && cache.full))
-                    ))
+            {/* 
+              Niqqud Mode Toggle Group
+              
+              Shows 3 options: "ללא ניקוד", "ניקוד חלקי", "ניקוד מלא"
+              - Only visible in view mode (!isEditing)
+              - "ללא ניקוד" (clean): Always enabled
+              - "ניקוד חלקי" (original): Enabled only if originalStatus === 'partial'
+              - "ניקוד מלא" (full): Enabled only if cache?.full exists
+              
+              The toggle value is determined by getToggleValue() which maps
+              displayMode + originalStatus to the correct toggle option.
+            */}
+            {!isEditing && (
+              <ToggleGroup
+                type="single"
+                value={(() => {
+                  // Determine ToggleGroup value based on current display and original status
+                  if (displayMode === 'clean') return 'clean';
+                  if (displayMode === 'full') return 'full';
+                  // displayMode === 'original'
+                  if (originalStatus === 'partial') return 'original';
+                  if (originalStatus === 'full') return 'full';
+                  return 'clean';
+                })()}
+                onValueChange={(value: string) => {
+                  if (!value) return; // Prevent deselection
+                  
+                  if (value === 'clean') {
+                    switchToClean();
+                  } else if (value === 'original') {
+                    switchToOriginal();
+                  } else if (value === 'full') {
+                    switchToFull();
                   }
-                  className="gap-2 min-w-[140px]"
-                  variant={hasNiqqud ? "secondary" : "default"}
-                  size="lg"
-                  data-testid="niqqud-toggle-button"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>מעבד...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="h-4 w-4" />
-                      <span>{getButtonText()}</span>
-                    </>
-                  )}
-                </Button>
-              </div>
-            ) : (
-              <Button
-                onClick={handleToggleNiqqud}
-                disabled={
-                  isLoading || 
-                  !localText.trim() || 
-                  (!hasNiqqud && (
-                    (targetState === 'original' && !(cache && cache.original && detectNiqqud(cache.original) !== 'none')) ||
-                    (targetState === 'full' && !(cache && cache.full))
-                  ))
-                }
-                className="gap-2 min-w-[160px]"
-                variant={hasNiqqud ? "secondary" : "default"}
-                size="lg"
-                data-testid="niqqud-toggle-button"
+                }}
+                className="border border-input rounded-md"
+                dir="rtl"
+                data-testid="niqqud-toggle-group"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>מעבד...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" />
-                    <span>{getButtonText()}</span>
-                  </>
-                )}
-              </Button>
+                <ToggleGroupItem 
+                  value="clean" 
+                  disabled={false}
+                  className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  data-testid="niqqud-clean-option"
+                >
+                  ללא ניקוד
+                </ToggleGroupItem>
+                
+                <ToggleGroupItem 
+                  value="original" 
+                  disabled={originalStatus !== 'partial'}
+                  className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  data-testid="niqqud-partial-option"
+                >
+                  ניקוד חלקי
+                </ToggleGroupItem>
+                
+                <ToggleGroupItem 
+                  value="full" 
+                  disabled={!cache?.full}
+                  className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  data-testid="niqqud-full-option"
+                >
+                  ניקוד מלא
+                </ToggleGroupItem>
+              </ToggleGroup>
             )}
             </div>
           </div>
