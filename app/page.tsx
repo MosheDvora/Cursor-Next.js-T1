@@ -124,13 +124,27 @@ export default function Home() {
   }, [mounted]);
 
   // Save text to localStorage when it changes (client-side only)
+  // Also clean up localStorage and syllables when text becomes empty (same as clear button)
   useEffect(() => {
     if (!mounted) return;
 
-    if (localText !== undefined && localText !== null) {
+    // If text becomes empty, clean up localStorage and syllables (same as clear button)
+    if (!localText || localText.trim().length === 0) {
+      // Remove text from localStorage (don't just set it to empty string)
+      localStorage.removeItem(MAIN_TEXT_STORAGE_KEY);
+      // Remove syllables raw response from localStorage
+      localStorage.removeItem(SETTINGS_KEYS.SYLLABLES_RAW_RESPONSE);
+      // Clear syllables cache and state
+      clearSyllables();
+      // Clear current position via ref API (no re-render)
+      if (textareaRef.current) {
+        textareaRef.current.clearHighlight();
+      }
+    } else {
+      // Text exists - save to localStorage
       localStorage.setItem(MAIN_TEXT_STORAGE_KEY, localText);
     }
-  }, [localText, mounted]);
+  }, [localText, mounted, clearSyllables]);
 
   // Sync niqqud text changes back to local state - this is critical for updates
   useEffect(() => {

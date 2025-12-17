@@ -101,8 +101,26 @@ export function useNiqqud(initialText: string = "") {
       const currentStatus = detectNiqqud(initialText);
       const normalizedInitial = initialText.trim();
 
-      // Skip empty text
+      // If text becomes empty, clear all cache and localStorage (same as clear button)
       if (!normalizedInitial) {
+        // Clear cache state
+        setCache(null);
+        setError(null);
+        setDisplayMode('original');
+        setTargetState('original');
+        setLastDisplayState(null);
+        
+        // Clear localStorage cache keys
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_ORIGINAL);
+            localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_CLEAN);
+            localStorage.removeItem(SETTINGS_KEYS.NIQQUD_CACHE_FULL);
+            localStorage.removeItem(SETTINGS_KEYS.LAST_DISPLAY_STATE);
+          } catch (error) {
+            console.error("[useNiqqud] Failed to clear cache from localStorage:", error);
+          }
+        }
         return;
       }
 
