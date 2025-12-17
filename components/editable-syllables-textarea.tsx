@@ -391,8 +391,31 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
         
         // If processedData is null, syllables cannot be used for current displayMode
-        // Navigation is not possible in this state, so return early
+        // Fall back to simple navigation based on displayed text (same as when no syllables data)
         if (!processedData) {
+          // Fall back to simple word/letter navigation based on displayed text
+          if (navigationMode === "words") {
+            const words = getWordsFromText(text);
+            const currentWordIdx = currentPosition?.wordIndex ?? 0;
+
+            if (currentWordIdx < words.length - 1) {
+              newPosition = { mode: "words", wordIndex: currentWordIdx + 1 };
+            } else if (!currentPosition) {
+              newPosition = { mode: "words", wordIndex: 0 };
+            }
+          } else if (navigationMode === "letters") {
+            const letters = getHebrewLetters(text);
+            const currentLetterIdx = currentPosition?.letterIndex ?? 0;
+
+            if (currentLetterIdx < letters.length - 1) {
+              newPosition = { mode: "letters", wordIndex: 0, letterIndex: currentLetterIdx + 1 };
+            } else if (!currentPosition) {
+              newPosition = { mode: "letters", wordIndex: 0, letterIndex: 0 };
+            }
+          }
+          if (newPosition) {
+            updatePosition(newPosition);
+          }
           return;
         }
         
@@ -495,8 +518,23 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
         
         // If processedData is null, syllables cannot be used for current displayMode
-        // Navigation is not possible in this state, so return early
+        // Fall back to simple navigation based on displayed text (same as when no syllables data)
         if (!processedData) {
+          // Fall back to simple word/letter navigation based on displayed text
+          if (navigationMode === "words") {
+            const currentWordIdx = currentPosition?.wordIndex ?? 0;
+            if (currentWordIdx > 0) {
+              newPosition = { mode: "words", wordIndex: currentWordIdx - 1 };
+            }
+          } else if (navigationMode === "letters") {
+            const currentLetterIdx = currentPosition?.letterIndex ?? 0;
+            if (currentLetterIdx > 0) {
+              newPosition = { mode: "letters", wordIndex: 0, letterIndex: currentLetterIdx - 1 };
+            }
+          }
+          if (newPosition) {
+            updatePosition(newPosition);
+          }
           return;
         }
         
