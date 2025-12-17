@@ -389,6 +389,13 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         // Apply display mode to get the same data structure used in DOM rendering
         // This ensures letter indices match between navigation and DOM elements
         const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        
+        // If processedData is null, syllables cannot be used for current displayMode
+        // Navigation is not possible in this state, so return early
+        if (!processedData) {
+          return;
+        }
+        
         const { words } = processedData;
         const { mode, wordIndex, syllableIndex, letterIndex } = currentPosition;
 
@@ -486,6 +493,13 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         // Apply display mode to get the same data structure used in DOM rendering
         // This ensures letter indices match between navigation and DOM elements
         const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        
+        // If processedData is null, syllables cannot be used for current displayMode
+        // Navigation is not possible in this state, so return early
+        if (!processedData) {
+          return;
+        }
+        
         const { words } = processedData;
         const { mode, wordIndex, syllableIndex, letterIndex } = currentPosition;
 
@@ -610,6 +624,13 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         } else {
         // Apply display mode to get the same data structure used in DOM rendering
         const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        
+        // If processedData is null, syllables cannot be used for current displayMode
+        // Navigation is not possible in this state, so return early
+        if (!processedData) {
+          return;
+        }
+        
         const { words } = processedData;
           const { mode, wordIndex } = currentPosition;
 
@@ -746,6 +767,13 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       } else {
         // Apply display mode to get the same data structure used in DOM rendering
         const processedData = applyDisplayModeToSyllables(syllablesData, displayMode, niqqudCache);
+        
+        // If processedData is null, syllables cannot be used for current displayMode
+        // Navigation is not possible in this state, so return early
+        if (!processedData) {
+          return;
+        }
+        
         const { words } = processedData;
         const { mode, wordIndex } = currentPosition;
 
