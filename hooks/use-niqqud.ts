@@ -288,7 +288,10 @@ export function useNiqqud(initialText: string = "") {
         return null;
       }
 
-      const currentText = text;
+      // Always use the original text (cache.original) instead of the displayed text
+      // This ensures the model receives the text as the user originally entered it,
+      // regardless of the current display mode (original/clean/full)
+      const currentText = cache?.original || text;
 
       // Check if we have cached full niqqud version
       if (cache && cache.full) {
