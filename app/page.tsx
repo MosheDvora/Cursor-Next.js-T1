@@ -19,6 +19,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from "@/components/editable-syllables-textarea";
 import { getSettings, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
 import { removeNiqqud } from "@/lib/niqqud";
+import { getAllPresets } from "@/lib/text-styling-presets";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
 const MIN_FONT_SIZE = 12;
@@ -42,6 +43,7 @@ export default function Home() {
   });
   const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("words");
   const [isEditing, setIsEditing] = useState(true);
+  const [selectedStylingPreset, setSelectedStylingPreset] = useState<string>("default");
   
   /**
    * Ref to the EditableSyllablesTextarea component for imperative navigation control.
@@ -571,6 +573,39 @@ export default function Home() {
                   </Select>
                 </>
               )}
+              
+              {/* 
+                Text Styling Preset Selector - "סגנון עיצוב"
+                
+                Behavior:
+                - Only shown in VIEW mode (!isEditing) - hidden during editing
+                - Allows selection of different visual styling presets for text display
+                - Presets modify the appearance of words, syllables, or letters
+              */}
+              {!isEditing && (
+                <>
+                  <Label htmlFor="styling-preset" className="text-right text-base">
+                    סגנון עיצוב:
+                  </Label>
+                  <Select
+                    value={selectedStylingPreset}
+                    onValueChange={(value: string) => {
+                      setSelectedStylingPreset(value);
+                    }}
+                  >
+                    <SelectTrigger id="styling-preset" className="w-[180px] text-right" dir="rtl" data-testid="styling-preset-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getAllPresets().map((preset) => (
+                        <SelectItem key={preset.id} value={preset.id} className="text-right">
+                          {preset.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -744,6 +779,7 @@ export default function Home() {
               letterHighlightColor={appearanceSettings.letterHighlightColor}
               disabled={isLoading || isSyllablesLoading}
               placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
+              stylingPreset={selectedStylingPreset}
             />
           </div>
         </div>

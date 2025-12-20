@@ -5,6 +5,8 @@ import { SyllablesData } from "@/lib/syllables";
 import { CurrentPosition, saveCurrentPosition, loadCurrentPosition } from "@/lib/settings";
 import { Textarea } from "@/components/ui/textarea";
 import { isNiqqudMark, removeNiqqud } from "@/lib/niqqud";
+import { getPreset } from "@/lib/text-styling-presets";
+import { cn } from "@/lib/utils";
 
 /**
  * Interface representing the niqqud cache structure
@@ -42,6 +44,7 @@ interface EditableSyllablesTextareaProps {
   placeholder?: string;
   className?: string;
   isEditing?: boolean;
+  stylingPreset?: string;
 }
 
 /**
@@ -260,6 +263,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
   placeholder = "הדבק כאן את הטקסט הראשי לצורך מניפולציות...",
   className = "",
   isEditing = true,
+  stylingPreset,
   }, ref) {
     // Ref to the display container element
   const displayRef = useRef<HTMLDivElement>(null);
@@ -1101,6 +1105,14 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
      * Render the text display with data attributes for DOM-based highlighting
      */
   const renderTextDisplay = () => {
+    // Get styling preset configuration
+    const preset = getPreset(stylingPreset);
+    
+    // Build className strings by combining base classes with preset classes
+    const wordClassName = cn("pyramid-word-base", preset.wordClasses);
+    const syllableClassName = cn("pyramid-syllable-base", preset.syllableClasses);
+    const letterClassName = cn("pyramid-letter-base", preset.letterClasses);
+    
     if (isEditing || !text || text.trim().length === 0) {
       return (
         <Textarea
@@ -1159,7 +1171,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                     return (
                       <span
                         key={wordIndex}
-                          className="pyramid-word-base"
+                          className={wordClassName}
                           data-word-index={globalWordIndex}
                           data-element-type="word"
                           style={{ outline: "none" }}
@@ -1197,7 +1209,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                           return (
                             <span
                               key={groupIdx}
-                                className="pyramid-letter-base"
+                                className={letterClassName}
                                 data-word-index={0}
                                 data-syllable-index={0}
                                 data-letter-index={globalLetterIdx}
@@ -1265,7 +1277,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                     return (
                       <span
                         key={wordIndex}
-                        className="pyramid-word-base"
+                        className={wordClassName}
                         data-word-index={globalWordIndex}
                         data-element-type="word"
                         style={{ outline: "none" }}
@@ -1303,7 +1315,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                           return (
                             <span
                               key={groupIdx}
-                              className="pyramid-letter-base"
+                              className={letterClassName}
                               data-word-index={0}
                               data-syllable-index={0}
                               data-letter-index={globalLetterIdx}
@@ -1330,7 +1342,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                     return (
                       <span
                         key={wordIndex}
-                        className="pyramid-word-base"
+                        className={wordClassName}
                         data-word-index={globalWordIndex}
                         data-element-type="word"
                         style={{ outline: "none" }}
@@ -1395,7 +1407,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                   return (
                     <span
                       key={wordIdx}
-                        className="pyramid-word-base"
+                        className={wordClassName}
                         data-word-index={wordIdx}
                         data-element-type="word"
                         style={{ outline: "none" }}
@@ -1414,7 +1426,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                         {syllables.map((syllable, syllableIndex) => (
                           <span
                             key={`${wordIdx}-${syllableIndex}`}
-                            className="pyramid-syllable-base"
+                            className={syllableClassName}
                             data-word-index={wordIdx}
                             data-syllable-index={syllableIndex}
                             data-element-type="syllable"
@@ -1459,7 +1471,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                         return (
                           <span
                             key={`${wordIdx}-${groupIdx}`}
-                              className="pyramid-letter-base"
+                              className={letterClassName}
                               data-word-index={wordIdx}
                               data-syllable-index={letterPos?.syllableIdx ?? 0}
                               data-letter-index={letterPos?.letterIdx ?? 0}

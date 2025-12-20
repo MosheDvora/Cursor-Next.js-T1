@@ -203,6 +203,31 @@
   z-index: 10;
 }
 
+/* Text Styling Presets */
+/**
+ * Neon Border Style - adds a thin neon green border around words
+ * Creates a subtle neon glow effect for visual emphasis
+ * This class is applied in addition to pyramid-word-base
+ */
+.text-style-neon-border-word {
+  border: 1px solid #39ff14;
+  box-shadow: 0 0 3px rgba(57, 255, 20, 0.5);
+  /* Remove default background to show border clearly */
+  background: transparent !important;
+}
+
+/* Ensure neon border works with hover state */
+.text-style-neon-border-word:hover {
+  border-color: #39ff14;
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.8), 0 3px 10px rgba(255, 235, 59, 0.6);
+}
+
+/* Ensure neon border works with active state */
+.text-style-neon-border-word.pyramid-word-active {
+  border-color: #39ff14;
+  box-shadow: 0 0 6px rgba(57, 255, 20, 0.8), 0 3px 10px rgba(255, 235, 59, 0.6);
+}
+
 /* Word wrapper for syllables and letters - preserves word spacing */
 /* Prevent scroll when clicking toggle buttons in sticky header */
 /**
