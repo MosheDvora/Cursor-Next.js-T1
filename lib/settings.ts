@@ -44,6 +44,7 @@ export const SETTINGS_KEYS = {
   WORD_SPACING: "word_spacing",
   LETTER_SPACING: "letter_spacing",
   FONT_SIZE: "font_size",
+  FONT_FAMILY: "font_family",
   WORD_HIGHLIGHT_PADDING: "word_highlight_padding",
   SYLLABLE_HIGHLIGHT_PADDING: "syllable_highlight_padding",
   LETTER_HIGHLIGHT_PADDING: "letter_highlight_padding",
@@ -85,6 +86,7 @@ export interface AppSettings {
   wordSpacing: number;
   letterSpacing: number;
   fontSize: number;
+  fontFamily: string;
   wordHighlightPadding: number;
   syllableHighlightPadding: number;
   letterHighlightPadding: number;
@@ -218,6 +220,7 @@ export const DEFAULT_WORD_SPACING = 12; // pixels (gap-x-3 in Tailwind)
 export const DEFAULT_LETTER_SPACING = 0; // pixels (letter-spacing)
 export const DEFAULT_TEMPERATURE = 0.2; // Default temperature for model requests
 export const DEFAULT_FONT_SIZE = 30; // pixels
+export const DEFAULT_FONT_FAMILY = "Inter"; // Default font family
 export const DEFAULT_WORD_HIGHLIGHT_PADDING = 4; // pixels
 export const DEFAULT_SYLLABLE_HIGHLIGHT_PADDING = 3; // pixels
 export const DEFAULT_LETTER_HIGHLIGHT_PADDING = 2; // pixels
@@ -284,6 +287,7 @@ export function getSettings(): AppSettings {
       wordSpacing: DEFAULT_WORD_SPACING,
       letterSpacing: DEFAULT_LETTER_SPACING,
       fontSize: DEFAULT_FONT_SIZE,
+      fontFamily: DEFAULT_FONT_FAMILY,
       wordHighlightPadding: DEFAULT_WORD_HIGHLIGHT_PADDING,
       syllableHighlightPadding: DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
       letterHighlightPadding: DEFAULT_LETTER_HIGHLIGHT_PADDING,
@@ -358,6 +362,8 @@ export function getSettings(): AppSettings {
     localStorage.getItem(SETTINGS_KEYS.FONT_SIZE) || String(DEFAULT_FONT_SIZE),
     10
   );
+  const fontFamily =
+    localStorage.getItem(SETTINGS_KEYS.FONT_FAMILY) || DEFAULT_FONT_FAMILY;
   const wordHighlightPadding = parseInt(
     localStorage.getItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING) || String(DEFAULT_WORD_HIGHLIGHT_PADDING),
     10
@@ -394,6 +400,7 @@ export function getSettings(): AppSettings {
     wordSpacing,
     letterSpacing,
     fontSize,
+    fontFamily,
     wordHighlightPadding,
     syllableHighlightPadding,
     letterHighlightPadding,
@@ -487,6 +494,10 @@ export function saveSettings(settings: Partial<AppSettings>): void {
     localStorage.setItem(SETTINGS_KEYS.FONT_SIZE, String(settings.fontSize));
   }
 
+  if (settings.fontFamily !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.FONT_FAMILY, settings.fontFamily);
+  }
+
   if (settings.wordHighlightPadding !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING, String(settings.wordHighlightPadding));
   }
@@ -545,6 +556,7 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.WORD_SPACING);
   localStorage.removeItem(SETTINGS_KEYS.LETTER_SPACING);
   localStorage.removeItem(SETTINGS_KEYS.FONT_SIZE);
+  localStorage.removeItem(SETTINGS_KEYS.FONT_FAMILY);
   localStorage.removeItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING);
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_HIGHLIGHT_PADDING);
   localStorage.removeItem(SETTINGS_KEYS.LETTER_HIGHLIGHT_PADDING);
@@ -644,6 +656,7 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       wordSpacing: serverSettings.wordSpacing || DEFAULT_WORD_SPACING,
       letterSpacing: serverSettings.letterSpacing || DEFAULT_LETTER_SPACING,
       fontSize: serverSettings.fontSize || DEFAULT_FONT_SIZE,
+      fontFamily: serverSettings.fontFamily || DEFAULT_FONT_FAMILY,
       wordHighlightPadding: serverSettings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING,
       syllableHighlightPadding: serverSettings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
       letterHighlightPadding: serverSettings.letterHighlightPadding || DEFAULT_LETTER_HIGHLIGHT_PADDING,
@@ -759,6 +772,52 @@ export async function saveWordSpacing(wordSpacing: number): Promise<void> {
 }
 
 /**
+ * Get fontFamily preference
+ * For authenticated users: prefers preferences from Supabase
+ * For unauthenticated users: uses localStorage
+ * Returns default value if neither is available
+ */
+export async function getFontFamily(): Promise<string> {
+  // Try to get from user preferences (authenticated users)
+  const isAuth = await isAuthenticatedClient();
+  if (isAuth) {
+    const preferences = await getUserPreferencesClient();
+    if (preferences?.fontFamily !== undefined) {
+      return preferences.fontFamily;
+    }
+  }
+
+  // Fallback to localStorage
+  if (typeof window !== "undefined") {
+    const saved = localStorage.getItem(SETTINGS_KEYS.FONT_FAMILY);
+    if (saved !== null) {
+      return saved;
+    }
+  }
+
+  // Return default
+  return DEFAULT_FONT_FAMILY;
+}
+
+/**
+ * Save fontFamily preference
+ * For authenticated users: saves to both Supabase preferences and localStorage
+ * For unauthenticated users: saves only to localStorage
+ */
+export async function saveFontFamily(fontFamily: string): Promise<void> {
+  // Always save to localStorage as backup
+  if (typeof window !== "undefined") {
+    localStorage.setItem(SETTINGS_KEYS.FONT_FAMILY, fontFamily);
+  }
+
+  // If authenticated, also save to Supabase preferences
+  const isAuth = await isAuthenticatedClient();
+  if (isAuth) {
+    await saveUserPreferencesClient({ fontFamily });
+  }
+}
+
+/**
  * Get app defaults from server API
  * This function fetches site-wide default values set by administrators
  * @returns Partial<AppSettings> with default values, or empty object if none exist or on error
@@ -820,6 +879,7 @@ export async function getSettingsWithDefaults(): Promise<AppSettings> {
     wordSpacing: userSettings.wordSpacing ?? (appDefaults.wordSpacing as number) ?? DEFAULT_WORD_SPACING,
     letterSpacing: userSettings.letterSpacing ?? (appDefaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING,
     fontSize: userSettings.fontSize ?? (appDefaults.fontSize as number) ?? DEFAULT_FONT_SIZE,
+    fontFamily: userSettings.fontFamily || (appDefaults.fontFamily as string) || DEFAULT_FONT_FAMILY,
     wordHighlightPadding: userSettings.wordHighlightPadding ?? (appDefaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING,
     syllableHighlightPadding: userSettings.syllableHighlightPadding ?? (appDefaults.syllableHighlightPadding as number) ?? DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
     letterHighlightPadding: userSettings.letterHighlightPadding ?? (appDefaults.letterHighlightPadding as number) ?? DEFAULT_LETTER_HIGHLIGHT_PADDING,
@@ -858,6 +918,7 @@ export async function resetToDefaults(): Promise<boolean> {
       syllableBackgroundColor: (defaults.syllableBackgroundColor as string) || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: (defaults.wordSpacing as number) ?? DEFAULT_WORD_SPACING,
       letterSpacing: (defaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING,
+      fontFamily: (defaults.fontFamily as string) || DEFAULT_FONT_FAMILY,
       wordHighlightPadding: (defaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING,
       syllableHighlightPadding: (defaults.syllableHighlightPadding as number) ?? DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
       letterHighlightPadding: (defaults.letterHighlightPadding as number) ?? DEFAULT_LETTER_HIGHLIGHT_PADDING,
@@ -869,9 +930,12 @@ export async function resetToDefaults(): Promise<boolean> {
     // Save reset values to localStorage
     saveSettings(resetValues);
 
-    // If authenticated, also save wordSpacing to preferences
+    // If authenticated, also save wordSpacing and fontFamily to preferences
     if (resetValues.wordSpacing !== undefined) {
       await saveWordSpacing(resetValues.wordSpacing);
+    }
+    if (resetValues.fontFamily !== undefined) {
+      await saveFontFamily(resetValues.fontFamily);
     }
 
     return true;

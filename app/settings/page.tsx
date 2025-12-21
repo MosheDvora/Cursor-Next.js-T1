@@ -26,6 +26,8 @@ import {
   getRawResponse,
   getWordSpacing,
   saveWordSpacing,
+  getFontFamily,
+  saveFontFamily,
   resetToDefaults,
   getAppDefaults,
   DEFAULT_MODELS,
@@ -39,6 +41,7 @@ import {
   DEFAULT_SYLLABLE_BACKGROUND_COLOR,
   DEFAULT_WORD_SPACING,
   DEFAULT_LETTER_SPACING,
+  DEFAULT_FONT_FAMILY,
   DEFAULT_WORD_HIGHLIGHT_PADDING,
   DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,
   DEFAULT_LETTER_HIGHLIGHT_PADDING,
@@ -65,6 +68,7 @@ export default function SettingsPage() {
   const [syllableBackgroundColor, setSyllableBackgroundColor] = useState(DEFAULT_SYLLABLE_BACKGROUND_COLOR);
   const [wordSpacing, setWordSpacing] = useState(DEFAULT_WORD_SPACING);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
+  const [fontFamily, setFontFamily] = useState(DEFAULT_FONT_FAMILY);
   const [wordHighlightPadding, setWordHighlightPadding] = useState(DEFAULT_WORD_HIGHLIGHT_PADDING);
   const [syllableHighlightPadding, setSyllableHighlightPadding] = useState(DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
   const [letterHighlightPadding, setLetterHighlightPadding] = useState(DEFAULT_LETTER_HIGHLIGHT_PADDING);
@@ -97,6 +101,10 @@ export default function SettingsPage() {
       const loadedWordSpacing = await getWordSpacing();
       setWordSpacing(loadedWordSpacing);
       
+      // Load fontFamily from preferences (authenticated) or localStorage (unauthenticated)
+      const loadedFontFamily = await getFontFamily();
+      setFontFamily(loadedFontFamily);
+      
       setLetterSpacing(settings.letterSpacing || DEFAULT_LETTER_SPACING);
       setWordHighlightPadding(settings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING);
       setSyllableHighlightPadding(settings.syllableHighlightPadding || DEFAULT_SYLLABLE_HIGHLIGHT_PADDING);
@@ -113,6 +121,9 @@ export default function SettingsPage() {
   const handleSave = async () => {
     // Save wordSpacing to preferences (authenticated) and localStorage (backup)
     await saveWordSpacing(wordSpacing);
+    
+    // Save fontFamily to preferences (authenticated) and localStorage (backup)
+    await saveFontFamily(fontFamily);
     
     // Save other settings to localStorage
     saveSettings({
@@ -132,6 +143,7 @@ export default function SettingsPage() {
       syllableBackgroundColor,
       wordSpacing,
       letterSpacing,
+      fontFamily,
       wordHighlightPadding,
       syllableHighlightPadding,
       letterHighlightPadding,
@@ -170,6 +182,9 @@ export default function SettingsPage() {
         
         const loadedWordSpacing = await getWordSpacing();
         setWordSpacing(loadedWordSpacing);
+        
+        const loadedFontFamily = await getFontFamily();
+        setFontFamily(loadedFontFamily);
         
         setLetterSpacing((defaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING);
         setWordHighlightPadding((defaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING);
@@ -658,6 +673,29 @@ export default function SettingsPage() {
                       />
                       <p className="text-sm text-muted-foreground text-right">
                         המרחק בין אות לאות בכל מצבי הקפיצה בפיקסלים (0-20)
+                      </p>
+                    </div>
+
+                    {/* Font Family Selection */}
+                    <div className="space-y-2">
+                      <Label htmlFor="font-family" className="text-right block text-base">
+                        פונט
+                      </Label>
+                      <Select value={fontFamily} onValueChange={setFontFamily}>
+                        <SelectTrigger id="font-family" className="text-right" dir="rtl" data-testid="settings-font-family-select">
+                          <SelectValue placeholder="בחר פונט" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Inter" className="text-right">
+                            Inter
+                          </SelectItem>
+                          <SelectItem value="Frank Ruhl Libre" className="text-right">
+                            Frank Ruhl Libre
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground text-right">
+                        בחר את הפונט שיוצג בטקסט
                       </p>
                     </div>
 

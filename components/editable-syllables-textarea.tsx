@@ -45,6 +45,7 @@ interface EditableSyllablesTextareaProps {
   className?: string;
   isEditing?: boolean;
   stylingPreset?: string;
+  fontFamily?: string;
 }
 
 /**
@@ -264,6 +265,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
   className = "",
   isEditing = true,
   stylingPreset,
+  fontFamily = "Inter",
   }, ref) {
     // Ref to the display container element
   const displayRef = useRef<HTMLDivElement>(null);
@@ -1102,6 +1104,21 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
     }, [isEditing, clearCurrentHighlight]);
 
     /**
+     * Get CSS font-family value from font name
+     * Maps font names to CSS values, including CSS variables for Next.js fonts
+     */
+    const getFontFamilyValue = (fontName: string): string => {
+      switch (fontName) {
+        case "Frank Ruhl Libre":
+          return "var(--font-frank-ruhl-libre), 'Frank Ruhl Libre', serif";
+        case "Inter":
+          return "Inter, sans-serif";
+        default:
+          return fontName;
+      }
+    };
+
+    /**
      * Render the text display with data attributes for DOM-based highlighting
      */
   const renderTextDisplay = () => {
@@ -1112,6 +1129,9 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
     const wordClassName = cn("pyramid-word-base", preset.wordClasses);
     const syllableClassName = cn("pyramid-syllable-base", preset.syllableClasses);
     const letterClassName = cn("pyramid-letter-base", preset.letterClasses);
+    
+    // Get font family CSS value
+    const fontFamilyValue = getFontFamilyValue(fontFamily);
     
     if (isEditing || !text || text.trim().length === 0) {
       return (
@@ -1126,7 +1146,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
             whiteSpace: 'pre-wrap',
             letterSpacing: `${letterSpacing}px`,
             padding: '5px 15px',
-            fontFamily: 'inherit',
+            fontFamily: fontFamilyValue,
           }}
           dir="rtl"
           disabled={disabled}
@@ -1145,7 +1165,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
           className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
           dir="rtl"
           tabIndex={0}
-          style={{ outline: "none", fontSize: `${fontSize}px` }}
+          style={{ outline: "none", fontSize: `${fontSize}px`, fontFamily: fontFamilyValue }}
           contentEditable={false}
           data-testid="text-display-area"
         >
@@ -1157,7 +1177,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                   key={lineIndex} 
                   className="pyramid-line-base mb-2" 
                   dir="rtl" 
-                  style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}
+                  style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px`, fontFamily: fontFamilyValue } as React.CSSProperties}
                 >
                 {navigationMode === "words" ? (
                   lineWords.map((word, wordIndex) => {
@@ -1251,7 +1271,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
           className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
           dir="rtl"
           tabIndex={0}
-          style={{ outline: "none", fontSize: `${fontSize}px` }}
+          style={{ outline: "none", fontSize: `${fontSize}px`, fontFamily: fontFamilyValue }}
           contentEditable={false}
           data-testid="text-display-area"
         >

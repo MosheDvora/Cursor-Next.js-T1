@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client';
  */
 export interface UserPreferences {
   wordSpacing?: number;
+  fontFamily?: string; // Font family preference (e.g., "Inter", "Frank Ruhl Libre")
   // Add more preferences here as needed
 }
 
@@ -22,6 +23,7 @@ export interface UserPreferences {
  */
 export const DEFAULT_PREFERENCES: UserPreferences = {
   wordSpacing: 12, // Default word spacing in pixels
+  fontFamily: "Inter", // Default font family
 };
 
 /**
@@ -132,6 +134,7 @@ export async function isAuthenticatedClient(): Promise<boolean> {
     return false;
   }
 }
+
 
 
 

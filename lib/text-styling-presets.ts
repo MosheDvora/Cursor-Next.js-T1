@@ -100,3 +100,4 @@ export function getAllPresets(): TextStylingPreset[] {
 export function getPresetIds(): string[] {
   return Object.keys(TEXT_STYLING_PRESETS);
 }
+

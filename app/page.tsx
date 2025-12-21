@@ -17,7 +17,7 @@ import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from "@/components/editable-syllables-textarea";
-import { getSettings, saveSettings, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
+import { getSettings, saveSettings, getFontFamily, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
 import { removeNiqqud } from "@/lib/niqqud";
 import { getAllPresets } from "@/lib/text-styling-presets";
 
@@ -44,6 +44,7 @@ export default function Home() {
   const [navigationMode, setNavigationMode] = useState<"words" | "syllables" | "letters">("words");
   const [isEditing, setIsEditing] = useState(true);
   const [selectedStylingPreset, setSelectedStylingPreset] = useState<string>("default");
+  const [fontFamily, setFontFamily] = useState<string>("Inter");
   
   /**
    * Ref to the EditableSyllablesTextarea component for imperative navigation control.
@@ -94,20 +95,28 @@ export default function Home() {
   // Load appearance settings
   useEffect(() => {
     if (mounted) {
-      const settings = getSettings();
-      setAppearanceSettings({
-        syllableBorderSize: settings.syllableBorderSize || 2,
-        syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
-        wordSpacing: settings.wordSpacing || 12,
-        letterSpacing: settings.letterSpacing || 0,
-        fontSize: settings.fontSize || DEFAULT_FONT_SIZE,
-        wordHighlightPadding: settings.wordHighlightPadding || 4,
-        syllableHighlightPadding: settings.syllableHighlightPadding || 3,
-        letterHighlightPadding: settings.letterHighlightPadding || 2,
-        wordHighlightColor: settings.wordHighlightColor || "#fff176",
-        syllableHighlightColor: settings.syllableHighlightColor || "#fff176",
-        letterHighlightColor: settings.letterHighlightColor || "#fff176",
-      });
+      const loadSettings = async () => {
+        const settings = getSettings();
+        setAppearanceSettings({
+          syllableBorderSize: settings.syllableBorderSize || 2,
+          syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
+          wordSpacing: settings.wordSpacing || 12,
+          letterSpacing: settings.letterSpacing || 0,
+          fontSize: settings.fontSize || DEFAULT_FONT_SIZE,
+          wordHighlightPadding: settings.wordHighlightPadding || 4,
+          syllableHighlightPadding: settings.syllableHighlightPadding || 3,
+          letterHighlightPadding: settings.letterHighlightPadding || 2,
+          wordHighlightColor: settings.wordHighlightColor || "#fff176",
+          syllableHighlightColor: settings.syllableHighlightColor || "#fff176",
+          letterHighlightColor: settings.letterHighlightColor || "#fff176",
+        });
+        
+        // Load fontFamily from preferences (authenticated) or localStorage (unauthenticated)
+        const loadedFontFamily = await getFontFamily();
+        setFontFamily(loadedFontFamily);
+      };
+      
+      loadSettings();
       // Note: Position is now managed internally by EditableSyllablesTextarea via refs
       // It loads from localStorage on mount and persists changes automatically
     }
@@ -780,6 +789,7 @@ export default function Home() {
               disabled={isLoading || isSyllablesLoading}
               placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
               stylingPreset={selectedStylingPreset}
+              fontFamily={fontFamily}
             />
           </div>
         </div>
