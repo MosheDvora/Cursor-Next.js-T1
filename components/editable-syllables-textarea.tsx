@@ -1111,6 +1111,8 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
       switch (fontName) {
         case "Frank Ruhl Libre":
           return "var(--font-frank-ruhl-libre), 'Frank Ruhl Libre', serif";
+        case "דנה יד":
+          return "var(--font-dana-yad), 'דנה יד', serif";
         case "Inter":
           return "Inter, sans-serif";
         default:

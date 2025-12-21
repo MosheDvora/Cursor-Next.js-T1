@@ -45,6 +45,8 @@ export default function Home() {
   const [isEditing, setIsEditing] = useState(true);
   const [selectedStylingPreset, setSelectedStylingPreset] = useState<string>("default");
   const [fontFamily, setFontFamily] = useState<string>("Inter");
+  // Local font family for dynamic selection (not saved, only for display)
+  const [localFontFamily, setLocalFontFamily] = useState<string | null>(null);
   
   /**
    * Ref to the EditableSyllablesTextarea component for imperative navigation control.
@@ -538,6 +540,39 @@ export default function Home() {
                 </Button>
               </div>
 
+              {/* Font Family Selection - Dynamic (not saved) */}
+              <div className="flex items-center gap-2">
+                <Label htmlFor="font-family-selector" className="text-right text-base">
+                  פונט:
+                </Label>
+                <Select
+                  value={localFontFamily || fontFamily}
+                  onValueChange={(value: string) => {
+                    setLocalFontFamily(value);
+                  }}
+                >
+                  <SelectTrigger 
+                    id="font-family-selector" 
+                    className="w-[180px] text-right" 
+                    dir="rtl" 
+                    data-testid="font-family-selector"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Inter" className="text-right">
+                      Inter
+                    </SelectItem>
+                    <SelectItem value="Frank Ruhl Libre" className="text-right">
+                      Frank Ruhl Libre
+                    </SelectItem>
+                    <SelectItem value="דנה יד" className="text-right">
+                      דנה יד
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* 
                 Navigation Mode Selector - "סוג קפיצה"
                 
@@ -789,7 +824,7 @@ export default function Home() {
               disabled={isLoading || isSyllablesLoading}
               placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
               stylingPreset={selectedStylingPreset}
-              fontFamily={fontFamily}
+              fontFamily={localFontFamily || fontFamily}
             />
           </div>
         </div>

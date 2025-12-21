@@ -77,6 +77,26 @@
   direction: ltr;
 }
 
+/* Font: דנה יד - פונט כתב יד עברי */
+/**
+ * הגדרת פונט "דנה יד" מ-public/fonts/
+ * הפונט מוגדר באמצעות @font-face כדי לאפשר שימוש בקבצים מתיקיית public/
+ */
+@font-face {
+  font-family: 'דנה יד';
+  src: url('/fonts/DanaYadAlefAlefAlef-Normal.woff') format('woff'),
+       url('/fonts/DanaYadAlefAlefAlef-Normal.otf') format('opentype'),
+       url('/fonts/DanaYadAlefAlefAlef-Normal.eot') format('embedded-opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* משתנה CSS לפונט דנה יד */
+:root {
+  --font-dana-yad: 'דנה יד', serif;
+}
+
 /* Pyramid visual effects - matching hebrew_reading_pyramid.html */
 /**
  * Pyramid visual effects - Base styles for navigation highlighting

@@ -692,6 +692,9 @@ export default function SettingsPage() {
                           <SelectItem value="Frank Ruhl Libre" className="text-right">
                             Frank Ruhl Libre
                           </SelectItem>
+                          <SelectItem value="דנה יד" className="text-right">
+                            דנה יד
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-sm text-muted-foreground text-right">
