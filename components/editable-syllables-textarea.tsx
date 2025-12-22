@@ -1285,7 +1285,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                 key={lineIndex} 
                 className="pyramid-line-base mb-2" 
                 dir="rtl" 
-                style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}
+                style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px`, fontFamily: fontFamilyValue } as React.CSSProperties}
               >
                 {navigationMode === "words" ? (
                   lineWords.map((word, wordIndex) => {
@@ -1409,7 +1409,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
         className={`w-full min-h-[500px] p-4 border rounded-lg bg-background text-right ${className}`}
         dir="rtl"
         tabIndex={0}
-        style={{ outline: "none", fontSize: `${fontSize}px` }}
+        style={{ outline: "none", fontSize: `${fontSize}px`, fontFamily: fontFamilyValue }}
         contentEditable={false}
         data-testid="text-display-area"
       >
@@ -1421,7 +1421,7 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                 key={lineIndex} 
                 className="pyramid-line-base mb-2" 
                 dir="rtl" 
-                style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px` } as React.CSSProperties}
+                style={{ letterSpacing: `${letterSpacing}px`, '--dynamic-word-gap': `${wordSpacing}px`, fontFamily: fontFamilyValue } as React.CSSProperties}
               >
               {navigationMode === "words" ? (
                 lineWords.map(({ wordIdx, wordEntry }) => {
