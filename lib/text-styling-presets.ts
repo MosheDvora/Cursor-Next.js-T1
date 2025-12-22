@@ -56,6 +56,25 @@ const TEXT_STYLING_PRESETS: Record<string, TextStylingPreset> = {
     syllableClasses: "",
     letterClasses: "",
   },
+  
+  /**
+   * Syllable frame preset - adds a blue frame around each syllable
+   * 
+   * This preset is independent of the navigation mode:
+   * - In words mode: shows syllable frames inside each word
+   * - In letters mode: shows syllable frames around groups of letters
+   * - In syllables mode: each syllable has a frame
+   * 
+   * This preset is only available when syllables data exists (after model processing).
+   * The availability is controlled by filtering in the preset dropdown.
+   */
+  "syllable-frame": {
+    id: "syllable-frame",
+    displayName: "מסגרת סביב הברות",
+    wordClasses: "",
+    syllableClasses: "text-style-syllable-frame",
+    letterClasses: "",
+  },
 };
 
 /**

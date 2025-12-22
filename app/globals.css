@@ -248,6 +248,39 @@
   box-shadow: 0 0 6px rgba(57, 255, 20, 0.8), 0 3px 10px rgba(255, 235, 59, 0.6);
 }
 
+/**
+ * Syllable Frame Style - adds a blue frame around each syllable
+ * 
+ * This style is applied to syllable elements independently of the navigation mode.
+ * When selected, syllable frames are shown even in words or letters navigation mode.
+ * 
+ * The style uses a blue color scheme (#3b82f6 / blue-500) with light blue background
+ * to visually distinguish syllable boundaries in the text.
+ */
+.text-style-syllable-frame {
+  display: inline-block;
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  padding: 2px 4px;
+  margin: 0 1px;
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+/* Ensure syllable frame works with hover state */
+.text-style-syllable-frame:hover {
+  border-color: #2563eb;
+  background-color: #bfdbfe;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Ensure syllable frame works with active state (when in syllables navigation mode) */
+.text-style-syllable-frame.pyramid-syllable-active {
+  border-color: #1d4ed8;
+  background-color: #93c5fd;
+  box-shadow: 0 3px 10px rgba(59, 130, 246, 0.6);
+}
+
 /* Word wrapper for syllables and letters - preserves word spacing */
 /* Prevent scroll when clicking toggle buttons in sticky header */
 /**

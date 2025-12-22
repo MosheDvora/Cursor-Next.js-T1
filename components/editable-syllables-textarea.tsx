@@ -1425,7 +1425,20 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
               >
               {navigationMode === "words" ? (
                 lineWords.map(({ wordIdx, wordEntry }) => {
-                  const wordText = wordEntry.syllables.join("");
+                  const syllables = wordEntry.syllables;
+                  const wordText = syllables.join("");
+                  
+                  /**
+                   * Words mode rendering with independent syllable styling
+                   * 
+                   * If preset has syllable classes defined, render each syllable
+                   * with its styling inside the word wrapper. This allows visual
+                   * syllable frames while navigation remains on words.
+                   * 
+                   * If no syllable classes are defined, render the word as plain text.
+                   */
+                  const hasSyllableClasses = preset.syllableClasses && preset.syllableClasses.trim().length > 0;
+                  
                   return (
                     <span
                       key={wordIdx}
@@ -1435,7 +1448,20 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                         style={{ outline: "none" }}
                         data-testid={`navigation-word-${wordIdx}`}
                     >
-                      {wordText}
+                      {hasSyllableClasses ? (
+                        // Render syllables with styling inside the word
+                        syllables.map((syllable, syllableIndex) => (
+                          <span
+                            key={`${wordIdx}-${syllableIndex}`}
+                            className={syllableClassName}
+                          >
+                            {syllable}
+                          </span>
+                        ))
+                      ) : (
+                        // Render plain text
+                        wordText
+                      )}
                     </span>
                   );
                 })
@@ -1462,9 +1488,57 @@ export const EditableSyllablesTextarea = forwardRef<EditableSyllablesTextareaRef
                   );
                 })
               ) : (
-                  // Letters mode
+                  /**
+                   * Letters mode rendering with independent syllable styling
+                   * 
+                   * If preset has syllable classes defined, render letters grouped
+                   * by syllables with syllable frame styling. Each letter is still
+                   * a separate navigation element, but wrapped in syllable frames.
+                   */
                 lineWords.map(({ wordIdx, wordEntry }) => {
                   const syllables = wordEntry.syllables;
+                  const hasSyllableClasses = preset.syllableClasses && preset.syllableClasses.trim().length > 0;
+
+                  if (hasSyllableClasses) {
+                    // Render with syllable frames around groups of letters
+                    return (
+                      <span key={wordIdx} className="pyramid-word-wrapper">
+                        {syllables.map((syllable, syllableIndex) => {
+                          const charGroups = groupLettersWithNiqqud(syllable);
+                          
+                          return (
+                            <span
+                              key={`${wordIdx}-${syllableIndex}`}
+                              className={syllableClassName}
+                            >
+                              {charGroups.map((group, groupIdx) => {
+                                if (!group.isHebrew) {
+                                  return <span key={`${wordIdx}-${syllableIndex}-${groupIdx}`}>{group.text}</span>;
+                                }
+
+                                return (
+                                  <span
+                                    key={`${wordIdx}-${syllableIndex}-${groupIdx}`}
+                                    className={letterClassName}
+                                    data-word-index={wordIdx}
+                                    data-syllable-index={syllableIndex}
+                                    data-letter-index={group.index}
+                                    data-element-type="letter"
+                                    style={{ outline: "none" }}
+                                    data-testid={`navigation-letter-${wordIdx}-${syllableIndex}-${group.index}`}
+                                  >
+                                    {group.text}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    );
+                  }
+                  
+                  // Original letters mode without syllable frames
                   const wordText = syllables.join("");
 
                   const letterPositions: Array<{ syllableIdx: number; letterIdx: number; charIndex: number }> = [];

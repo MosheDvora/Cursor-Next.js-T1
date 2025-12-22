@@ -625,6 +625,8 @@ export default function Home() {
                 - Only shown in VIEW mode (!isEditing) - hidden during editing
                 - Allows selection of different visual styling presets for text display
                 - Presets modify the appearance of words, syllables, or letters
+                - Presets with syllable styling (like "syllable-frame") are only shown
+                  when syllables data exists from the model
               */}
               {!isEditing && (
                 <>
@@ -641,11 +643,26 @@ export default function Home() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {getAllPresets().map((preset) => (
-                        <SelectItem key={preset.id} value={preset.id} className="text-right">
-                          {preset.displayName}
-                        </SelectItem>
-                      ))}
+                      {getAllPresets()
+                        .filter((preset) => {
+                          /**
+                           * Filter presets based on availability:
+                           * - "syllable-frame" preset requires syllables data from the model
+                           * - Other presets are always available
+                           * 
+                           * This ensures users don't see syllable-related styling options
+                           * until they have processed text through the syllables model.
+                           */
+                          if (preset.id === "syllable-frame") {
+                            return !!syllablesData;
+                          }
+                          return true;
+                        })
+                        .map((preset) => (
+                          <SelectItem key={preset.id} value={preset.id} className="text-right">
+                            {preset.displayName}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </>
