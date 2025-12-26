@@ -24,6 +24,7 @@ import {
   getSettings,
   saveSettings,
   getRawResponse,
+  getMorphologyRawResponse,
   getWordSpacing,
   saveWordSpacing,
   getFontFamily,
@@ -31,12 +32,15 @@ import {
   resetToDefaults,
   getAppDefaults,
   DEFAULT_MODELS,
+  OPENROUTER_MODELS,
   DEFAULT_NIQQUD_PROMPT,
   DEFAULT_NIQQUD_SYSTEM_PROMPT,
   DEFAULT_NIQQUD_USER_PROMPT,
   DEFAULT_NIQQUD_COMPLETION_SYSTEM_PROMPT,
   DEFAULT_NIQQUD_COMPLETION_USER_PROMPT,
   DEFAULT_SYLLABLES_PROMPT,
+  DEFAULT_MORPHOLOGY_PROMPT,
+  DEFAULT_MORPHOLOGY_MODEL,
   DEFAULT_SYLLABLE_BORDER_SIZE,
   DEFAULT_SYLLABLE_BACKGROUND_COLOR,
   DEFAULT_WORD_SPACING,
@@ -76,6 +80,13 @@ export default function SettingsPage() {
   const [syllableHighlightColor, setSyllableHighlightColor] = useState(DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
   const [letterHighlightColor, setLetterHighlightColor] = useState(DEFAULT_LETTER_HIGHLIGHT_COLOR);
   const [syllablesRawResponse, setSyllablesRawResponse] = useState<string | null>(null);
+  // Morphology settings state
+  const [morphologyApiKey, setMorphologyApiKey] = useState("");
+  const [morphologyUseNiqqudKey, setMorphologyUseNiqqudKey] = useState(true);
+  const [morphologyModel, setMorphologyModel] = useState(DEFAULT_MORPHOLOGY_MODEL);
+  const [morphologyPrompt, setMorphologyPrompt] = useState(DEFAULT_MORPHOLOGY_PROMPT);
+  const [morphologyTemperature, setMorphologyTemperature] = useState(DEFAULT_TEMPERATURE);
+  const [morphologyRawResponse, setMorphologyRawResponse] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [resetting, setResetting] = useState(false);
 
@@ -113,6 +124,14 @@ export default function SettingsPage() {
       setSyllableHighlightColor(settings.syllableHighlightColor || DEFAULT_SYLLABLE_HIGHLIGHT_COLOR);
       setLetterHighlightColor(settings.letterHighlightColor || DEFAULT_LETTER_HIGHLIGHT_COLOR);
       setSyllablesRawResponse(getRawResponse());
+      
+      // Load morphology settings
+      setMorphologyApiKey(settings.morphologyApiKey || "");
+      setMorphologyUseNiqqudKey(settings.morphologyUseNiqqudKey ?? true);
+      setMorphologyModel(settings.morphologyModel || DEFAULT_MORPHOLOGY_MODEL);
+      setMorphologyPrompt(settings.morphologyPrompt || DEFAULT_MORPHOLOGY_PROMPT);
+      setMorphologyTemperature(settings.morphologyTemperature || DEFAULT_TEMPERATURE);
+      setMorphologyRawResponse(getMorphologyRawResponse());
     };
     
     loadSettings();
@@ -139,6 +158,11 @@ export default function SettingsPage() {
       syllablesModel,
       syllablesPrompt,
       syllablesTemperature,
+      morphologyApiKey,
+      morphologyUseNiqqudKey,
+      morphologyModel,
+      morphologyPrompt,
+      morphologyTemperature,
       syllableBorderSize,
       syllableBackgroundColor,
       wordSpacing,
@@ -554,6 +578,145 @@ export default function SettingsPage() {
                         </div>
                         <p className="text-sm text-muted-foreground text-right">
                           התגובה הגולמית האחרונה מהמודל לחלוקה להברות
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Area 4: ניתוח מורפולוגי */}
+                <div className="space-y-6 p-6 border rounded-lg bg-card shadow-sm">
+                  <h2 className="text-2xl font-semibold text-right mb-4">
+                    ניתוח מורפולוגי
+                  </h2>
+                  <p className="text-sm text-muted-foreground text-right mb-4">
+                    הגדרות עבור ניתוח מורפולוגי מתקדם של טקסט עברי מנוקד באמצעות OpenRouter API
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Use Niqqud API Key Toggle */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="morphology-use-niqqud-key"
+                          type="checkbox"
+                          checked={morphologyUseNiqqudKey}
+                          onChange={(e) => setMorphologyUseNiqqudKey(e.target.checked)}
+                          className="h-4 w-4 rounded border-gray-300"
+                          data-testid="settings-morphology-use-niqqud-key-checkbox"
+                        />
+                        <Label htmlFor="morphology-use-niqqud-key" className="text-right text-base cursor-pointer">
+                          השתמש ב-API Key של ניקוד
+                        </Label>
+                      </div>
+                      <p className="text-sm text-muted-foreground text-right">
+                        אם מסומן, ישתמש ב-API Key שהוגדר עבור ניקוד. אחרת, תוכל להגדיר API Key נפרד.
+                      </p>
+                    </div>
+
+                    {/* API Key Input - Only shown when not using niqqud key */}
+                    {!morphologyUseNiqqudKey && (
+                      <div className="space-y-2">
+                        <Label htmlFor="morphology-api-key" className="text-right block text-base">
+                          API Key (OpenRouter)
+                        </Label>
+                        <Input
+                          id="morphology-api-key"
+                          type="text"
+                          value={morphologyApiKey}
+                          onChange={(e) => setMorphologyApiKey(e.target.value)}
+                          placeholder="הכנס את ה-API Key של OpenRouter"
+                          className="text-right font-mono"
+                          dir="rtl"
+                          data-testid="settings-morphology-api-key-input"
+                        />
+                        <p className="text-sm text-muted-foreground text-right">
+                          מפתח API מ-OpenRouter לניתוח מורפולוגי
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Model Selection */}
+                    <div className="space-y-2">
+                      <Label htmlFor="morphology-model" className="text-right block text-base">
+                        מודל שפה (OpenRouter)
+                      </Label>
+                      <Select value={morphologyModel} onValueChange={setMorphologyModel}>
+                        <SelectTrigger id="morphology-model" className="text-right" dir="rtl" data-testid="settings-morphology-model-select">
+                          <SelectValue placeholder="בחר מודל" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {OPENROUTER_MODELS.map((modelOption) => (
+                            <SelectItem
+                              key={modelOption.value}
+                              value={modelOption.value}
+                              className="text-right"
+                            >
+                              {modelOption.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground text-right">
+                        בחר את מודל השפה שישמש לניתוח מורפולוגי (דרך OpenRouter)
+                      </p>
+                    </div>
+
+                    {/* Prompt Textarea */}
+                    <div className="space-y-2">
+                      <Label htmlFor="morphology-prompt" className="text-right block text-base">
+                        פרומפט לניתוח מורפולוגי
+                      </Label>
+                      <Textarea
+                        id="morphology-prompt"
+                        value={morphologyPrompt}
+                        onChange={(e) => setMorphologyPrompt(e.target.value)}
+                        placeholder="הכנס את הפרומפט שיישלח למודל לניתוח מורפולוגי"
+                        className="text-right min-h-[200px] font-mono text-sm"
+                        dir="rtl"
+                        data-testid="settings-morphology-prompt-textarea"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        הפרומפט שיישלח למודל. השתמש ב-{"{text}"} כמקום לטקסט הקלט. הפרומפט מגדיר את מבנה ה-JSON שיוחזר.
+                      </p>
+                    </div>
+
+                    {/* Temperature Input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="morphology-temperature" className="text-right block text-base">
+                        טמפרטורה
+                      </Label>
+                      <Input
+                        id="morphology-temperature"
+                        type="number"
+                        min="0"
+                        max="2"
+                        step="0.1"
+                        value={morphologyTemperature}
+                        onChange={(e) => setMorphologyTemperature(parseFloat(e.target.value) || DEFAULT_TEMPERATURE)}
+                        placeholder="0.2"
+                        className="text-right"
+                        dir="rtl"
+                        data-testid="settings-morphology-temperature-input"
+                      />
+                      <p className="text-sm text-muted-foreground text-right">
+                        רמת היצירתיות של המודל (0-2). ערך נמוך יותר = תגובות יותר דטרמיניסטיות. ברירת מחדל: 0.2
+                      </p>
+                    </div>
+
+                    {/* Raw Response Display */}
+                    {morphologyRawResponse && (
+                      <div className="space-y-2 mt-4">
+                        <Label className="text-right block text-base">
+                          תגובת JSON מהניתוח המורפולוגי
+                        </Label>
+                        <div className="p-4 border rounded-lg bg-muted max-h-[400px] overflow-auto">
+                          <pre className="text-xs overflow-auto text-left bg-background p-3 rounded border whitespace-pre-wrap" dir="ltr" data-testid="settings-morphology-raw-response-display">
+                            {morphologyRawResponse}
+                          </pre>
+                        </div>
+                        <p className="text-sm text-muted-foreground text-right">
+                          תוצאת הניתוח המורפולוגי האחרון בפורמט JSON
                         </p>
                       </div>
                     )}

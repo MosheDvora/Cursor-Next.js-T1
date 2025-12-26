@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Scissors, Trash2, Plus, Minus, Pencil, Check } from "lucide-react";
+import { Loader2, Scissors, Trash2, Plus, Minus, Pencil, Check, Microscope, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
+import { useMorphology } from "@/hooks/use-morphology";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from "@/components/editable-syllables-textarea";
 import { getSettings, saveSettings, getFontFamily, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
@@ -85,6 +86,21 @@ export default function Home() {
     clearSyllables,
     clearError: clearSyllablesError,
   } = useSyllables(localText);
+  
+  // Morphology analysis hook
+  const {
+    results: morphologyResults,
+    rawResponse: morphologyRawResponse,
+    isLoading: isMorphologyLoading,
+    error: morphologyError,
+    analyze: analyzeMorphology,
+    clearResults: clearMorphologyResults,
+    clearError: clearMorphologyError,
+  } = useMorphology();
+  
+  // State for morphology JSON display panel
+  const [isMorphologyPanelOpen, setIsMorphologyPanelOpen] = useState(false);
+  
   const { toast } = useToast();
   const prevHasNiqqudRef = useRef(hasNiqqud);
   const prevIsSyllablesLoadingRef = useRef(isSyllablesLoading);
@@ -342,6 +358,85 @@ export default function Home() {
   }, [isSyllablesActive]);
 
   /**
+   * Handler for morphological analysis
+   * If text has no niqqud or partial niqqud, first adds complete niqqud, then analyzes
+   * The analysis is performed via OpenRouter API and returns structured JSON
+   */
+  const handleMorphologyAnalysis = async () => {
+    clearMorphologyError();
+    clearError();
+
+    try {
+      // Save the current display mode before any model operations
+      const savedDisplayMode = displayMode;
+      console.log("[handleMorphologyAnalysis] Starting morphological analysis");
+
+      let textToAnalyze: string;
+
+      // Check if text needs niqqud first
+      // If originalStatus is "none" or "partial", add complete niqqud before analysis
+      if (originalStatus === "none" || originalStatus === "partial") {
+        // Call addNiqqud() to get fully vocalized text
+        const fullNiqqudText = await addNiqqud();
+        
+        if (!fullNiqqudText) {
+          // addNiqqud failed - error will be shown by existing error handling
+          return;
+        }
+        textToAnalyze = fullNiqqudText;
+      } else {
+        // Text already has full niqqud - use it directly
+        // Priority: cache.full > cache.original (if full niqqud) > localText
+        if (cache?.full) {
+          textToAnalyze = cache.full;
+        } else if (originalStatus === "full" && cache?.original) {
+          textToAnalyze = cache.original;
+        } else {
+          textToAnalyze = localText;
+        }
+      }
+
+      console.log("[handleMorphologyAnalysis] Analyzing text:", {
+        textLength: textToAnalyze.length,
+        textPreview: textToAnalyze.substring(0, 50),
+      });
+
+      // Perform morphological analysis
+      const response = await analyzeMorphology(textToAnalyze);
+
+      if (response.success) {
+        // Open the results panel automatically
+        setIsMorphologyPanelOpen(true);
+        
+        toast({
+          title: "ניתוח מורפולוגי הושלם",
+          description: `נותחו ${response.results?.length || 0} מילים`,
+        });
+      }
+
+      // Restore the display mode after analysis
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      console.log("[handleMorphologyAnalysis] Restoring display mode to:", savedDisplayMode);
+      if (savedDisplayMode === 'original') {
+        switchToOriginal();
+      } else if (savedDisplayMode === 'clean') {
+        switchToClean();
+      } else if (savedDisplayMode === 'full') {
+        switchToFull();
+      }
+    } catch (err) {
+      toast({
+        title: "שגיאה",
+        description:
+          err instanceof Error
+            ? err.message
+            : "אירעה שגיאה בעת ניתוח מורפולוגי",
+        variant: "destructive",
+      });
+    }
+  };
+
+  /**
    * Clear all text and reset the application state
    * Uses the ref API to clear highlights without causing re-renders
    */
@@ -359,6 +454,10 @@ export default function Home() {
 
     // Clear syllables cache and state
     clearSyllables();
+
+    // Clear morphology results and cache
+    clearMorphologyResults();
+    setIsMorphologyPanelOpen(false);
 
     // Clear current position via ref API (no re-render)
     if (textareaRef.current) {
@@ -496,6 +595,34 @@ export default function Home() {
       });
     }
   }, [syllablesError, toast]);
+
+  // Show error toast for morphology when error occurs
+  useEffect(() => {
+    if (morphologyError) {
+      let errorTitle = "שגיאה בניתוח מורפולוגי";
+      let errorDescription = morphologyError;
+
+      if (morphologyError.includes("API Key")) {
+        errorTitle = "הגדרות חסרות";
+        errorDescription = "אנא הגדר API Key בהגדרות עבור ניתוח מורפולוגי";
+      } else if (morphologyError.includes("מודל")) {
+        errorTitle = "מודל לא נבחר";
+        errorDescription = "אנא בחר מודל שפה בהגדרות עבור ניתוח מורפולוגי";
+      } else if (morphologyError.includes("JSON")) {
+        errorTitle = "שגיאה בפענוח תגובה";
+        errorDescription = morphologyError;
+      } else if (morphologyError.includes("שגיאת API") || morphologyError.includes("network")) {
+        errorTitle = "שגיאת רשת";
+        errorDescription = morphologyError;
+      }
+
+      toast({
+        title: errorTitle,
+        description: errorDescription,
+        variant: "destructive",
+      });
+    }
+  }, [morphologyError, toast]);
 
   return (
     <>
@@ -692,7 +819,7 @@ export default function Home() {
             </Button>
             <Button
               onClick={handleDivideSyllables}
-              disabled={isSyllablesLoading || isLoading || !localText.trim()}
+              disabled={isSyllablesLoading || isLoading || isMorphologyLoading || !localText.trim()}
               className="gap-2 min-w-[180px]"
               variant="default"
               size="lg"
@@ -710,9 +837,30 @@ export default function Home() {
                 </>
               )}
             </Button>
+            {/* Morphology Analysis Button */}
+            <Button
+              onClick={handleMorphologyAnalysis}
+              disabled={isSyllablesLoading || isLoading || isMorphologyLoading || !localText.trim()}
+              className="gap-2 min-w-[180px]"
+              variant="secondary"
+              size="lg"
+              data-testid="morphology-analyze-button"
+            >
+              {isMorphologyLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>מנתח...</span>
+                </>
+              ) : (
+                <>
+                  <Microscope className="h-4 w-4" />
+                  <span>ניתוח מורפולוגי</span>
+                </>
+              )}
+            </Button>
             <Button
               onClick={handleClear}
-              disabled={isLoading || isSyllablesLoading || !localText.trim()}
+              disabled={isLoading || isSyllablesLoading || isMorphologyLoading || !localText.trim()}
               className="gap-2 min-w-[120px]"
               variant="destructive"
               size="lg"
@@ -838,12 +986,102 @@ export default function Home() {
               wordHighlightColor={appearanceSettings.wordHighlightColor}
               syllableHighlightColor={appearanceSettings.syllableHighlightColor}
               letterHighlightColor={appearanceSettings.letterHighlightColor}
-              disabled={isLoading || isSyllablesLoading}
+              disabled={isLoading || isSyllablesLoading || isMorphologyLoading}
               placeholder="הדבק כאן את הטקסט הראשי לצורך מניפולציות..."
               stylingPreset={selectedStylingPreset}
               fontFamily={localFontFamily || fontFamily}
             />
           </div>
+
+          {/* Morphology Results Panel - Collapsible */}
+          {morphologyRawResponse && (
+            <div className="mt-6 border rounded-lg bg-card shadow-sm overflow-hidden" data-testid="morphology-results-panel">
+              {/* Panel Header - Click to toggle */}
+              <button
+                onClick={() => setIsMorphologyPanelOpen(!isMorphologyPanelOpen)}
+                className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                data-testid="morphology-panel-toggle"
+              >
+                <div className="flex items-center gap-2">
+                  <Microscope className="h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium text-lg">תוצאות ניתוח מורפולוגי</span>
+                  {morphologyResults && (
+                    <span className="text-sm text-muted-foreground">
+                      ({morphologyResults.length} מילים)
+                    </span>
+                  )}
+                </div>
+                {isMorphologyPanelOpen ? (
+                  <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                )}
+              </button>
+
+              {/* Panel Content - JSON Display */}
+              {isMorphologyPanelOpen && (
+                <div className="border-t p-4" data-testid="morphology-json-display">
+                  {/* Summary Stats */}
+                  {morphologyResults && (
+                    <div className="mb-4 flex items-center gap-4 text-sm" dir="rtl">
+                      <span className="text-muted-foreground">
+                        סה״כ מילים: <strong>{morphologyResults.length}</strong>
+                      </span>
+                      <span className="text-green-600">
+                        תקין: <strong>{morphologyResults.filter(r => r.validation.valid).length}</strong>
+                      </span>
+                      {morphologyResults.filter(r => !r.validation.valid).length > 0 && (
+                        <span className="text-amber-600">
+                          עם אזהרות: <strong>{morphologyResults.filter(r => !r.validation.valid).length}</strong>
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Raw JSON Display */}
+                  <div className="bg-slate-900 rounded-lg p-4 max-h-[500px] overflow-auto">
+                    <pre
+                      className="text-xs text-cyan-100 font-mono whitespace-pre-wrap"
+                      dir="ltr"
+                      data-testid="morphology-raw-json"
+                    >
+                      {(() => {
+                        try {
+                          // Try to pretty-print the JSON
+                          let jsonStr = morphologyRawResponse;
+                          if (jsonStr.startsWith('```')) {
+                            jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```$/g, '').trim();
+                          }
+                          const parsed = JSON.parse(jsonStr);
+                          return JSON.stringify(parsed, null, 2);
+                        } catch {
+                          // If parsing fails, show raw response
+                          return morphologyRawResponse;
+                        }
+                      })()}
+                    </pre>
+                  </div>
+
+                  {/* Clear Results Button */}
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      onClick={() => {
+                        clearMorphologyResults();
+                        setIsMorphologyPanelOpen(false);
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      data-testid="morphology-clear-button"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      נקה תוצאות
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </main>
     </>
