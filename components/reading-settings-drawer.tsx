@@ -9,12 +9,13 @@
  * Design inspired by v2/Reading Setting Drawer/ReadingSettingsDrawer.jsx
  * 
  * Features:
- * - Floating settings button with rotation animation on hover
- * - Smooth slide-in/out drawer transition
- * - Backdrop blur overlay
+ * - Floating settings button on the right side (for RTL) with rotation animation on hover
+ * - Smooth slide-in/out drawer transition from the right
+ * - Semi-transparent backdrop overlay (no blur)
  * - Accordion-style sections for organized settings
  * - Live preview sliders for typography controls
  * - Reset to defaults functionality
+ * - onOpenChange callback to notify parent (used to hide header when drawer is open)
  */
 
 import React, { useState } from "react";
@@ -54,6 +55,8 @@ interface ReadingSettingsDrawerProps {
   onFontFamilyChange: (value: string) => void;
   /** Callback to reset all settings to defaults */
   onReset: () => void;
+  /** Callback when drawer open state changes - used to hide header */
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
 /**
@@ -132,9 +135,19 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
   onLetterSpacingChange,
   onFontFamilyChange,
   onReset,
+  onOpenChange,
 }) => {
   /** Controls drawer visibility */
   const [isOpen, setIsOpen] = useState(false);
+
+  /**
+   * Handle drawer open/close with callback to parent
+   * This allows the parent to hide the header when drawer is open
+   */
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    onOpenChange?.(open);
+  };
   
   /** Controls reset button spinning animation */
   const [isResetting, setIsResetting] = useState(false);
@@ -152,10 +165,10 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
 
   return (
     <div dir="rtl" className="relative">
-      {/* Floating Action Button - Opens the drawer */}
+      {/* Floating Action Button - Opens the drawer (positioned on right side for RTL) */}
       <button
-        onClick={() => setIsOpen(true)}
-        className="fixed top-20 left-4 p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 hover:scale-110 transition-all z-40 group"
+        onClick={() => handleOpenChange(true)}
+        className="fixed top-20 right-4 p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 hover:scale-110 transition-all z-40 group"
         aria-label="פתח הגדרות תצוגה"
         data-testid="settings-drawer-trigger"
       >
@@ -165,26 +178,26 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
         />
       </button>
 
-      {/* Backdrop Overlay - Closes drawer when clicked */}
+      {/* Backdrop Overlay - Closes drawer when clicked (no blur effect) */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity animate-in fade-in duration-200"
-          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 bg-black/20 z-40 transition-opacity animate-in fade-in duration-200"
+          onClick={() => handleOpenChange(false)}
           aria-hidden="true"
         />
       )}
 
-      {/* Drawer Panel */}
+      {/* Drawer Panel - Slides in from the right */}
       <div
-        className={`fixed inset-y-0 left-0 w-96 bg-white shadow-2xl z-50 transform ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
-        } transition-transform duration-300 ease-in-out border-r border-slate-200`}
+        className={`fixed inset-y-0 right-0 w-96 bg-white shadow-2xl z-50 transform ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        } transition-transform duration-300 ease-in-out border-l border-slate-200`}
         role="dialog"
         aria-labelledby="drawer-title"
         aria-modal="true"
       >
         {/* Drawer Header */}
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-l from-indigo-50/50 to-white sticky top-0 z-10">
+        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-indigo-50/50 to-white sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-indigo-100 rounded-lg">
               <Settings className="text-indigo-600" size={20} />
@@ -197,7 +210,7 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
             </h2>
           </div>
           <button
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleOpenChange(false)}
             className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-lg transition-colors"
             aria-label="סגור"
             data-testid="settings-drawer-close"

@@ -115,6 +115,9 @@ export default function Home() {
   // State for morphology JSON display panel
   const [isMorphologyPanelOpen, setIsMorphologyPanelOpen] = useState(false);
   
+  // State for settings drawer - used to hide header when drawer is open
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
+  
   const { toast } = useToast();
   const prevHasNiqqudRef = useRef(hasNiqqud);
   const prevIsSyllablesLoadingRef = useRef(isSyllablesLoading);
@@ -732,6 +735,7 @@ export default function Home() {
         onLetterSpacingChange={handleLetterSpacingChange}
         onFontFamilyChange={handleDrawerFontFamilyChange}
         onReset={handleDrawerReset}
+        onOpenChange={setIsSettingsDrawerOpen}
       />
       
       <main className="flex min-h-screen flex-col p-6 md:p-12">
@@ -743,7 +747,8 @@ export default function Home() {
             </h1>
           </div>
 
-          {/* Sticky Controls Bar - Always visible at top when scrolling */}
+          {/* Sticky Controls Bar - Hidden when settings drawer is open */}
+          {!isSettingsDrawerOpen && (
           <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4 py-4 -mx-6 md:-mx-12 px-6 md:px-12 border-b">
             {/* Navigation Mode Selector and Font Size Controls */}
             <div className="mb-4 flex justify-end items-center gap-3">
@@ -1065,6 +1070,7 @@ export default function Home() {
             )}
             </div>
           </div>
+          )}
 
           {/* Main text input area - unified display */}
           {/* 
