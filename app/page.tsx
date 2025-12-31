@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/select";
 
 import { Label } from "@/components/ui/label";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useMorphology } from "@/hooks/use-morphology";
@@ -736,6 +735,14 @@ export default function Home() {
         onFontFamilyChange={handleDrawerFontFamilyChange}
         onReset={handleDrawerReset}
         onOpenChange={setIsSettingsDrawerOpen}
+        // Niqqud (Reading Aids) props
+        displayMode={displayMode}
+        originalStatus={originalStatus}
+        hasFullNiqqud={!!cache?.full}
+        isEditing={isEditing}
+        onSwitchToClean={switchToClean}
+        onSwitchToOriginal={switchToOriginal}
+        onSwitchToFull={switchToFull}
       />
       
       <main className="flex min-h-screen flex-col p-6 md:p-12">
@@ -983,91 +990,9 @@ export default function Home() {
               <span>ניקוי</span>
             </Button>
             {/* 
-              Niqqud Mode Toggle Group
-              
-              Shows available options: "ללא ניקוד", "ניקוד חלקי", "ניקוד מלא"
-              - Only visible in view mode (!isEditing)
-              - "ללא ניקוד" (clean): Always visible
-              - "ניקוד חלקי" (original): Only visible if originalStatus === 'partial'
-              - "ניקוד מלא" (full): Only visible if cache?.full exists
-              
-              Disabled options are hidden instead of shown grayed out.
-              The toggle value is determined by getToggleValue() which maps
-              displayMode + originalStatus to the correct toggle option.
+              Niqqud Mode Toggle - Moved to ReadingSettingsDrawer ("עזרי קריאה" accordion)
+              The toggle controls are now accessible via the settings drawer on the right side.
             */}
-            {!isEditing && (
-              <ToggleGroup
-                type="single"
-                value={(() => {
-                  // Determine ToggleGroup value based on current display and original status
-                  if (displayMode === 'clean') return 'clean';
-                  if (displayMode === 'full') return 'full';
-                  // displayMode === 'original'
-                  if (originalStatus === 'partial') return 'original';
-                  if (originalStatus === 'full') return 'full';
-                  return 'clean';
-                })()}
-                onValueChange={(value: string) => {
-                  if (!value) return; // Prevent deselection
-                  
-                  // Store current scroll position before state changes
-                  const scrollY = window.scrollY;
-                  
-                  if (value === 'clean') {
-                    switchToClean();
-                  } else if (value === 'original') {
-                    switchToOriginal();
-                  } else if (value === 'full') {
-                    switchToFull();
-                  }
-                  
-                  // Prevent scroll by restoring position after focus change
-                  // Use multiple attempts to catch scroll at different stages
-                  requestAnimationFrame(() => {
-                    window.scrollTo({ top: scrollY, behavior: 'instant' });
-                    setTimeout(() => {
-                      window.scrollTo({ top: scrollY, behavior: 'instant' });
-                    }, 0);
-                    setTimeout(() => {
-                      window.scrollTo({ top: scrollY, behavior: 'instant' });
-                    }, 10);
-                  });
-                }}
-                className="border border-input rounded-md"
-                dir="rtl"
-                data-testid="niqqud-toggle-group"
-              >
-                <ToggleGroupItem 
-                  value="clean" 
-                  className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                  data-testid="niqqud-clean-option"
-                >
-                  ללא ניקוד
-                </ToggleGroupItem>
-                
-                {/* Only show "ניקוד חלקי" when it's available (originalStatus === 'partial') */}
-                {originalStatus === 'partial' && (
-                  <ToggleGroupItem 
-                    value="original" 
-                    className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                    data-testid="niqqud-partial-option"
-                  >
-                    ניקוד חלקי
-                  </ToggleGroupItem>
-                )}
-                
-                {/* Only show "ניקוד מלא" when it's available (cache?.full exists) */}
-                {cache?.full && (
-                  <ToggleGroupItem 
-                    value="full" 
-                    className="text-sm px-4 h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-                    data-testid="niqqud-full-option"
-                  >
-                    ניקוד מלא
-                  </ToggleGroupItem>
-                )}
-              </ToggleGroup>
-            )}
             </div>
           </div>
           )}

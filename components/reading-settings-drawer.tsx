@@ -19,7 +19,8 @@
  */
 
 import React, { useState } from "react";
-import { Settings, X, ChevronDown, Type } from "lucide-react";
+import { Settings, X, ChevronDown, Type, Sparkles } from "lucide-react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+/** Niqqud display mode type */
+type NiqqudDisplayMode = 'original' | 'clean' | 'full';
+
+/** Original text niqqud status */
+type NiqqudStatus = 'none' | 'partial' | 'full';
 
 /**
  * Props for the ReadingSettingsDrawer component
@@ -57,6 +64,22 @@ interface ReadingSettingsDrawerProps {
   onReset: () => void;
   /** Callback when drawer open state changes - used to hide header */
   onOpenChange?: (isOpen: boolean) => void;
+  
+  // ===== Niqqud (Reading Aids) Props =====
+  /** Current niqqud display mode */
+  displayMode: NiqqudDisplayMode;
+  /** Original text niqqud status - determines which options are available */
+  originalStatus: NiqqudStatus;
+  /** Whether full niqqud version is available in cache */
+  hasFullNiqqud: boolean;
+  /** Whether the text area is in editing mode - hides niqqud controls */
+  isEditing: boolean;
+  /** Callback to switch to clean (no niqqud) mode */
+  onSwitchToClean: () => void;
+  /** Callback to switch to original (partial niqqud) mode */
+  onSwitchToOriginal: () => void;
+  /** Callback to switch to full niqqud mode */
+  onSwitchToFull: () => void;
 }
 
 /**
@@ -136,6 +159,14 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
   onFontFamilyChange,
   onReset,
   onOpenChange,
+  // Niqqud (Reading Aids) props
+  displayMode,
+  originalStatus,
+  hasFullNiqqud,
+  isEditing,
+  onSwitchToClean,
+  onSwitchToOriginal,
+  onSwitchToFull,
 }) => {
   /** Controls drawer visibility */
   const [isOpen, setIsOpen] = useState(false);
@@ -147,6 +178,46 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     onOpenChange?.(open);
+  };
+
+  /**
+   * Calculate the current toggle value based on display mode and original status
+   * This maps the internal state to the UI toggle options
+   */
+  const getNiqqudToggleValue = (): string => {
+    if (displayMode === 'clean') return 'clean';
+    if (displayMode === 'full') return 'full';
+    // displayMode === 'original'
+    if (originalStatus === 'partial') return 'original';
+    if (originalStatus === 'full') return 'full';
+    return 'clean';
+  };
+
+  /**
+   * Handle niqqud toggle value change
+   * Prevents scroll jump by preserving scroll position
+   */
+  const handleNiqqudChange = (value: string) => {
+    if (!value) return; // Prevent deselection
+    
+    // Store current scroll position before state changes
+    const scrollY = window.scrollY;
+    
+    if (value === 'clean') {
+      onSwitchToClean();
+    } else if (value === 'original') {
+      onSwitchToOriginal();
+    } else if (value === 'full') {
+      onSwitchToFull();
+    }
+    
+    // Prevent scroll by restoring position after focus change
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: scrollY, behavior: 'instant' });
+      setTimeout(() => {
+        window.scrollTo({ top: scrollY, behavior: 'instant' });
+      }, 0);
+    });
   };
   
   /** Controls reset button spinning animation */
@@ -306,6 +377,88 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </details>
+
+          {/* Reading Aids Accordion Section - Niqqud Controls */}
+          <details
+            className="group border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            open
+          >
+            <summary className="flex items-center justify-between p-4 cursor-pointer bg-white hover:bg-slate-50 list-none transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-amber-50 rounded-lg">
+                  <Sparkles size={18} className="text-amber-600" />
+                </div>
+                <span className="font-semibold text-slate-700">עזרי קריאה</span>
+              </div>
+              <ChevronDown
+                size={18}
+                className="text-slate-400 group-open:rotate-180 transition-transform duration-200"
+              />
+            </summary>
+            <div className="p-4 pt-2 space-y-4 bg-slate-50/30">
+              {/* Niqqud Mode Toggle - Only visible when not editing */}
+              {!isEditing && (
+                <div className="space-y-3">
+                  <label className="text-xs font-medium text-slate-600 block">
+                    מצב ניקוד
+                  </label>
+                  <ToggleGroup
+                    type="single"
+                    value={getNiqqudToggleValue()}
+                    onValueChange={handleNiqqudChange}
+                    className="flex w-full border border-slate-200 rounded-lg bg-white p-1"
+                    dir="rtl"
+                    data-testid="drawer-niqqud-toggle-group"
+                  >
+                    {/* "ללא ניקוד" (clean) - Always visible */}
+                    <ToggleGroupItem 
+                      value="clean" 
+                      className="flex-1 text-sm py-2 rounded-md data-[state=on]:bg-indigo-600 data-[state=on]:text-white transition-all"
+                      data-testid="drawer-niqqud-clean-option"
+                    >
+                      ללא ניקוד
+                    </ToggleGroupItem>
+                    
+                    {/* "ניקוד חלקי" (original) - Only visible when originalStatus === 'partial' */}
+                    {originalStatus === 'partial' && (
+                      <ToggleGroupItem 
+                        value="original" 
+                        className="flex-1 text-sm py-2 rounded-md data-[state=on]:bg-indigo-600 data-[state=on]:text-white transition-all"
+                        data-testid="drawer-niqqud-partial-option"
+                      >
+                        ניקוד חלקי
+                      </ToggleGroupItem>
+                    )}
+                    
+                    {/* "ניקוד מלא" (full) - Only visible when full niqqud is available in cache */}
+                    {hasFullNiqqud && (
+                      <ToggleGroupItem 
+                        value="full" 
+                        className="flex-1 text-sm py-2 rounded-md data-[state=on]:bg-indigo-600 data-[state=on]:text-white transition-all"
+                        data-testid="drawer-niqqud-full-option"
+                      >
+                        ניקוד מלא
+                      </ToggleGroupItem>
+                    )}
+                  </ToggleGroup>
+                  
+                  {/* Helper text */}
+                  <p className="text-xs text-slate-500">
+                    {!hasFullNiqqud && originalStatus !== 'partial' 
+                      ? 'לחץ על "ניקוד והברות" להוספת ניקוד מלא'
+                      : 'בחר את מצב הניקוד המועדף עליך'}
+                  </p>
+                </div>
+              )}
+              
+              {/* Message when in editing mode */}
+              {isEditing && (
+                <p className="text-sm text-slate-500 text-center py-2">
+                  בקרת הניקוד זמינה רק במצב צפייה
+                </p>
+              )}
             </div>
           </details>
         </div>
