@@ -43,6 +43,7 @@ export const SETTINGS_KEYS = {
   SYLLABLE_BACKGROUND_COLOR: "syllable_background_color",
   WORD_SPACING: "word_spacing",
   LETTER_SPACING: "letter_spacing",
+  LINE_HEIGHT: "line_height",
   FONT_SIZE: "font_size",
   FONT_FAMILY: "font_family",
   WORD_HIGHLIGHT_PADDING: "word_highlight_padding",
@@ -98,6 +99,7 @@ export interface AppSettings {
   syllableBackgroundColor: string;
   wordSpacing: number;
   letterSpacing: number;
+  lineHeight: number;
   fontSize: number;
   fontFamily: string;
   wordHighlightPadding: number;
@@ -245,6 +247,7 @@ export const DEFAULT_SYLLABLE_BORDER_SIZE = 2; // pixels
 export const DEFAULT_SYLLABLE_BACKGROUND_COLOR = "#dbeafe"; // blue-50
 export const DEFAULT_WORD_SPACING = 12; // pixels (gap-x-3 in Tailwind)
 export const DEFAULT_LETTER_SPACING = 0; // pixels (letter-spacing)
+export const DEFAULT_LINE_HEIGHT = 1.8; // line-height multiplier (1.2 - 3.0)
 export const DEFAULT_TEMPERATURE = 0.2; // Default temperature for model requests
 export const DEFAULT_FONT_SIZE = 30; // pixels
 export const DEFAULT_FONT_FAMILY = "Inter"; // Default font family
@@ -386,6 +389,7 @@ export function getSettings(): AppSettings {
       syllableBackgroundColor: DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: DEFAULT_WORD_SPACING,
       letterSpacing: DEFAULT_LETTER_SPACING,
+      lineHeight: DEFAULT_LINE_HEIGHT,
       fontSize: DEFAULT_FONT_SIZE,
       fontFamily: DEFAULT_FONT_FAMILY,
       wordHighlightPadding: DEFAULT_WORD_HIGHLIGHT_PADDING,
@@ -471,6 +475,9 @@ export function getSettings(): AppSettings {
     localStorage.getItem(SETTINGS_KEYS.LETTER_SPACING) || String(DEFAULT_LETTER_SPACING),
     10
   );
+  const lineHeight = parseFloat(
+    localStorage.getItem(SETTINGS_KEYS.LINE_HEIGHT) || String(DEFAULT_LINE_HEIGHT)
+  );
   const fontSize = parseInt(
     localStorage.getItem(SETTINGS_KEYS.FONT_SIZE) || String(DEFAULT_FONT_SIZE),
     10
@@ -517,6 +524,7 @@ export function getSettings(): AppSettings {
     syllableBackgroundColor,
     wordSpacing,
     letterSpacing,
+    lineHeight,
     fontSize,
     fontFamily,
     wordHighlightPadding,
@@ -629,6 +637,10 @@ export function saveSettings(settings: Partial<AppSettings>): void {
     localStorage.setItem(SETTINGS_KEYS.LETTER_SPACING, String(settings.letterSpacing));
   }
 
+  if (settings.lineHeight !== undefined) {
+    localStorage.setItem(SETTINGS_KEYS.LINE_HEIGHT, String(settings.lineHeight));
+  }
+
   if (settings.fontSize !== undefined) {
     localStorage.setItem(SETTINGS_KEYS.FONT_SIZE, String(settings.fontSize));
   }
@@ -702,6 +714,7 @@ export function clearSettings(): void {
   localStorage.removeItem(SETTINGS_KEYS.SYLLABLE_BACKGROUND_COLOR);
   localStorage.removeItem(SETTINGS_KEYS.WORD_SPACING);
   localStorage.removeItem(SETTINGS_KEYS.LETTER_SPACING);
+  localStorage.removeItem(SETTINGS_KEYS.LINE_HEIGHT);
   localStorage.removeItem(SETTINGS_KEYS.FONT_SIZE);
   localStorage.removeItem(SETTINGS_KEYS.FONT_FAMILY);
   localStorage.removeItem(SETTINGS_KEYS.WORD_HIGHLIGHT_PADDING);
@@ -807,6 +820,7 @@ export async function fetchSettingsFromServer(): Promise<AppSettings> {
       syllableBackgroundColor: serverSettings.syllableBackgroundColor || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: serverSettings.wordSpacing || DEFAULT_WORD_SPACING,
       letterSpacing: serverSettings.letterSpacing || DEFAULT_LETTER_SPACING,
+      lineHeight: serverSettings.lineHeight || DEFAULT_LINE_HEIGHT,
       fontSize: serverSettings.fontSize || DEFAULT_FONT_SIZE,
       fontFamily: serverSettings.fontFamily || DEFAULT_FONT_FAMILY,
       wordHighlightPadding: serverSettings.wordHighlightPadding || DEFAULT_WORD_HIGHLIGHT_PADDING,
@@ -1057,6 +1071,7 @@ export async function getSettingsWithDefaults(): Promise<AppSettings> {
     syllableBackgroundColor: userSettings.syllableBackgroundColor || (appDefaults.syllableBackgroundColor as string) || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
     wordSpacing: userSettings.wordSpacing ?? (appDefaults.wordSpacing as number) ?? DEFAULT_WORD_SPACING,
     letterSpacing: userSettings.letterSpacing ?? (appDefaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING,
+    lineHeight: userSettings.lineHeight ?? (appDefaults.lineHeight as number) ?? DEFAULT_LINE_HEIGHT,
     fontSize: userSettings.fontSize ?? (appDefaults.fontSize as number) ?? DEFAULT_FONT_SIZE,
     fontFamily: userSettings.fontFamily || (appDefaults.fontFamily as string) || DEFAULT_FONT_FAMILY,
     wordHighlightPadding: userSettings.wordHighlightPadding ?? (appDefaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING,
@@ -1097,6 +1112,7 @@ export async function resetToDefaults(): Promise<boolean> {
       syllableBackgroundColor: (defaults.syllableBackgroundColor as string) || DEFAULT_SYLLABLE_BACKGROUND_COLOR,
       wordSpacing: (defaults.wordSpacing as number) ?? DEFAULT_WORD_SPACING,
       letterSpacing: (defaults.letterSpacing as number) ?? DEFAULT_LETTER_SPACING,
+      lineHeight: (defaults.lineHeight as number) ?? DEFAULT_LINE_HEIGHT,
       fontFamily: (defaults.fontFamily as string) || DEFAULT_FONT_FAMILY,
       wordHighlightPadding: (defaults.wordHighlightPadding as number) ?? DEFAULT_WORD_HIGHLIGHT_PADDING,
       syllableHighlightPadding: (defaults.syllableHighlightPadding as number) ?? DEFAULT_SYLLABLE_HIGHLIGHT_PADDING,

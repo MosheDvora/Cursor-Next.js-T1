@@ -97,6 +97,7 @@ export function getUserSettings(userId: string): AppSettings | null {
       syllableBackgroundColor: "#dbeafe",
       wordSpacing: 12,
       letterSpacing: 0,
+      lineHeight: 1.8,
       fontSize: 30,
       fontFamily: row.fontFamily || "Inter",
       wordHighlightPadding: 4,

@@ -48,6 +48,7 @@ const SETTINGS_KEY_MAP: Record<keyof AppSettings, string> = {
   syllableBackgroundColor: 'syllable_background_color',
   wordSpacing: 'word_spacing',
   letterSpacing: 'letter_spacing',
+  lineHeight: 'line_height',
   fontSize: 'font_size',
   fontFamily: 'font_family',
   wordHighlightPadding: 'word_highlight_padding',

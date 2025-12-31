@@ -178,6 +178,7 @@ export async function PUT(request: NextRequest) {
       syllableBackgroundColor: baseSettings?.syllableBackgroundColor || "#dbeafe",
       wordSpacing: finalWordSpacing,
       letterSpacing: baseSettings?.letterSpacing || 0,
+      lineHeight: baseSettings?.lineHeight || 1.8,
       fontSize: baseSettings?.fontSize || 30,
       fontFamily: baseSettings?.fontFamily || "Inter",
       wordHighlightPadding: baseSettings?.wordHighlightPadding || 4,

@@ -18,7 +18,20 @@ import { useSyllables } from "@/hooks/use-syllables";
 import { useMorphology } from "@/hooks/use-morphology";
 import { useToast } from "@/hooks/use-toast";
 import { EditableSyllablesTextarea, EditableSyllablesTextareaRef } from "@/components/editable-syllables-textarea";
-import { getSettings, saveSettings, getFontFamily, DEFAULT_FONT_SIZE, SETTINGS_KEYS } from "@/lib/settings";
+import { ReadingSettingsDrawer } from "@/components/reading-settings-drawer";
+import { 
+  getSettings, 
+  saveSettings, 
+  getFontFamily, 
+  saveFontFamily,
+  saveWordSpacing,
+  DEFAULT_FONT_SIZE, 
+  DEFAULT_LINE_HEIGHT,
+  DEFAULT_WORD_SPACING,
+  DEFAULT_LETTER_SPACING,
+  DEFAULT_FONT_FAMILY,
+  SETTINGS_KEYS 
+} from "@/lib/settings";
 import { removeNiqqud } from "@/lib/niqqud";
 import { getAllPresets } from "@/lib/text-styling-presets";
 
@@ -32,8 +45,9 @@ export default function Home() {
   const [appearanceSettings, setAppearanceSettings] = useState({
     syllableBorderSize: 2,
     syllableBackgroundColor: "#dbeafe",
-    wordSpacing: 12,
-    letterSpacing: 0,
+    wordSpacing: DEFAULT_WORD_SPACING,
+    letterSpacing: DEFAULT_LETTER_SPACING,
+    lineHeight: DEFAULT_LINE_HEIGHT,
     fontSize: DEFAULT_FONT_SIZE,
     wordHighlightPadding: 4,
     syllableHighlightPadding: 3,
@@ -118,9 +132,10 @@ export default function Home() {
         setAppearanceSettings({
           syllableBorderSize: settings.syllableBorderSize || 2,
           syllableBackgroundColor: settings.syllableBackgroundColor || "#dbeafe",
-          wordSpacing: settings.wordSpacing || 12,
-          letterSpacing: settings.letterSpacing || 0,
-          fontSize: settings.fontSize || DEFAULT_FONT_SIZE,
+          wordSpacing: settings.wordSpacing ?? DEFAULT_WORD_SPACING,
+          letterSpacing: settings.letterSpacing ?? DEFAULT_LETTER_SPACING,
+          lineHeight: settings.lineHeight ?? DEFAULT_LINE_HEIGHT,
+          fontSize: settings.fontSize ?? DEFAULT_FONT_SIZE,
           wordHighlightPadding: settings.wordHighlightPadding || 4,
           syllableHighlightPadding: settings.syllableHighlightPadding || 3,
           letterHighlightPadding: settings.letterHighlightPadding || 2,
@@ -480,6 +495,84 @@ export default function Home() {
     saveSettings({ fontSize: newSize });
   };
 
+  /**
+   * Handler for drawer font size slider
+   * Updates state and persists to settings
+   */
+  const handleDrawerFontSizeChange = (value: number) => {
+    setAppearanceSettings((prev) => ({ ...prev, fontSize: value }));
+    saveSettings({ fontSize: value });
+  };
+
+  /**
+   * Handler for drawer word spacing slider
+   * Updates state and persists to settings (with Supabase sync for authenticated users)
+   */
+  const handleWordSpacingChange = async (value: number) => {
+    setAppearanceSettings((prev) => ({ ...prev, wordSpacing: value }));
+    await saveWordSpacing(value);
+  };
+
+  /**
+   * Handler for drawer line height slider
+   * Updates state and persists to settings
+   */
+  const handleLineHeightChange = (value: number) => {
+    setAppearanceSettings((prev) => ({ ...prev, lineHeight: value }));
+    saveSettings({ lineHeight: value });
+  };
+
+  /**
+   * Handler for drawer letter spacing slider
+   * Updates state and persists to settings
+   */
+  const handleLetterSpacingChange = (value: number) => {
+    setAppearanceSettings((prev) => ({ ...prev, letterSpacing: value }));
+    saveSettings({ letterSpacing: value });
+  };
+
+  /**
+   * Handler for drawer font family selection
+   * Updates state and persists to settings (with Supabase sync for authenticated users)
+   */
+  const handleDrawerFontFamilyChange = async (value: string) => {
+    setFontFamily(value);
+    setLocalFontFamily(value);
+    await saveFontFamily(value);
+  };
+
+  /**
+   * Handler for drawer reset button
+   * Resets all typography settings to defaults
+   */
+  const handleDrawerReset = () => {
+    // Reset all typography settings to defaults
+    setAppearanceSettings((prev) => ({
+      ...prev,
+      fontSize: DEFAULT_FONT_SIZE,
+      wordSpacing: DEFAULT_WORD_SPACING,
+      lineHeight: DEFAULT_LINE_HEIGHT,
+      letterSpacing: DEFAULT_LETTER_SPACING,
+    }));
+    setFontFamily(DEFAULT_FONT_FAMILY);
+    setLocalFontFamily(DEFAULT_FONT_FAMILY);
+    
+    // Persist to settings
+    saveSettings({
+      fontSize: DEFAULT_FONT_SIZE,
+      wordSpacing: DEFAULT_WORD_SPACING,
+      lineHeight: DEFAULT_LINE_HEIGHT,
+      letterSpacing: DEFAULT_LETTER_SPACING,
+    });
+    saveFontFamily(DEFAULT_FONT_FAMILY);
+    saveWordSpacing(DEFAULT_WORD_SPACING);
+    
+    toast({
+      title: "איפוס הושלם",
+      description: "הגדרות התצוגה אופסו לברירת מחדל",
+    });
+  };
+
   // Show success toast only when state actually changes successfully
   useEffect(() => {
     // Only show success toast if:
@@ -626,6 +719,21 @@ export default function Home() {
 
   return (
     <>
+      {/* Reading Settings Drawer - Floating settings panel */}
+      <ReadingSettingsDrawer
+        fontSize={appearanceSettings.fontSize}
+        wordSpacing={appearanceSettings.wordSpacing}
+        lineHeight={appearanceSettings.lineHeight}
+        letterSpacing={appearanceSettings.letterSpacing}
+        fontFamily={localFontFamily || fontFamily}
+        onFontSizeChange={handleDrawerFontSizeChange}
+        onWordSpacingChange={handleWordSpacingChange}
+        onLineHeightChange={handleLineHeightChange}
+        onLetterSpacingChange={handleLetterSpacingChange}
+        onFontFamilyChange={handleDrawerFontFamilyChange}
+        onReset={handleDrawerReset}
+      />
+      
       <main className="flex min-h-screen flex-col p-6 md:p-12">
         <div className="w-full max-w-6xl mx-auto">
           {/* Title */}
