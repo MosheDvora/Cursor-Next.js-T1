@@ -1,17 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Scissors, Trash2, Plus, Minus, Pencil, Check, Microscope, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Scissors, Trash2, Pencil, Check, Microscope, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-import { Label } from "@/components/ui/label";
 import { useNiqqud } from "@/hooks/use-niqqud";
 import { useSyllables } from "@/hooks/use-syllables";
 import { useMorphology } from "@/hooks/use-morphology";
@@ -35,8 +26,6 @@ import { removeNiqqud } from "@/lib/niqqud";
 import { getAllPresets } from "@/lib/text-styling-presets";
 
 const MAIN_TEXT_STORAGE_KEY = "main_text_field";
-const MIN_FONT_SIZE = 12;
-const MAX_FONT_SIZE = 32;
 
 export default function Home() {
   const [localText, setLocalText] = useState("");
@@ -491,12 +480,6 @@ export default function Home() {
     });
   };
 
-  const handleFontSizeChange = (delta: number) => {
-    const newSize = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, appearanceSettings.fontSize + delta));
-    setAppearanceSettings((prev) => ({ ...prev, fontSize: newSize }));
-    saveSettings({ fontSize: newSize });
-  };
-
   /**
    * Handler for drawer font size slider
    * Updates state and persists to settings
@@ -546,8 +529,11 @@ export default function Home() {
   /**
    * Handler for drawer reset button
    * Resets all typography settings to defaults
+   * 
+   * Note: This function is async to properly await Supabase persistence
+   * for authenticated users. Without awaiting, settings may not be fully synced.
    */
-  const handleDrawerReset = () => {
+  const handleDrawerReset = async () => {
     // Reset all typography settings to defaults
     setAppearanceSettings((prev) => ({
       ...prev,
@@ -559,15 +545,15 @@ export default function Home() {
     setFontFamily(DEFAULT_FONT_FAMILY);
     setLocalFontFamily(DEFAULT_FONT_FAMILY);
     
-    // Persist to settings
+    // Persist to settings (await async operations for Supabase sync)
     saveSettings({
       fontSize: DEFAULT_FONT_SIZE,
       wordSpacing: DEFAULT_WORD_SPACING,
       lineHeight: DEFAULT_LINE_HEIGHT,
       letterSpacing: DEFAULT_LETTER_SPACING,
     });
-    saveFontFamily(DEFAULT_FONT_FAMILY);
-    saveWordSpacing(DEFAULT_WORD_SPACING);
+    await saveFontFamily(DEFAULT_FONT_FAMILY);
+    await saveWordSpacing(DEFAULT_WORD_SPACING);
     
     toast({
       title: "איפוס הושלם",
@@ -743,6 +729,20 @@ export default function Home() {
         onSwitchToClean={switchToClean}
         onSwitchToOriginal={switchToOriginal}
         onSwitchToFull={switchToFull}
+        // Navigation Mode props
+        navigationMode={navigationMode}
+        hasSyllablesData={!!syllablesData}
+        onNavigationModeChange={setNavigationMode}
+        // Styling Preset props
+        selectedStylingPreset={selectedStylingPreset}
+        stylingPresets={getAllPresets().filter((preset) => {
+          // Filter presets: syllable-frame requires syllables data
+          if (preset.id === "syllable-frame") {
+            return !!syllablesData;
+          }
+          return true;
+        }).map(p => ({ id: p.id, displayName: p.displayName }))}
+        onStylingPresetChange={setSelectedStylingPreset}
       />
       
       <main className="flex min-h-screen flex-col p-6 md:p-12">
@@ -757,163 +757,27 @@ export default function Home() {
           {/* Sticky Controls Bar - Hidden when settings drawer is open */}
           {!isSettingsDrawerOpen && (
           <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4 py-4 -mx-6 md:-mx-12 px-6 md:px-12 border-b">
-            {/* Navigation Mode Selector and Font Size Controls */}
+            {/* Controls Row */}
             <div className="mb-4 flex justify-end items-center gap-3">
-              {/* Font Size Controls */}
-              <div className="flex items-center gap-2">
-                <Label className="text-right text-base">גודל פונט:</Label>
-                <Button
-                  onClick={() => handleFontSizeChange(-1)}
-                  disabled={appearanceSettings.fontSize <= MIN_FONT_SIZE}
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  data-testid="font-size-decrease-button"
-                >
-                  <Minus className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-medium min-w-[2rem] text-center" data-testid="font-size-display">
-                  {appearanceSettings.fontSize}px
-                </span>
-                <Button
-                  onClick={() => handleFontSizeChange(1)}
-                  disabled={appearanceSettings.fontSize >= MAX_FONT_SIZE}
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  data-testid="font-size-increase-button"
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Font Family Selection - Dynamic (not saved) */}
-              <div className="flex items-center gap-2">
-                <Label htmlFor="font-family-selector" className="text-right text-base">
-                  פונט:
-                </Label>
-                <Select
-                  value={localFontFamily || fontFamily}
-                  onValueChange={(value: string) => {
-                    setLocalFontFamily(value);
-                  }}
-                >
-                  <SelectTrigger 
-                    id="font-family-selector" 
-                    className="w-[180px] text-right" 
-                    dir="rtl" 
-                    data-testid="font-family-selector"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Inter" className="text-right">
-                      Inter
-                    </SelectItem>
-                    <SelectItem value="Frank Ruhl Libre" className="text-right">
-                      Frank Ruhl Libre
-                    </SelectItem>
-                    <SelectItem value="דנה יד" className="text-right">
-                      דנה יד
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               {/* 
-                Navigation Mode Selector - "סוג קפיצה"
-                
-                Behavior:
-                - Only shown in VIEW mode (!isEditing) - hidden during editing
-                - "מילים" (words) and "אותיות" (letters) are ALWAYS available
-                - "הברות" (syllables) is shown ONLY when syllablesData exists in memory
-                
-                The useSyllables hook now persists syllablesData when niqqud is toggled
-                by storing cache for both niqqud and clean text versions.
-                This ensures syllables option remains available after adding/removing niqqud.
+                Font Size Controls - Moved to ReadingSettingsDrawer
+                The control is now accessible via the settings drawer under "טיפוגרפיה" accordion.
               */}
-              {!isEditing && (
-                <>
-                  <Label htmlFor="navigation-mode" className="text-right text-base">
-                    סוג קפיצה:
-                  </Label>
-                  <Select
-                    value={navigationMode}
-                    onValueChange={(value: "words" | "syllables" | "letters") => {
-                      // Guard: Prevent selecting "syllables" if no syllables data exists
-                      // This prevents navigation errors when syllables haven't been divided yet
-                      if (value === "syllables" && !syllablesData) {
-                        return;
-                      }
-                      setNavigationMode(value);
-                    }}
-                  >
-                    <SelectTrigger id="navigation-mode" className="w-[180px] text-right" dir="rtl" data-testid="navigation-mode-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Words option - always available */}
-                      <SelectItem value="words" className="text-right">מילים</SelectItem>
-                      {/* Syllables option - only shown when syllables data exists in memory from model */}
-                      {syllablesData && (
-                        <SelectItem value="syllables" className="text-right">הברות</SelectItem>
-                      )}
-                      {/* Letters option - always available */}
-                      <SelectItem value="letters" className="text-right">אותיות</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
               
               {/* 
-                Text Styling Preset Selector - "סגנון עיצוב"
-                
-                Behavior:
-                - Only shown in VIEW mode (!isEditing) - hidden during editing
-                - Allows selection of different visual styling presets for text display
-                - Presets modify the appearance of words, syllables, or letters
-                - Presets with syllable styling (like "syllable-frame") are only shown
-                  when syllables data exists from the model
+                Font Family Selection - Moved to ReadingSettingsDrawer
+                The control is now accessible via the settings drawer under "טיפוגרפיה" accordion.
               */}
-              {!isEditing && (
-                <>
-                  <Label htmlFor="styling-preset" className="text-right text-base">
-                    סגנון עיצוב:
-                  </Label>
-                  <Select
-                    value={selectedStylingPreset}
-                    onValueChange={(value: string) => {
-                      setSelectedStylingPreset(value);
-                    }}
-                  >
-                    <SelectTrigger id="styling-preset" className="w-[180px] text-right" dir="rtl" data-testid="styling-preset-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {getAllPresets()
-                        .filter((preset) => {
-                          /**
-                           * Filter presets based on availability:
-                           * - "syllable-frame" preset requires syllables data from the model
-                           * - Other presets are always available
-                           * 
-                           * This ensures users don't see syllable-related styling options
-                           * until they have processed text through the syllables model.
-                           */
-                          if (preset.id === "syllable-frame") {
-                            return !!syllablesData;
-                          }
-                          return true;
-                        })
-                        .map((preset) => (
-                          <SelectItem key={preset.id} value={preset.id} className="text-right">
-                            {preset.displayName}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
+
+              {/* 
+                Navigation Mode Selector - "סוג קפיצה" - Moved to ReadingSettingsDrawer
+                The control is now accessible via the settings drawer under "עזרי קריאה" accordion.
+              */}
+              
+              {/* 
+                Text Styling Preset Selector - "סגנון עיצוב" - Moved to ReadingSettingsDrawer
+                The control is now accessible via the settings drawer under "עיצוב" accordion.
+              */}
             </div>
 
             {/* Action Buttons */}

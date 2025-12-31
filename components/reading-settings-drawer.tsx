@@ -19,7 +19,7 @@
  */
 
 import React, { useState } from "react";
-import { Settings, X, ChevronDown, Type, Sparkles } from "lucide-react";
+import { Settings, X, ChevronDown, Type, Sparkles, Navigation, Palette } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Select,
@@ -80,6 +80,22 @@ interface ReadingSettingsDrawerProps {
   onSwitchToOriginal: () => void;
   /** Callback to switch to full niqqud mode */
   onSwitchToFull: () => void;
+  
+  // ===== Navigation Mode Props =====
+  /** Current navigation mode (words, syllables, letters) */
+  navigationMode: "words" | "syllables" | "letters";
+  /** Whether syllables data is available (enables syllables option) */
+  hasSyllablesData: boolean;
+  /** Callback when navigation mode changes */
+  onNavigationModeChange: (value: "words" | "syllables" | "letters") => void;
+  
+  // ===== Styling Preset Props =====
+  /** Currently selected styling preset ID */
+  selectedStylingPreset: string;
+  /** Available styling presets (filtered based on syllables availability) */
+  stylingPresets: Array<{ id: string; displayName: string }>;
+  /** Callback when styling preset changes */
+  onStylingPresetChange: (value: string) => void;
 }
 
 /**
@@ -167,6 +183,14 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
   onSwitchToClean,
   onSwitchToOriginal,
   onSwitchToFull,
+  // Navigation Mode props
+  navigationMode,
+  hasSyllablesData,
+  onNavigationModeChange,
+  // Styling Preset props
+  selectedStylingPreset,
+  stylingPresets,
+  onStylingPresetChange,
 }) => {
   /** Controls drawer visibility */
   const [isOpen, setIsOpen] = useState(false);
@@ -456,7 +480,108 @@ export const ReadingSettingsDrawer: React.FC<ReadingSettingsDrawerProps> = ({
               {/* Message when in editing mode */}
               {isEditing && (
                 <p className="text-sm text-slate-500 text-center py-2">
-                  בקרת הניקוד זמינה רק במצב צפייה
+                  בקרות אלו זמינות רק במצב צפייה
+                </p>
+              )}
+              
+              {/* Navigation Mode Selection - Only visible when not editing */}
+              {!isEditing && (
+                <div className="space-y-3 pt-2 border-t border-slate-200">
+                  <div className="flex items-center gap-2">
+                    <Navigation size={14} className="text-slate-500" />
+                    <label className="text-xs font-medium text-slate-600">
+                      סוג קפיצה
+                    </label>
+                  </div>
+                  <Select 
+                    value={navigationMode} 
+                    onValueChange={(value: "words" | "syllables" | "letters") => {
+                      // Guard: Prevent selecting "syllables" if no syllables data exists
+                      if (value === "syllables" && !hasSyllablesData) {
+                        return;
+                      }
+                      onNavigationModeChange(value);
+                    }}
+                  >
+                    <SelectTrigger
+                      className="w-full text-right bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      dir="rtl"
+                      data-testid="drawer-navigation-mode-select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {/* Words option - always available */}
+                      <SelectItem value="words" className="text-right">מילים</SelectItem>
+                      {/* Syllables option - only shown when syllables data exists */}
+                      {hasSyllablesData && (
+                        <SelectItem value="syllables" className="text-right">הברות</SelectItem>
+                      )}
+                      {/* Letters option - always available */}
+                      <SelectItem value="letters" className="text-right">אותיות</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    בחר את יחידת הניווט בזמן קריאה
+                  </p>
+                </div>
+              )}
+            </div>
+          </details>
+
+          {/* Styling Accordion Section - Text Display Styling Presets */}
+          <details
+            className="group border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+            open
+          >
+            <summary className="flex items-center justify-between p-4 cursor-pointer bg-white hover:bg-slate-50 list-none transition-colors">
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-pink-50 rounded-lg">
+                  <Palette size={18} className="text-pink-600" />
+                </div>
+                <span className="font-semibold text-slate-700">עיצוב</span>
+              </div>
+              <ChevronDown
+                size={18}
+                className="text-slate-400 group-open:rotate-180 transition-transform duration-200"
+              />
+            </summary>
+            <div className="p-4 pt-2 space-y-4 bg-slate-50/30">
+              {/* Styling Preset Selection - Only visible when not editing */}
+              {!isEditing && (
+                <div className="space-y-3">
+                  <label className="text-xs font-medium text-slate-600 block">
+                    סגנון עיצוב
+                  </label>
+                  <Select 
+                    value={selectedStylingPreset} 
+                    onValueChange={onStylingPresetChange}
+                  >
+                    <SelectTrigger
+                      className="w-full text-right bg-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      dir="rtl"
+                      data-testid="drawer-styling-preset-select"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {stylingPresets.map((preset) => (
+                        <SelectItem key={preset.id} value={preset.id} className="text-right">
+                          {preset.displayName}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500">
+                    בחר את סגנון העיצוב להצגת הטקסט
+                  </p>
+                </div>
+              )}
+              
+              {/* Message when in editing mode */}
+              {isEditing && (
+                <p className="text-sm text-slate-500 text-center py-2">
+                  סגנון עיצוב זמין רק במצב צפייה
                 </p>
               )}
             </div>
